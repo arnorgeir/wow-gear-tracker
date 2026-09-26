@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { createCharacterSyncer, isStale } from './character-sync';
-import { getCharacter, getLatestSnapshot, insertCharacter } from '../db/queries';
+import { gearToSnapshotItems, getCharacter, getLatestSnapshot, insertCharacter, saveSnapshotIfChanged } from '../db/queries';
 import { HttpError } from '../http';
 import type { BlizzardClient, CharacterProfile } from '../blizzard/client';
 import type { GearItem } from '../types';
@@ -101,6 +101,15 @@ describe('createCharacterSyncer', () => {
     const { db, id, syncer } = await setup({ getEquipment: async () => broken });
     await expect(syncer.sync(id)).rejects.toThrow();
     expect((await getCharacter(db, id))?.lastSyncedAt).toBeNull();
+  });
+
+  it('keeps a newer SimC paste when Blizzard still has the same gear', async () => {
+    const { db, id, syncer, advance } = await setup();
+    await syncer.sync(id);
+    advance(1000);
+    await saveSnapshotIfChanged(db, id, 'simc', gearToSnapshotItems(gear), 1_001_000, [{ kind: 'upgrade', currencyId: 3446, quantity: 85 }]);
+    expect(await syncer.sync(id, { force: true })).toBe('unchanged');
+    expect((await getLatestSnapshot(db, id))?.source).toBe('simc');
   });
 
   it('throws for an unknown character ID', async () => {

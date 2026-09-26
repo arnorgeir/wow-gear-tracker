@@ -40,6 +40,14 @@ export const snapshotItems = sqliteTable('snapshot_items', {
   isTier: integer('is_tier', { mode: 'boolean' }).notNull(),
 }, (t) => [index('snapshot_items_snapshot').on(t.snapshotId)]);
 
+export const snapshotCurrencies = sqliteTable('snapshot_currencies', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  snapshotId: integer('snapshot_id').notNull().references(() => gearSnapshots.id, { onDelete: 'cascade' }),
+  kind: text('kind').$type<'upgrade' | 'catalyst'>().notNull(),
+  currencyId: integer('currency_id').notNull(),
+  quantity: integer('quantity').notNull(),
+}, (t) => [index('snapshot_currencies_snapshot').on(t.snapshotId)]);
+
 export const bisLists = sqliteTable('bis_lists', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   specSlug: text('spec_slug').notNull(),

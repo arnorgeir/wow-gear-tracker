@@ -140,3 +140,52 @@ describe('file database', () => {
     expect((await getTrackMap(db)).size).toBe(3000);
   });
 });
+
+describe('snapshot sources', () => {
+  const bagBelt = { location: 'bag' as const, slot: 'WAIST', itemId: 9, name: 'Belt', itemLevel: 300, quality: 'EPIC' as const, bonusIds: [], isTier: false };
+  const crests = [{ kind: 'upgrade' as const, currencyId: 3446, quantity: 85 }];
+
+  it('keeps a newer SimC paste current until Blizzard’s own data changes', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    const blizzardGear = gearToSnapshotItems(gear);
+    await saveSnapshotIfChanged(db, id, 'blizzard', blizzardGear, 10);
+    const paste = await saveSnapshotIfChanged(db, id, 'simc', [...blizzardGear, bagBelt], 20, crests);
+    expect(paste.changed).toBe(true);
+
+    expect(await saveSnapshotIfChanged(db, id, 'blizzard', blizzardGear, 30)).toMatchObject({ changed: false });
+    expect((await getLatestSnapshot(db, id))?.source).toBe('simc');
+
+    const upgraded = gearToSnapshotItems(gear.map((g) => (g.slot === 'NECK' ? { ...g, itemLevel: 330 } : g)));
+    expect(await saveSnapshotIfChanged(db, id, 'blizzard', upgraded, 40)).toMatchObject({ changed: true });
+    expect((await getLatestSnapshot(db, id))?.source).toBe('blizzard');
+  });
+
+  it('makes a repeated paste current again after Blizzard took over', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    const pasted = [...gearToSnapshotItems(gear), bagBelt];
+    await saveSnapshotIfChanged(db, id, 'simc', pasted, 10, crests);
+    await saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(gear), 20);
+    expect(await saveSnapshotIfChanged(db, id, 'simc', pasted, 30, crests)).toMatchObject({ changed: true });
+    expect(await saveSnapshotIfChanged(db, id, 'simc', pasted, 40, crests)).toMatchObject({ changed: false });
+  });
+
+  it('stores currencies and reads the latest snapshot of one source', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    await saveSnapshotIfChanged(db, id, 'simc', gearToSnapshotItems(gear), 10, crests);
+    await saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(gear.slice(0, 1)), 20);
+    const simc = await getLatestSnapshot(db, id, 'simc');
+    expect(simc).toMatchObject({ source: 'simc', createdAt: 10, currencies: crests });
+    expect((await getLatestSnapshot(db, id))?.currencies).toEqual([]);
+  });
+
+  it('treats a change in crests alone as a new paste', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    await saveSnapshotIfChanged(db, id, 'simc', gearToSnapshotItems(gear), 10, crests);
+    const more = [{ kind: 'upgrade' as const, currencyId: 3446, quantity: 105 }];
+    expect(await saveSnapshotIfChanged(db, id, 'simc', gearToSnapshotItems(gear), 20, more)).toMatchObject({ changed: true });
+  });
+});
