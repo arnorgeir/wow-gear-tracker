@@ -1,9 +1,15 @@
+import type { Db } from '@/core/db/client';
+import {
+  equippedGear, getCharacter, getLatestSnapshot, listCharacters, type CharacterRow, type Snapshot, type SnapshotItemInput,
+} from '@/core/db/queries';
+import { affordableUpgrade, crestCostsByGroup, summarizeCrests, type CrestBalance, type CrestCost, type UpgradeOption } from '@/core/gear/crests';
 import { countStates, evaluateGear, type GearRow } from '@/core/gear/evaluate';
-import { equippedGear, getCharacter, getLatestSnapshot, listCharacters, type CharacterRow } from '@/core/db/queries';
 import { methodSpecSlug } from '@/core/method/method';
-import { trackLabel } from '@/core/raidbots/tracks';
+import { decodeTrack, trackLabel } from '@/core/raidbots/tracks';
 import { ensureBisLists, ensureItemIcons, ensureTracks, type BisResult } from '@/core/sync/reference-sync';
-import { LIST_TYPES, type ItemState, type ListType, type Quality, type Region, type SlotType, type SnapshotSource } from '@/core/types';
+import {
+  LIST_TYPES, type GearItem, type ItemState, type ListType, type Quality, type Region, type SlotType, type SnapshotSource, type Track,
+} from '@/core/types';
 import type { Services } from './services';
 
 export interface ItemView {
@@ -22,6 +28,16 @@ export interface GearRowView {
   state: ItemState;
   equipped: ItemView | null;
   bis: ItemView & { isTier: boolean; isCatalyst: boolean; source: string };
+  upgrade: UpgradeOption | null;
+}
+
+export interface VaultChoiceView extends ItemView {
+  isBis: boolean;
+}
+
+export interface CrestView {
+  balances: CrestBalance[];
+  pastedAt: number;
 }
 
 export interface CharacterSummary {
@@ -38,6 +54,8 @@ export interface CharacterSummary {
   lastSyncError: string | null;
   priorityList: 'mythicPlus' | 'overall';
   snapshot: { source: SnapshotSource; createdAt: number } | null;
+  /** When the current gear was captured: the paste time for SimC, the last sync for Blizzard. */
+  sourceAt: number | null;
 }
 
 export interface CharacterCardView extends CharacterSummary {
@@ -45,12 +63,17 @@ export interface CharacterCardView extends CharacterSummary {
   tracksError: string | null;
   total: number;
   bisError: string | null;
+  crests: CrestView | null;
+  upgradesReady: number;
 }
 
 export interface CharacterPageView extends CharacterSummary {
   listType: ListType;
   rows: GearRowView[];
   vault: GearRowView[];
+  vaultChoices: VaultChoiceView[];
+  vaultChoicesAt: number | null;
+  crests: CrestView | null;
   counts: Record<ListType, { bis: number; total: number }>;
   bisFetchedAt: number | null;
   bisError: string | null;
@@ -58,15 +81,45 @@ export interface CharacterPageView extends CharacterSummary {
   specs: string[];
 }
 
-function summarize(c: CharacterRow, snapshot: { source: SnapshotSource; createdAt: number } | null): CharacterSummary {
+interface GearContext {
+  current: Snapshot | null;
+  simc: Snapshot | null;
+  equipped: GearItem[];
+  bagItemIds: Set<number>;
+  balances: Map<number, number>;
+}
+
+async function loadGear(db: Db, characterId: number): Promise<GearContext> {
+  const current = await getLatestSnapshot(db, characterId);
+  const simc = current?.source === 'simc' ? current : await getLatestSnapshot(db, characterId, 'simc');
+  return {
+    current,
+    simc,
+    equipped: current ? equippedGear(current) : [],
+    // Bag contents are only known while the current gear comes from a paste.
+    bagItemIds: new Set(current?.source === 'simc' ? current.items.filter((i) => i.location === 'bag').map((i) => i.itemId) : []),
+    // Crests only come from pastes, so the latest paste's balances stay useful after Blizzard takes over.
+    balances: new Map((simc?.currencies ?? []).filter((c) => c.kind === 'upgrade').map((c) => [c.currencyId, c.quantity])),
+  };
+}
+
+function summarize(c: CharacterRow, snapshot: Snapshot | null): CharacterSummary {
   const spec = c.specOverride || c.specName;
   return {
     id: c.id, name: c.name, realmName: c.realmName, region: c.region, className: c.className,
     activeSpec: c.specName, spec, specSlug: methodSpecSlug(spec, c.className),
     status: c.status, lastSyncedAt: c.lastSyncedAt, lastSyncError: c.lastSyncError, priorityList: c.priorityList,
-    snapshot,
+    snapshot: snapshot && { source: snapshot.source, createdAt: snapshot.createdAt },
+    sourceAt: !snapshot ? null : snapshot.source === 'simc' ? snapshot.createdAt : c.lastSyncedAt ?? snapshot.createdAt,
   };
 }
+
+/** Only BiS items the character already wears on a track get a flag; crests spent elsewhere are wasted. */
+const upgradeFor = (row: GearRow, costs: ReadonlyMap<number, CrestCost>, balances: ReadonlyMap<number, number>) =>
+  row.matched && (row.state === 'mythUpgradable' || row.state === 'belowMyth') ? affordableUpgrade(row.track, costs, balances) : null;
+
+const crestView = (gear: GearContext, costs: ReadonlyMap<number, CrestCost>): CrestView | null =>
+  gear.simc ? { balances: summarizeCrests(gear.balances, costs), pastedAt: gear.simc.createdAt } : null;
 
 const bisCount = (rows: GearRow[]) => rows.filter((r) => r.matched).length;
 
@@ -74,17 +127,41 @@ export async function getCharacterCards(services: Services): Promise<CharacterCa
   const { db, bisSource, fetchRaidbots, now } = services;
   const time = now();
   const { tracks, error: tracksError } = await ensureTracks({ db, fetchRaidbots, now: time });
+  const costs = crestCostsByGroup(tracks.values());
   const bisBySlug = new Map<string, Promise<BisResult>>();
   const characters = await listCharacters(db);
   return Promise.all(characters.map(async (c) => {
-    const snapshot = await getLatestSnapshot(db, c.id);
-    const summary = summarize(c, snapshot && { source: snapshot.source, createdAt: snapshot.createdAt });
+    const gear = await loadGear(db, c.id);
+    const summary = summarize(c, gear.current);
     if (!bisBySlug.has(summary.specSlug)) bisBySlug.set(summary.specSlug, ensureBisLists({ db, source: bisSource, now: time }, summary.specSlug));
     const bis = await bisBySlug.get(summary.specSlug)!;
     const bisRows = bis.lists?.[c.priorityList] ?? [];
-    const rows = evaluateGear({ equipped: snapshot ? equippedGear(snapshot) : [], bisRows, tracks });
-    return { ...summary, counts: bis.lists ? countStates(rows) : null, total: rows.length, bisError: bis.error, tracksError };
+    const rows = evaluateGear({ equipped: gear.equipped, bisRows, tracks, bagItemIds: gear.bagItemIds });
+    return {
+      ...summary,
+      counts: bis.lists ? countStates(rows) : null,
+      total: rows.length,
+      bisError: bis.error,
+      tracksError,
+      crests: crestView(gear, costs),
+      upgradesReady: rows.filter((r) => upgradeFor(r, costs, gear.balances)).length,
+    };
   }));
+}
+
+function itemView(
+  item: { itemId: number; name: string; itemLevel: number | null; quality: Quality; bonusIds: number[] },
+  icons: ReadonlyMap<number, string | null>, track: Track | null,
+): ItemView {
+  return {
+    itemId: item.itemId,
+    name: item.name,
+    itemLevel: item.itemLevel,
+    quality: item.quality,
+    bonusIds: item.bonusIds,
+    iconUrl: icons.get(item.itemId) ?? null,
+    trackLabel: track ? trackLabel(track) : null,
+  };
 }
 
 export async function getCharacterPage(services: Services, id: number, listType?: ListType): Promise<CharacterPageView | null> {
@@ -92,8 +169,8 @@ export async function getCharacterPage(services: Services, id: number, listType?
   const character = await getCharacter(db, id);
   if (!character) return null;
   const time = now();
-  const snapshot = await getLatestSnapshot(db, id);
-  const summary = summarize(character, snapshot && { source: snapshot.source, createdAt: snapshot.createdAt });
+  const gear = await loadGear(db, id);
+  const summary = summarize(character, gear.current);
   const list = listType ?? character.priorityList;
 
   const specsPromise = blizzard.getClasses(character.region)
@@ -103,41 +180,33 @@ export async function getCharacterPage(services: Services, id: number, listType?
   const { tracks, error: tracksError } = await ensureTracks({ db, fetchRaidbots, now: time });
   const bis = await ensureBisLists({ db, source: bisSource, now: time }, summary.specSlug);
   const specs = await specsPromise;
+  const costs = crestCostsByGroup(tracks.values());
 
-  const equipped = snapshot ? equippedGear(snapshot) : [];
-  const evaluate = (l: ListType) => evaluateGear({ equipped, bisRows: bis.lists?.[l] ?? [], tracks });
+  const evaluate = (l: ListType) => evaluateGear({ equipped: gear.equipped, bisRows: bis.lists?.[l] ?? [], tracks, bagItemIds: gear.bagItemIds });
   const gearRows = evaluate(list);
+  const vaultItems = gear.simc?.items.filter((i) => i.location === 'vault') ?? [];
 
-  const iconIds = [...equipped.map((g) => g.itemId), ...gearRows.map((r) => r.row.itemId)];
+  const iconIds = [...gear.equipped.map((g) => g.itemId), ...gearRows.map((r) => r.row.itemId), ...vaultItems.map((i) => i.itemId)];
   const icons = await ensureItemIcons({ db, blizzard, now: time }, character.region, iconIds);
 
   const rows: GearRowView[] = gearRows.map((r) => ({
     slotLabel: r.row.slotLabel,
     slot: r.slot,
     state: r.state,
-    equipped: r.equipped && {
-      itemId: r.equipped.itemId,
-      name: r.equipped.name,
-      itemLevel: r.equipped.itemLevel,
-      quality: r.equipped.quality,
-      bonusIds: r.equipped.bonusIds,
-      iconUrl: icons.get(r.equipped.itemId) ?? null,
-      trackLabel: r.track ? trackLabel(r.track) : null,
-    },
+    equipped: r.equipped && itemView(r.equipped, icons, r.track),
     bis: {
-      itemId: r.row.itemId,
-      name: r.row.name,
-      itemLevel: null,
-      // Method links the fully upgraded Myth copy, which is always Epic.
-      quality: 'EPIC',
-      bonusIds: r.row.bonusIds,
-      iconUrl: icons.get(r.row.itemId) ?? null,
-      trackLabel: null,
+      ...itemView({ itemId: r.row.itemId, name: r.row.name, itemLevel: null, quality: 'EPIC', bonusIds: r.row.bonusIds }, icons, null),
       isTier: r.row.isTier,
       isCatalyst: r.row.isCatalyst,
       source: r.row.source,
     },
+    upgrade: upgradeFor(r, costs, gear.balances),
   }));
+
+  const listRows = bis.lists?.[list] ?? [];
+  const isBis = (item: SnapshotItemInput) =>
+    listRows.some((r) => r.itemId === item.itemId || (r.isTier && item.isTier && r.slots.includes(item.slot as SlotType)));
+  const vaultChoices = vaultItems.map((item) => ({ ...itemView(item, icons, decodeTrack(item.bonusIds, tracks)), isBis: isBis(item) }));
 
   const counts = Object.fromEntries(LIST_TYPES.map((l) => {
     const evaluated = l === list ? gearRows : evaluate(l);
@@ -149,6 +218,9 @@ export async function getCharacterPage(services: Services, id: number, listType?
     listType: list,
     rows,
     vault: rows.filter((r) => r.state === 'belowMyth'),
+    vaultChoices,
+    vaultChoicesAt: gear.simc?.createdAt ?? null,
+    crests: crestView(gear, costs),
     counts,
     bisFetchedAt: bis.fetchedAt,
     bisError: bis.error,
