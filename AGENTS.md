@@ -38,8 +38,8 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 - **`src/core` is plain TypeScript.** It never imports `next`, `react`, or anything from `src/app`, `src/components` or `src/server`. This keeps the option to move logic into a separate service later.
 - **`src/core` has three kinds of modules:**
   - Clients (`blizzard`, `method`, `raiderio`, `raidbots`) fetch and parse external data, and never touch the database.
-  - Logic (`gear`) is pure functions, with no network or database access.
-  - Sync (`sync`, `characters`) combines clients and the database, and receives both as parameters.
+  - Logic (`gear`, `simc/parse`) is pure functions, with no network or database access.
+  - Sync (`sync`, `characters`, `simc/import-simc`) combines clients and the database, and receives both as parameters.
 - **Pages and route handlers stay thin.** They call `src/server/views.ts` or a core function and render the result.
 - **Plain functions and TypeScript types.** No class hierarchies, dependency injection containers, or interfaces with one implementation. `BisSource` is the one intentional interface.
 - **Logic functions take only the data they need,** never a database client or a whole character row.
@@ -48,11 +48,12 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 
 - **Every write goes through `withWriteLock`** in `src/core/db/queries.ts`. libsql's SQLite driver runs synchronously on the main thread: a write that waits on another connection's lock blocks the event loop, so the lock holder can never finish.
 - **Change the schema in `src/core/db/schema.ts`,** then run `npm run db:generate -- --name <name>`. Never edit a migration that's already committed.
+- **Cached Raidbots data is versioned.** When `upgrade_tracks` or `bonus_qualities` gain columns, bump the version in `TRACKS_META_KEY` in `src/core/sync/reference-sync.ts`, so installs refetch instead of trusting old rows for a day.
 - **In-memory test databases have one connection.** Don't run database reads in parallel with a write in the same code path. Run them in sequence.
 
 ## External data facts
 
-- **Blizzard's profile API only updates after a character logs out.** SimC pastes (plan 2) add instant updates.
+- **Blizzard's profile API only updates after a character logs out.** SimC pastes add instant updates, plus bag items, Great Vault choices and crests. A paste stays current until Blizzard's own data changes.
 - **Raider.IO's character search (`/api/search`) is undocumented.** It only suggests characters. Official APIs confirm them. Map realms by Blizzard realm ID, never by Raider.IO's slug.
 - **Method.gg has no API.** The parser reads its gearing page HTML. Some specs only have an Overall table, and some rows name no item ("Any 334").
 - **Raidbots `bonuses.json` decodes bonus IDs** into upgrade tracks like "Myth 3/6", upgrade costs, and item quality. Upgrade costs are keyed by track `group`, never by track name, because names repeat across seasons.
