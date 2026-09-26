@@ -1,4 +1,4 @@
-import { createLimiter, fetchJson, HttpError, type FetchFn, type SleepFn } from '../http';
+import { createLimiter, fetchJson, HttpError, REQUEST_TIMEOUT_MS, type FetchFn, type SleepFn } from '../http';
 import { SLOT_TYPES, type GearItem, type Quality, type Region, type SlotType } from '../types';
 
 export interface CharacterRef { region: Region; realmSlug: string; name: string }
@@ -62,6 +62,7 @@ export function createBlizzardClient(options: Options): BlizzardClient {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: 'grant_type=client_credentials',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) throw new HttpError(res.status, url, await res.text());
     const data = (await res.json()) as { access_token: string; expires_in: number };

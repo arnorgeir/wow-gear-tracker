@@ -33,6 +33,15 @@ describe('fetchJson', () => {
   });
 });
 
+describe('request timeout', () => {
+  it('aborts a request that never answers', async () => {
+    const hanging = ((_url: string, init?: RequestInit) => new Promise<Response>((_, reject) => {
+      init?.signal?.addEventListener('abort', () => reject(init.signal!.reason));
+    })) as typeof fetch;
+    await expect(fetchJson(hanging, 'https://x/slow', undefined, undefined, 20)).rejects.toMatchObject({ name: 'TimeoutError' });
+  });
+});
+
 describe('createLimiter', () => {
   it('never runs more than max tasks at once', async () => {
     const limit = createLimiter(2);
