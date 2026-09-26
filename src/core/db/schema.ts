@@ -72,8 +72,15 @@ export const upgradeTracks = sqliteTable('upgrade_tracks', {
   name: text('name').notNull(),
   step: integer('step').notNull(),
   max: integer('max').notNull(),
+  group: integer('group_id'),
   currencyId: integer('currency_id'),
+  currencyName: text('currency_name'),
   costPerStep: integer('cost_per_step'),
+});
+
+export const bonusQualities = sqliteTable('bonus_qualities', {
+  bonusId: integer('bonus_id').primaryKey(),
+  quality: text('quality').$type<Quality>().notNull(),
 });
 
 export const meta = sqliteTable('meta', {

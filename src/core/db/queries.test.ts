@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { openDb } from './client';
 import { openTestDb } from '@/test/db';
 import {
-  deleteCharacter, equippedGear, getBisLists, getCharacter, getItemIcons, getLatestSnapshot, getMeta, getTrackMap,
+  deleteCharacter, getBonusQualityMap, replaceBonusQualities, equippedGear, getBisLists, getCharacter, getItemIcons, getLatestSnapshot, getMeta, getTrackMap,
   gearToSnapshotItems, insertCharacter, listCharacters, replaceBisLists, replaceTracks, saveSnapshotIfChanged,
   setMeta, updateCharacter, upsertItemIcons, type NewCharacter,
 } from './queries';
@@ -84,9 +84,15 @@ describe('BiS lists', () => {
 });
 
 describe('tracks, meta and icons', () => {
+  it('stores bonus qualities', async () => {
+    const db = await openTestDb();
+    await replaceBonusQualities(db, [{ bonusId: 12805, quality: 'EPIC' }, { bonusId: 4775, quality: 'RARE' }]);
+    expect(await getBonusQualityMap(db)).toEqual(new Map([[12805, 'EPIC'], [4775, 'RARE']]));
+  });
+
   it('stores tracks by bonus ID', async () => {
     const db = await openTestDb();
-    await replaceTracks(db, [{ bonusId: 12850, name: 'Myth', step: 2, max: 6, currencyId: 3446, costPerStep: 20 }]);
+    await replaceTracks(db, [{ bonusId: 12850, name: 'Myth', step: 2, max: 6, group: 618, currencyId: 3446, currencyName: 'Myth Mistcrest', costPerStep: 20 }]);
     expect((await getTrackMap(db)).get(12850)?.name).toBe('Myth');
   });
 
@@ -113,7 +119,7 @@ describe('concurrent writes', () => {
     const { id } = await insertCharacter(db, newCharacter, 1);
     const lists: BisLists = { overall: [], raid: [], mythicPlus: [] };
     await Promise.all([
-      replaceTracks(db, [{ bonusId: 1, name: 'Hero', step: 1, max: 6, currencyId: null, costPerStep: null }]),
+      replaceTracks(db, [{ bonusId: 1, name: 'Hero', step: 1, max: 6, group: null, currencyId: null, currencyName: null, costPerStep: null }]),
       replaceBisLists(db, 'guardian-druid', lists, 1),
       saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(gear), 2),
     ]);
@@ -128,7 +134,7 @@ describe('file database', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'gear-tracker-'));
     const db = await openDb(`file:${path.join(dir, 'test.db').split(path.sep).join('/')}`);
     const { id } = await insertCharacter(db, newCharacter, 1);
-    const tracks = Array.from({ length: 3000 }, (_, i) => ({ bonusId: i + 1, name: 'Hero', step: 1, max: 6, currencyId: null, costPerStep: null }));
+    const tracks = Array.from({ length: 3000 }, (_, i) => ({ bonusId: i + 1, name: 'Hero', step: 1, max: 6, group: null, currencyId: null, currencyName: null, costPerStep: null }));
     await Promise.all([replaceTracks(db, tracks), updateCharacter(db, id, { lastSyncedAt: 5 })]);
     expect((await getCharacter(db, id))?.lastSyncedAt).toBe(5);
     expect((await getTrackMap(db)).size).toBe(3000);

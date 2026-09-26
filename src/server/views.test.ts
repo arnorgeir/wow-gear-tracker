@@ -14,7 +14,7 @@ const lists: BisLists = {
     { slotLabel: 'Neck', slots: ['NECK'], itemId: 20, name: 'Best Neck', bonusIds: [1], isTier: false, isCatalyst: false, source: 'Dungeon B' },
   ],
 };
-const tracks: Track[] = [{ bonusId: 99, name: 'Hero', step: 5, max: 6, currencyId: null, costPerStep: null }];
+const tracks: Track[] = [{ bonusId: 99, name: 'Hero', step: 5, max: 6, group: 617, currencyId: null, currencyName: null, costPerStep: null }];
 const gear: GearItem[] = [
   { slot: 'HEAD', itemId: 11, name: 'Worn Tier Helm', itemLevel: 321, quality: 'EPIC', bonusIds: [], isTier: true },
   { slot: 'NECK', itemId: 20, name: 'Best Neck', itemLevel: 318, quality: 'EPIC', bonusIds: [99], isTier: false },
@@ -29,7 +29,7 @@ async function services(): Promise<Services> {
   return {
     db, blizzard,
     bisSource: { name: 'Fake', fetchLists: async () => lists },
-    fetchTracks: async () => tracks,
+    fetchRaidbots: async () => ({ tracks, qualities: [] }),
     syncer: { sync: async () => 'skipped' },
     now: () => 1000,
     fetchFn: fetch,
@@ -65,7 +65,7 @@ describe('getCharacterPage', () => {
 
   it('flags missing track data instead of marking matched items done', async () => {
     const s = await services();
-    s.fetchTracks = async () => { throw new Error('down'); };
+    s.fetchRaidbots = async () => { throw new Error('down'); };
     const id = await seed(s);
     const page = await getCharacterPage(s, id);
     expect(page!.tracksError).toMatch(/Upgrade track data/);

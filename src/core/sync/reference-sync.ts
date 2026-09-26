@@ -1,8 +1,9 @@
 import type { BlizzardClient } from '../blizzard/client';
 import type { Db } from '../db/client';
-import { getBisLists, getItemIcons, getMeta, getTrackMap, replaceBisLists, replaceTracks, setMeta, upsertItemIcons } from '../db/queries';
+import { getBisLists, getBonusQualityMap, replaceBonusQualities, getItemIcons, getMeta, getTrackMap, replaceBisLists, replaceTracks, setMeta, upsertItemIcons } from '../db/queries';
 import { HttpError } from '../http';
-import type { BisLists, BisSource, Region, Track } from '../types';
+import type { RaidbotsData } from '../raidbots/tracks';
+import type { BisLists, BisSource, Quality, Region, Track } from '../types';
 
 export const DAY_MS = 86_400_000;
 const TRACKS_META_KEY = 'tracks.fetchedAt';
@@ -12,6 +13,7 @@ const TRACKS_ERROR = 'Upgrade track data couldn’t be loaded, so upgrade states
 
 export interface TracksResult {
   tracks: Map<number, Track>;
+  qualities: Map<number, Quality>;
   error: string | null;
 }
 
@@ -38,25 +40,27 @@ export async function ensureBisLists(deps: { db: Db; source: BisSource; now: num
   }
 }
 
-/** Refreshes Raidbots track data daily. On failure keeps what it has, and retries at most hourly. */
-export async function ensureTracks(deps: { db: Db; fetchTracks: () => Promise<Track[]>; now: number }): Promise<TracksResult> {
-  const { db, fetchTracks, now } = deps;
+/** Refreshes Raidbots data daily. On failure keeps what it has, and retries at most hourly. */
+export async function ensureTracks(deps: { db: Db; fetchRaidbots: () => Promise<RaidbotsData>; now: number }): Promise<TracksResult> {
+  const { db, fetchRaidbots, now } = deps;
   const fetchedAt = await getMeta(db, TRACKS_META_KEY);
   const failedAt = await getMeta(db, TRACKS_FAILED_META_KEY);
   const fresh = fetchedAt && now - fetchedAt.updatedAt < DAY_MS;
   const backingOff = failedAt && now - failedAt.updatedAt < TRACKS_RETRY_MS;
   if (!fresh && !backingOff) {
     try {
-      const tracks = await fetchTracks();
-      if (tracks.length === 0) throw new Error('No upgrade tracks in the Raidbots data');
-      await replaceTracks(db, tracks);
+      const data = await fetchRaidbots();
+      if (data.tracks.length === 0) throw new Error('No upgrade tracks in the Raidbots data');
+      await replaceTracks(db, data.tracks);
+      await replaceBonusQualities(db, data.qualities);
       await setMeta(db, TRACKS_META_KEY, String(now), now);
     } catch {
       await setMeta(db, TRACKS_FAILED_META_KEY, String(now), now);
     }
   }
   const tracks = await getTrackMap(db);
-  return { tracks, error: tracks.size === 0 ? TRACKS_ERROR : null };
+  const qualities = await getBonusQualityMap(db);
+  return { tracks, qualities, error: tracks.size === 0 ? TRACKS_ERROR : null };
 }
 
 export async function ensureItemIcons(

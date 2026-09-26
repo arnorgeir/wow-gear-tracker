@@ -46,18 +46,22 @@ describe('ensureBisLists', () => {
 });
 
 describe('ensureTracks', () => {
-  const tracks: Track[] = [{ bonusId: 1, name: 'Myth', step: 1, max: 6, currencyId: null, costPerStep: null }];
-  const failing = async (): Promise<Track[]> => { throw new Error('down'); };
+  const tracks: Track[] = [{ bonusId: 1, name: 'Myth', step: 1, max: 6, group: 618, currencyId: null, currencyName: null, costPerStep: null }];
+  const data = { tracks, qualities: [{ bonusId: 12805, quality: 'EPIC' as const }] };
+  const failing = async (): Promise<typeof data> => { throw new Error('down'); };
 
-  it('refreshes daily and keeps old data on failure', async () => {
+  it('refreshes daily, stores qualities, and keeps old data on failure', async () => {
     const db = await openTestDb();
     let calls = 0;
-    const ok = async () => { calls++; return tracks; };
-    expect(await ensureTracks({ db, fetchTracks: ok, now: 1 })).toMatchObject({ error: null });
-    await ensureTracks({ db, fetchTracks: ok, now: 2 });
+    const ok = async () => { calls++; return data; };
+    const first = await ensureTracks({ db, fetchRaidbots: ok, now: 1 });
+    expect(first).toMatchObject({ error: null });
+    expect(first.qualities.get(12805)).toBe('EPIC');
+    await ensureTracks({ db, fetchRaidbots: ok, now: 2 });
     expect(calls).toBe(1);
-    const stale = await ensureTracks({ db, fetchTracks: failing, now: 2 + DAY_MS });
+    const stale = await ensureTracks({ db, fetchRaidbots: failing, now: 2 + DAY_MS });
     expect(stale.tracks.size).toBe(1);
+    expect(stale.qualities.size).toBe(1);
     expect(stale.error).toBeNull();
   });
 
@@ -65,12 +69,12 @@ describe('ensureTracks', () => {
     const db = await openTestDb();
     let calls = 0;
     const counting = async () => { calls++; return failing(); };
-    const first = await ensureTracks({ db, fetchTracks: counting, now: 1000 });
+    const first = await ensureTracks({ db, fetchRaidbots: counting, now: 1000 });
     expect(first.tracks.size).toBe(0);
     expect(first.error).toBe('Upgrade track data couldn’t be loaded, so upgrade states may be wrong');
-    await ensureTracks({ db, fetchTracks: counting, now: 1000 + 59 * 60_000 });
+    await ensureTracks({ db, fetchRaidbots: counting, now: 1000 + 59 * 60_000 });
     expect(calls).toBe(1);
-    await ensureTracks({ db, fetchTracks: counting, now: 1000 + 61 * 60_000 });
+    await ensureTracks({ db, fetchRaidbots: counting, now: 1000 + 61 * 60_000 });
     expect(calls).toBe(2);
   });
 });

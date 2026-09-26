@@ -71,9 +71,9 @@ function summarize(c: CharacterRow, snapshot: { source: SnapshotSource; createdA
 const bisCount = (rows: GearRow[]) => rows.filter((r) => r.matched).length;
 
 export async function getCharacterCards(services: Services): Promise<CharacterCardView[]> {
-  const { db, bisSource, fetchTracks, now } = services;
+  const { db, bisSource, fetchRaidbots, now } = services;
   const time = now();
-  const { tracks, error: tracksError } = await ensureTracks({ db, fetchTracks, now: time });
+  const { tracks, error: tracksError } = await ensureTracks({ db, fetchRaidbots, now: time });
   const bisBySlug = new Map<string, Promise<BisResult>>();
   const characters = await listCharacters(db);
   return Promise.all(characters.map(async (c) => {
@@ -88,7 +88,7 @@ export async function getCharacterCards(services: Services): Promise<CharacterCa
 }
 
 export async function getCharacterPage(services: Services, id: number, listType?: ListType): Promise<CharacterPageView | null> {
-  const { db, blizzard, bisSource, fetchTracks, now } = services;
+  const { db, blizzard, bisSource, fetchRaidbots, now } = services;
   const character = await getCharacter(db, id);
   if (!character) return null;
   const time = now();
@@ -100,7 +100,7 @@ export async function getCharacterPage(services: Services, id: number, listType?
     .then((classes) => classes.find((cls) => cls.name === character.className)?.specs ?? [summary.spec])
     .catch(() => [summary.spec]);
   // Database work runs in sequence: an in-memory libsql database can't serve a read while a write transaction is open.
-  const { tracks, error: tracksError } = await ensureTracks({ db, fetchTracks, now: time });
+  const { tracks, error: tracksError } = await ensureTracks({ db, fetchRaidbots, now: time });
   const bis = await ensureBisLists({ db, source: bisSource, now: time }, summary.specSlug);
   const specs = await specsPromise;
 

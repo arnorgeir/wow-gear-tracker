@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { countStates, evaluateGear } from './evaluate';
 import type { BisRow, GearItem, SlotType, Track } from '../types';
 
-const track = (bonusId: number, name: string, step: number, max = 6): Track => ({ bonusId, name, step, max, currencyId: null, costPerStep: null });
+const track = (bonusId: number, name: string, step: number, max = 6): Track =>
+  ({ bonusId, name, step, max, group: null, currencyId: null, currencyName: null, costPerStep: null });
 const tracks = new Map<number, Track>([
   [1, track(1, 'Myth', 6)],
   [2, track(2, 'Myth', 2)],

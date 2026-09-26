@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import type { BonusQuality } from '../raidbots/tracks';
 import type { Db } from './client';
-import { bisItems, bisLists, characters, gearSnapshots, items, meta, snapshotItems, upgradeTracks } from './schema';
+import { bisItems, bisLists, characters, gearSnapshots, items, meta, snapshotItems, upgradeTracks, bonusQualities } from './schema';
 import {
   LIST_TYPES, type BisLists, type GearItem, type ItemLocation, type Quality, type Region, type SlotType, type SnapshotSource, type Track,
 } from '../types';
@@ -154,6 +155,18 @@ export async function replaceTracks(db: Db, tracks: Track[]) {
 export async function getTrackMap(db: Db): Promise<Map<number, Track>> {
   const rows = await db.select().from(upgradeTracks);
   return new Map(rows.map((t) => [t.bonusId, t]));
+}
+
+export async function replaceBonusQualities(db: Db, entries: BonusQuality[]) {
+  await withWriteLock(db, () => db.transaction(async (tx) => {
+    await tx.delete(bonusQualities);
+    for (let i = 0; i < entries.length; i += 500) await tx.insert(bonusQualities).values(entries.slice(i, i + 500));
+  }));
+}
+
+export async function getBonusQualityMap(db: Db): Promise<Map<number, Quality>> {
+  const rows = await db.select().from(bonusQualities);
+  return new Map(rows.map((r) => [r.bonusId, r.quality]));
 }
 
 export async function getMeta(db: Db, key: string) {

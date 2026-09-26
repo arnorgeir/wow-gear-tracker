@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createBlizzardClient } from './blizzard/client';
 import { readConfig } from './config';
 import { createMethodSource } from './method/method';
-import { createRaidbotsTracksFetcher } from './raidbots/tracks';
+import { createRaidbotsFetcher } from './raidbots/tracks';
 import type { Region } from './types';
 
 // Run with: node --env-file=.env ./node_modules/vitest/vitest.mjs run --config vitest.live.config.ts
@@ -18,8 +18,9 @@ describe('live services', () => {
   });
 
   it('Raidbots still publishes Myth upgrade tracks', async () => {
-    const tracks = await createRaidbotsTracksFetcher()();
+    const { tracks, qualities } = await createRaidbotsFetcher()();
     expect(tracks.some((t) => t.name === 'Myth')).toBe(true);
+    expect(qualities.length).toBeGreaterThan(100);
   });
 
   it('Blizzard accepts the credentials and returns realms', async () => {
