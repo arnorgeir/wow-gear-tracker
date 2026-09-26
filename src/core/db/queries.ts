@@ -8,6 +8,17 @@ import {
 
 export type CharacterRow = typeof characters.$inferSelect;
 
+// libsql gives each client one connection for in-memory databases, and file databases
+// reject a second concurrent write transaction. Run write transactions one at a time per database.
+const writeLocks = new WeakMap<Db, Promise<unknown>>();
+
+function withWriteLock<T>(db: Db, task: () => Promise<T>): Promise<T> {
+  const previous = writeLocks.get(db) ?? Promise.resolve();
+  const next = previous.then(task, task);
+  writeLocks.set(db, next.catch(() => undefined));
+  return next;
+}
+
 export interface NewCharacter {
   region: Region;
   realmId: number;
@@ -73,14 +84,16 @@ function hashItems(list: SnapshotItemInput[]): string {
 export async function saveSnapshotIfChanged(
   db: Db, characterId: number, source: SnapshotSource, list: SnapshotItemInput[], now: number,
 ): Promise<{ snapshotId: number; changed: boolean }> {
-  const contentHash = hashItems(list);
-  const latest = await db.select().from(gearSnapshots).where(eq(gearSnapshots.characterId, characterId))
-    .orderBy(desc(gearSnapshots.createdAt), desc(gearSnapshots.id)).get();
-  if (latest && latest.contentHash === contentHash && latest.source === source) return { snapshotId: latest.id, changed: false };
-  return db.transaction(async (tx) => {
-    const [snapshot] = await tx.insert(gearSnapshots).values({ characterId, source, createdAt: now, contentHash }).returning({ id: gearSnapshots.id });
-    if (list.length > 0) await tx.insert(snapshotItems).values(list.map((i) => ({ ...i, snapshotId: snapshot!.id })));
-    return { snapshotId: snapshot!.id, changed: true };
+  return withWriteLock(db, async () => {
+    const contentHash = hashItems(list);
+    const latest = await db.select().from(gearSnapshots).where(eq(gearSnapshots.characterId, characterId))
+      .orderBy(desc(gearSnapshots.createdAt), desc(gearSnapshots.id)).get();
+    if (latest && latest.contentHash === contentHash && latest.source === source) return { snapshotId: latest.id, changed: false };
+    return db.transaction(async (tx) => {
+      const [snapshot] = await tx.insert(gearSnapshots).values({ characterId, source, createdAt: now, contentHash }).returning({ id: gearSnapshots.id });
+      if (list.length > 0) await tx.insert(snapshotItems).values(list.map((i) => ({ ...i, snapshotId: snapshot!.id })));
+      return { snapshotId: snapshot!.id, changed: true };
+    });
   });
 }
 
@@ -104,14 +117,14 @@ export const equippedGear = (snapshot: Snapshot): GearItem[] =>
     .map((i) => ({ slot: i.slot as SlotType, itemId: i.itemId, name: i.name, itemLevel: i.itemLevel, quality: i.quality, bonusIds: i.bonusIds, isTier: i.isTier }));
 
 export async function replaceBisLists(db: Db, specSlug: string, lists: BisLists, now: number) {
-  await db.transaction(async (tx) => {
+  await withWriteLock(db, () => db.transaction(async (tx) => {
     await tx.delete(bisLists).where(eq(bisLists.specSlug, specSlug));
     for (const listType of LIST_TYPES) {
       const [list] = await tx.insert(bisLists).values({ specSlug, listType, fetchedAt: now }).returning({ id: bisLists.id });
       const rows = lists[listType];
       if (rows.length > 0) await tx.insert(bisItems).values(rows.map((row, position) => ({ ...row, listId: list!.id, position })));
     }
-  });
+  }));
 }
 
 export async function getBisLists(db: Db, specSlug: string): Promise<{ lists: BisLists; fetchedAt: number } | null> {
@@ -127,10 +140,10 @@ export async function getBisLists(db: Db, specSlug: string): Promise<{ lists: Bi
 }
 
 export async function replaceTracks(db: Db, tracks: Track[]) {
-  await db.transaction(async (tx) => {
+  await withWriteLock(db, () => db.transaction(async (tx) => {
     await tx.delete(upgradeTracks);
     for (let i = 0; i < tracks.length; i += 500) await tx.insert(upgradeTracks).values(tracks.slice(i, i + 500));
-  });
+  }));
 }
 
 export async function getTrackMap(db: Db): Promise<Map<number, Track>> {

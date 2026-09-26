@@ -102,3 +102,19 @@ describe('tracks, meta and icons', () => {
     expect((await getItemIcons(db, [])).size).toBe(0);
   });
 });
+
+describe('concurrent writes', () => {
+  it('serializes write transactions so parallel refreshes don’t collide', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    const lists: BisLists = { overall: [], raid: [], mythicPlus: [] };
+    await Promise.all([
+      replaceTracks(db, [{ bonusId: 1, name: 'Hero', step: 1, max: 6, currencyId: null, costPerStep: null }]),
+      replaceBisLists(db, 'guardian-druid', lists, 1),
+      saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(gear), 2),
+    ]);
+    expect((await getTrackMap(db)).size).toBe(1);
+    expect(await getBisLists(db, 'guardian-druid')).not.toBeNull();
+    expect(await getLatestSnapshot(db, id)).not.toBeNull();
+  });
+});
