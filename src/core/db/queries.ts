@@ -8,8 +8,11 @@ import {
 
 export type CharacterRow = typeof characters.$inferSelect;
 
-// libsql gives each client one connection for in-memory databases, and file databases
-// reject a second concurrent write transaction. Run write transactions one at a time per database.
+// Every write in this module runs through this lock, one at a time per database.
+// libsql's SQLite driver runs synchronously on the main thread: a write that waits on another
+// connection's lock blocks the event loop, so the lock holder can never finish. An in-memory
+// database also has one connection, which an open transaction holds (TRANSACTION_ACTIVE).
+// The client's busy timeout still covers other processes writing to the same file.
 const writeLocks = new WeakMap<Db, Promise<unknown>>();
 
 function withWriteLock<T>(db: Db, task: () => Promise<T>): Promise<T> {
@@ -31,14 +34,16 @@ export interface NewCharacter {
 
 const nameKeyOf = (name: string) => name.toLocaleLowerCase('en');
 
-export async function insertCharacter(db: Db, input: NewCharacter, now: number): Promise<{ id: number; created: boolean }> {
-  const nameKey = nameKeyOf(input.name);
-  const existing = await db.select({ id: characters.id }).from(characters)
-    .where(and(eq(characters.region, input.region), eq(characters.realmId, input.realmId), eq(characters.nameKey, nameKey)))
-    .get();
-  if (existing) return { id: existing.id, created: false };
-  const [row] = await db.insert(characters).values({ ...input, nameKey, addedAt: now }).returning({ id: characters.id });
-  return { id: row!.id, created: true };
+export function insertCharacter(db: Db, input: NewCharacter, now: number): Promise<{ id: number; created: boolean }> {
+  return withWriteLock(db, async () => {
+    const nameKey = nameKeyOf(input.name);
+    const existing = await db.select({ id: characters.id }).from(characters)
+      .where(and(eq(characters.region, input.region), eq(characters.realmId, input.realmId), eq(characters.nameKey, nameKey)))
+      .get();
+    if (existing) return { id: existing.id, created: false };
+    const [row] = await db.insert(characters).values({ ...input, nameKey, addedAt: now }).returning({ id: characters.id });
+    return { id: row!.id, created: true };
+  });
 }
 
 export const listCharacters = (db: Db) => db.select().from(characters).orderBy(asc(characters.addedAt), asc(characters.id));
@@ -46,11 +51,11 @@ export const listCharacters = (db: Db) => db.select().from(characters).orderBy(a
 export const getCharacter = (db: Db, id: number) => db.select().from(characters).where(eq(characters.id, id)).get();
 
 export async function updateCharacter(db: Db, id: number, patch: Partial<Omit<CharacterRow, 'id' | 'addedAt' | 'nameKey'>>) {
-  await db.update(characters).set(patch).where(eq(characters.id, id));
+  await withWriteLock(db, () => db.update(characters).set(patch).where(eq(characters.id, id)));
 }
 
 export async function deleteCharacter(db: Db, id: number) {
-  await db.delete(characters).where(eq(characters.id, id));
+  await withWriteLock(db, () => db.delete(characters).where(eq(characters.id, id)));
 }
 
 export interface SnapshotItemInput {
@@ -157,15 +162,17 @@ export async function getMeta(db: Db, key: string) {
 }
 
 export async function setMeta(db: Db, key: string, value: string, now: number) {
-  await db.insert(meta).values({ key, value, updatedAt: now })
-    .onConflictDoUpdate({ target: meta.key, set: { value, updatedAt: now } });
+  await withWriteLock(db, () => db.insert(meta).values({ key, value, updatedAt: now })
+    .onConflictDoUpdate({ target: meta.key, set: { value, updatedAt: now } }));
 }
 
 export async function upsertItemIcons(db: Db, entries: { itemId: number; iconUrl: string | null }[], now: number) {
-  for (const entry of entries) {
-    await db.insert(items).values({ ...entry, fetchedAt: now })
-      .onConflictDoUpdate({ target: items.itemId, set: { iconUrl: entry.iconUrl, fetchedAt: now } });
-  }
+  await withWriteLock(db, async () => {
+    for (const entry of entries) {
+      await db.insert(items).values({ ...entry, fetchedAt: now })
+        .onConflictDoUpdate({ target: items.itemId, set: { iconUrl: entry.iconUrl, fetchedAt: now } });
+    }
+  });
 }
 
 export async function getItemIcons(db: Db, ids: number[]): Promise<Map<number, string | null>> {

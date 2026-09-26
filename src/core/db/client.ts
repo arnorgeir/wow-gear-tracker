@@ -5,7 +5,9 @@ import { migrate } from 'drizzle-orm/libsql/migrator';
 import * as schema from './schema';
 
 export function createDrizzle(url: string) {
-  const client = createClient({ url });
+  // timeout is SQLite's busy timeout, applied to every pooled connection of a file database:
+  // a write waits up to 5 s for another connection's lock instead of failing with SQLITE_BUSY.
+  const client = createClient({ url, timeout: 5000 });
   return { client, db: drizzle(client, { schema }) };
 }
 
@@ -15,8 +17,6 @@ export type Db = ReturnType<typeof createDrizzle>['db'];
 export async function openDb(url: string, migrationsFolder = path.join(process.cwd(), 'drizzle')): Promise<Db> {
   const { client, db } = createDrizzle(url);
   await client.execute('PRAGMA foreign_keys = ON');
-  // Wait up to 5 s for another connection's write lock instead of failing with SQLITE_BUSY.
-  if (!url.includes(':memory:')) await client.execute('PRAGMA busy_timeout = 5000');
   await migrate(db, { migrationsFolder });
   return db;
 }

@@ -1,4 +1,8 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { openDb } from './client';
 import { openTestDb } from '@/test/db';
 import {
   deleteCharacter, equippedGear, getBisLists, getCharacter, getItemIcons, getLatestSnapshot, getMeta, getTrackMap,
@@ -116,5 +120,17 @@ describe('concurrent writes', () => {
     expect((await getTrackMap(db)).size).toBe(1);
     expect(await getBisLists(db, 'guardian-druid')).not.toBeNull();
     expect(await getLatestSnapshot(db, id)).not.toBeNull();
+  });
+});
+
+describe('file database', () => {
+  it('waits for another connection’s write instead of failing with SQLITE_BUSY', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'gear-tracker-'));
+    const db = await openDb(`file:${path.join(dir, 'test.db').split(path.sep).join('/')}`);
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    const tracks = Array.from({ length: 3000 }, (_, i) => ({ bonusId: i + 1, name: 'Hero', step: 1, max: 6, currencyId: null, costPerStep: null }));
+    await Promise.all([replaceTracks(db, tracks), updateCharacter(db, id, { lastSyncedAt: 5 })]);
+    expect((await getCharacter(db, id))?.lastSyncedAt).toBe(5);
+    expect((await getTrackMap(db)).size).toBe(3000);
   });
 });
