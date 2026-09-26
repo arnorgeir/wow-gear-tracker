@@ -1,5 +1,5 @@
 import { fetchJson, type FetchFn } from '../http';
-import type { Region } from '../types';
+import type { Faction, Region } from '../types';
 
 export interface CharacterSearchResult {
   name: string;
@@ -7,6 +7,7 @@ export interface CharacterSearchResult {
   blizzardRealmId: number;
   region: Region;
   className: string;
+  faction: Faction | null;
   thumbnailUrl: string | null;
 }
 
@@ -18,6 +19,7 @@ interface RawSearch {
       region?: { slug?: string };
       realm?: { name?: string; wowRealmId?: number };
       class?: { name?: string };
+      faction?: string;
       thumbnail_url?: string;
     };
   }[];
@@ -39,6 +41,7 @@ export async function searchCharacters(fetchFn: FetchFn, region: Region, term: s
       blizzardRealmId: m.data!.realm!.wowRealmId!,
       region,
       className: m.data!.class?.name ?? '',
+      faction: m.data!.faction === 'horde' ? 'HORDE' : m.data!.faction === 'alliance' ? 'ALLIANCE' : null,
       thumbnailUrl: m.data!.thumbnail_url ? `https:${m.data!.thumbnail_url}` : null,
     }));
 }
