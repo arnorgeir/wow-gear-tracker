@@ -3,3 +3,6 @@ node_modules/
 .env.local
 .cache/
 data/
+.next/
+next-env.d.ts
+*.tsbuildinfo
