@@ -1,6 +1,6 @@
 import type { BlizzardClient, ItemDetails } from '../blizzard/client';
 import type { Db } from '../db/client';
-import { getBisLists, getBonusQualityMap, getItemDetailsMap, upsertItemDetails, replaceBonusQualities, getItemIcons, getMeta, getTrackMap, replaceBisLists, replaceTracks, setMeta, upsertItemIcons } from '../db/queries';
+import { getBisLists, getClassIconMap, upsertClassIcons, getBonusQualityMap, getItemDetailsMap, upsertItemDetails, replaceBonusQualities, getItemIcons, getMeta, getTrackMap, replaceBisLists, replaceTracks, setMeta, upsertItemIcons } from '../db/queries';
 import { HttpError } from '../http';
 import type { RaidbotsData } from '../raidbots/tracks';
 import type { BisLists, BisSource, Quality, Region, Track } from '../types';
@@ -102,4 +102,30 @@ export async function ensureItemDetails(
   const found = fetched.filter((entry): entry is { itemId: number } & ItemDetails => entry !== null);
   if (found.length > 0) await upsertItemDetails(db, found, now);
   return getItemDetailsMap(db, unique);
+}
+
+const CLASS_ICONS_META_KEY = 'classIcons.v1.fetchedAt';
+const CLASS_ICONS_TTL_MS = 30 * DAY_MS;
+
+/** Class icons change rarely: refresh every 30 days, and keep the cache when Blizzard fails. */
+export async function ensureClassIcons(
+  deps: { db: Db; blizzard: BlizzardClient; now: number }, region: Region,
+): Promise<Map<string, string | null>> {
+  const { db, blizzard, now } = deps;
+  const fetchedAt = await getMeta(db, CLASS_ICONS_META_KEY);
+  if (!fetchedAt || now - fetchedAt.updatedAt >= CLASS_ICONS_TTL_MS) {
+    try {
+      const classes = await blizzard.getClasses(region);
+      const entries = await Promise.all(classes.map(async (cls) => ({
+        className: cls.name,
+        classId: cls.id,
+        iconUrl: await blizzard.getClassIconUrl(region, cls.id).catch(() => null),
+      })));
+      await upsertClassIcons(db, entries, now);
+      await setMeta(db, CLASS_ICONS_META_KEY, String(now), now);
+    } catch {
+      // Keep the cached icons. Anything without an icon falls back to the class-colored initial.
+    }
+  }
+  return getClassIconMap(db);
 }
