@@ -18,6 +18,15 @@ A local web app that compares World of Warcraft characters' gear to Method.gg's 
 
 The database is a SQLite file in `data/`, created on first run. `.env` and `data/` never leave your machine.
 
+## Instant updates with SimC
+
+Blizzard's API only updates a character after they log out. For instant updates, use the [SimulationCraft addon](https://www.curseforge.com/wow/addons/simulationcraft):
+
+1. In game, type `/simc` and copy all the text.
+2. On the character's page, open **Update from SimC**, paste, and select **Import**.
+
+A paste also brings in bag items, Great Vault choices and crest counts, which Blizzard's API doesn't have. The pasted gear stays current until Blizzard's data changes, which happens after your next logout.
+
 ## Scripts
 
 | Script | Does |

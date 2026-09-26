@@ -40,6 +40,14 @@ export const snapshotItems = sqliteTable('snapshot_items', {
   isTier: integer('is_tier', { mode: 'boolean' }).notNull(),
 }, (t) => [index('snapshot_items_snapshot').on(t.snapshotId)]);
 
+export const snapshotCurrencies = sqliteTable('snapshot_currencies', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  snapshotId: integer('snapshot_id').notNull().references(() => gearSnapshots.id, { onDelete: 'cascade' }),
+  kind: text('kind').$type<'upgrade' | 'catalyst'>().notNull(),
+  currencyId: integer('currency_id').notNull(),
+  quantity: integer('quantity').notNull(),
+}, (t) => [index('snapshot_currencies_snapshot').on(t.snapshotId)]);
+
 export const bisLists = sqliteTable('bis_lists', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   specSlug: text('spec_slug').notNull(),
@@ -67,13 +75,27 @@ export const items = sqliteTable('items', {
   fetchedAt: integer('fetched_at').notNull(),
 });
 
+export const itemDetails = sqliteTable('item_details', {
+  itemId: integer('item_id').primaryKey(),
+  quality: text('quality').$type<Quality>(),
+  isTier: integer('is_tier', { mode: 'boolean' }).notNull(),
+  fetchedAt: integer('fetched_at').notNull(),
+});
+
 export const upgradeTracks = sqliteTable('upgrade_tracks', {
   bonusId: integer('bonus_id').primaryKey(),
   name: text('name').notNull(),
   step: integer('step').notNull(),
   max: integer('max').notNull(),
+  group: integer('group_id'),
   currencyId: integer('currency_id'),
+  currencyName: text('currency_name'),
   costPerStep: integer('cost_per_step'),
+});
+
+export const bonusQualities = sqliteTable('bonus_qualities', {
+  bonusId: integer('bonus_id').primaryKey(),
+  quality: text('quality').$type<Quality>().notNull(),
 });
 
 export const meta = sqliteTable('meta', {

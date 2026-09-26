@@ -102,4 +102,15 @@ describe('Blizzard client', () => {
     ]);
     expect(await api.getClasses('eu')).toEqual([{ id: 11, name: 'Druid', specs: ['Balance', 'Guardian'] }]);
   });
+
+  it('reads item quality and whether the item belongs to a set', async () => {
+    const { api } = client([
+      on('/data/wow/item/111', () => json({ quality: { type: 'EPIC' }, preview_item: { set: { item_set: { id: 2057 } } } })),
+      on('/data/wow/item/222', () => json({ quality: { type: 'RARE' }, preview_item: {} })),
+      on('/data/wow/item/999', () => new Response('', { status: 404 })),
+    ]);
+    expect(await api.getItemDetails('eu', 111)).toEqual({ quality: 'EPIC', isTier: true });
+    expect(await api.getItemDetails('eu', 222)).toEqual({ quality: 'RARE', isTier: false });
+    expect(await api.getItemDetails('eu', 999)).toBeNull();
+  });
 });

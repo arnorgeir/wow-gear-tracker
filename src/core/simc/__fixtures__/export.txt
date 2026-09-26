@@ -1,0 +1,54 @@
+# Testbear - Guardian - 2026-09-26 12:00 - EU/Tarren Mill
+# SimC Addon 12.1.0-01
+# WoW 12.1.0.68914, TOC 120100
+# Requires SimulationCraft 1201-01 or newer
+
+druid="Testbear"
+level=90
+race=night_elf
+region=eu
+server=tarren_mill
+role=tank
+professions=leatherworking=100/skinning=100
+spec=guardian
+# loot_spec=guardian
+
+### Offspec Loadouts: Feral
+# talents=CgGAAAAAAAAAAAAAAAAAAAAAAAAAB
+
+talents=CgGAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+# Enigmatic Dreamwatcher's Somnolent Stare (321)
+head=,id=271528,enchant_id=7960,bonus_id=13692/13440/6652/13696/13698/12850
+# Yoke of the Charging Bear (318)
+neck=,id=251173,gem_id=240892,bonus_id=13440/6652/13668/12699/12845
+# Plain Shirt (1)
+shirt=,id=6833
+# Band of the Amani Warlord (334)
+finger1=,id=273792,bonus_id=13440/6652/13668/12699/12854
+# Heart of Wind (298)
+trinket1=,id=250256,bonus_id=13440/40/12699/13654
+# Toxin-Coated Warstaff (321)
+main_hand=,id=273783,enchant_id=7981,bonus_id=13440/6652/12701/12846
+
+### Gear from Bags
+#
+# Primal Dinomancer's Belt (315)
+# waist=,id=159301,bonus_id=13440/6652/12844
+#
+# Ritual Binder's Ring (311)
+# finger1=,id=159459,bonus_id=13440/6652/12843
+
+### Weekly Reward Choices
+#
+# Tumor of the Swarm (324)
+# trinket1=,id=250245,bonus_id=13440/6652/12850
+#
+### End of Weekly Reward Choices
+
+### Additional Character Info
+#
+# catalyst_currencies=3378:2
+# upgrade_currencies=c:3446:85/c:3445:140/i:224072:3
+
+# Checksum: 1a2b3c4d

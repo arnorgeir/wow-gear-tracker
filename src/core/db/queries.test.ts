@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { openDb } from './client';
 import { openTestDb } from '@/test/db';
 import {
-  deleteCharacter, equippedGear, getBisLists, getCharacter, getItemIcons, getLatestSnapshot, getMeta, getTrackMap,
+  deleteCharacter, getBonusQualityMap, getItemDetailsMap, upsertItemDetails, replaceBonusQualities, equippedGear, getBisLists, getCharacter, getItemIcons, getLatestSnapshot, getMeta, getTrackMap,
   gearToSnapshotItems, insertCharacter, listCharacters, replaceBisLists, replaceTracks, saveSnapshotIfChanged,
   setMeta, updateCharacter, upsertItemIcons, type NewCharacter,
 } from './queries';
@@ -84,9 +84,22 @@ describe('BiS lists', () => {
 });
 
 describe('tracks, meta and icons', () => {
+  it('stores item details', async () => {
+    const db = await openTestDb();
+    await upsertItemDetails(db, [{ itemId: 1, quality: 'EPIC', isTier: true }, { itemId: 2, quality: null, isTier: false }], 1);
+    expect(await getItemDetailsMap(db, [1, 2, 3])).toEqual(new Map([[1, { quality: 'EPIC', isTier: true }], [2, { quality: null, isTier: false }]]));
+    expect((await getItemDetailsMap(db, [])).size).toBe(0);
+  });
+
+  it('stores bonus qualities', async () => {
+    const db = await openTestDb();
+    await replaceBonusQualities(db, [{ bonusId: 12805, quality: 'EPIC' }, { bonusId: 4775, quality: 'RARE' }]);
+    expect(await getBonusQualityMap(db)).toEqual(new Map([[12805, 'EPIC'], [4775, 'RARE']]));
+  });
+
   it('stores tracks by bonus ID', async () => {
     const db = await openTestDb();
-    await replaceTracks(db, [{ bonusId: 12850, name: 'Myth', step: 2, max: 6, currencyId: 3446, costPerStep: 20 }]);
+    await replaceTracks(db, [{ bonusId: 12850, name: 'Myth', step: 2, max: 6, group: 618, currencyId: 3446, currencyName: 'Myth Mistcrest', costPerStep: 20 }]);
     expect((await getTrackMap(db)).get(12850)?.name).toBe('Myth');
   });
 
@@ -113,7 +126,7 @@ describe('concurrent writes', () => {
     const { id } = await insertCharacter(db, newCharacter, 1);
     const lists: BisLists = { overall: [], raid: [], mythicPlus: [] };
     await Promise.all([
-      replaceTracks(db, [{ bonusId: 1, name: 'Hero', step: 1, max: 6, currencyId: null, costPerStep: null }]),
+      replaceTracks(db, [{ bonusId: 1, name: 'Hero', step: 1, max: 6, group: null, currencyId: null, currencyName: null, costPerStep: null }]),
       replaceBisLists(db, 'guardian-druid', lists, 1),
       saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(gear), 2),
     ]);
@@ -128,9 +141,58 @@ describe('file database', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'gear-tracker-'));
     const db = await openDb(`file:${path.join(dir, 'test.db').split(path.sep).join('/')}`);
     const { id } = await insertCharacter(db, newCharacter, 1);
-    const tracks = Array.from({ length: 3000 }, (_, i) => ({ bonusId: i + 1, name: 'Hero', step: 1, max: 6, currencyId: null, costPerStep: null }));
+    const tracks = Array.from({ length: 3000 }, (_, i) => ({ bonusId: i + 1, name: 'Hero', step: 1, max: 6, group: null, currencyId: null, currencyName: null, costPerStep: null }));
     await Promise.all([replaceTracks(db, tracks), updateCharacter(db, id, { lastSyncedAt: 5 })]);
     expect((await getCharacter(db, id))?.lastSyncedAt).toBe(5);
     expect((await getTrackMap(db)).size).toBe(3000);
+  });
+});
+
+describe('snapshot sources', () => {
+  const bagBelt = { location: 'bag' as const, slot: 'WAIST', itemId: 9, name: 'Belt', itemLevel: 300, quality: 'EPIC' as const, bonusIds: [], isTier: false };
+  const crests = [{ kind: 'upgrade' as const, currencyId: 3446, quantity: 85 }];
+
+  it('keeps a newer SimC paste current until Blizzard’s own data changes', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    const blizzardGear = gearToSnapshotItems(gear);
+    await saveSnapshotIfChanged(db, id, 'blizzard', blizzardGear, 10);
+    const paste = await saveSnapshotIfChanged(db, id, 'simc', [...blizzardGear, bagBelt], 20, crests);
+    expect(paste.changed).toBe(true);
+
+    expect(await saveSnapshotIfChanged(db, id, 'blizzard', blizzardGear, 30)).toMatchObject({ changed: false });
+    expect((await getLatestSnapshot(db, id))?.source).toBe('simc');
+
+    const upgraded = gearToSnapshotItems(gear.map((g) => (g.slot === 'NECK' ? { ...g, itemLevel: 330 } : g)));
+    expect(await saveSnapshotIfChanged(db, id, 'blizzard', upgraded, 40)).toMatchObject({ changed: true });
+    expect((await getLatestSnapshot(db, id))?.source).toBe('blizzard');
+  });
+
+  it('makes a repeated paste current again after Blizzard took over', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    const pasted = [...gearToSnapshotItems(gear), bagBelt];
+    await saveSnapshotIfChanged(db, id, 'simc', pasted, 10, crests);
+    await saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(gear), 20);
+    expect(await saveSnapshotIfChanged(db, id, 'simc', pasted, 30, crests)).toMatchObject({ changed: true });
+    expect(await saveSnapshotIfChanged(db, id, 'simc', pasted, 40, crests)).toMatchObject({ changed: false });
+  });
+
+  it('stores currencies and reads the latest snapshot of one source', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    await saveSnapshotIfChanged(db, id, 'simc', gearToSnapshotItems(gear), 10, crests);
+    await saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(gear.slice(0, 1)), 20);
+    const simc = await getLatestSnapshot(db, id, 'simc');
+    expect(simc).toMatchObject({ source: 'simc', createdAt: 10, currencies: crests });
+    expect((await getLatestSnapshot(db, id))?.currencies).toEqual([]);
+  });
+
+  it('treats a change in crests alone as a new paste', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    await saveSnapshotIfChanged(db, id, 'simc', gearToSnapshotItems(gear), 10, crests);
+    const more = [{ kind: 'upgrade' as const, currencyId: 3446, quantity: 105 }];
+    expect(await saveSnapshotIfChanged(db, id, 'simc', gearToSnapshotItems(gear), 20, more)).toMatchObject({ changed: true });
   });
 });

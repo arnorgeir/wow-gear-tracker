@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
-import { DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks } from './reference-sync';
+import { setMeta } from '../db/queries';
+import { DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails } from './reference-sync';
 import { HttpError } from '../http';
 import type { BisLists, BisSource, Track } from '../types';
 import type { BlizzardClient } from '../blizzard/client';
@@ -46,31 +47,44 @@ describe('ensureBisLists', () => {
 });
 
 describe('ensureTracks', () => {
-  const tracks: Track[] = [{ bonusId: 1, name: 'Myth', step: 1, max: 6, currencyId: null, costPerStep: null }];
-  const failing = async (): Promise<Track[]> => { throw new Error('down'); };
+  const tracks: Track[] = [{ bonusId: 1, name: 'Myth', step: 1, max: 6, group: 618, currencyId: null, currencyName: null, costPerStep: null }];
+  const data = { tracks, qualities: [{ bonusId: 12805, quality: 'EPIC' as const }] };
+  const failing = async (): Promise<typeof data> => { throw new Error('down'); };
 
-  it('refreshes daily and keeps old data on failure', async () => {
+  it('refreshes daily, stores qualities, and keeps old data on failure', async () => {
     const db = await openTestDb();
     let calls = 0;
-    const ok = async () => { calls++; return tracks; };
-    expect(await ensureTracks({ db, fetchTracks: ok, now: 1 })).toMatchObject({ error: null });
-    await ensureTracks({ db, fetchTracks: ok, now: 2 });
+    const ok = async () => { calls++; return data; };
+    const first = await ensureTracks({ db, fetchRaidbots: ok, now: 1 });
+    expect(first).toMatchObject({ error: null });
+    expect(first.qualities.get(12805)).toBe('EPIC');
+    await ensureTracks({ db, fetchRaidbots: ok, now: 2 });
     expect(calls).toBe(1);
-    const stale = await ensureTracks({ db, fetchTracks: failing, now: 2 + DAY_MS });
+    const stale = await ensureTracks({ db, fetchRaidbots: failing, now: 2 + DAY_MS });
     expect(stale.tracks.size).toBe(1);
+    expect(stale.qualities.size).toBe(1);
     expect(stale.error).toBeNull();
+  });
+
+  it('refetches track data saved by an older version of the app', async () => {
+    const db = await openTestDb();
+    await setMeta(db, 'tracks.fetchedAt', '1', 1);
+    let calls = 0;
+    const result = await ensureTracks({ db, fetchRaidbots: async () => { calls++; return data; }, now: 2 });
+    expect(calls).toBe(1);
+    expect(result.tracks.get(1)?.group).toBe(618);
   });
 
   it('reports missing track data and waits an hour before retrying', async () => {
     const db = await openTestDb();
     let calls = 0;
     const counting = async () => { calls++; return failing(); };
-    const first = await ensureTracks({ db, fetchTracks: counting, now: 1000 });
+    const first = await ensureTracks({ db, fetchRaidbots: counting, now: 1000 });
     expect(first.tracks.size).toBe(0);
     expect(first.error).toBe('Upgrade track data couldn’t be loaded, so upgrade states may be wrong');
-    await ensureTracks({ db, fetchTracks: counting, now: 1000 + 59 * 60_000 });
+    await ensureTracks({ db, fetchRaidbots: counting, now: 1000 + 59 * 60_000 });
     expect(calls).toBe(1);
-    await ensureTracks({ db, fetchTracks: counting, now: 1000 + 61 * 60_000 });
+    await ensureTracks({ db, fetchRaidbots: counting, now: 1000 + 61 * 60_000 });
     expect(calls).toBe(2);
   });
 });
@@ -93,5 +107,26 @@ describe('ensureItemIcons', () => {
     const db = await openTestDb();
     const blizzard = { getItemIconUrl: async () => { throw new Error('down'); } } as unknown as BlizzardClient;
     expect((await ensureItemIcons({ db, blizzard, now: 1 }, 'eu', [7])).has(7)).toBe(false);
+  });
+});
+
+describe('ensureItemDetails', () => {
+  it('fetches unknown items once and remembers items Blizzard doesn’t know', async () => {
+    const db = await openTestDb();
+    const asked: number[] = [];
+    const blizzard = {
+      getItemDetails: async (_region: string, id: number) => { asked.push(id); return id === 1 ? { quality: 'EPIC', isTier: true } : null; },
+    } as unknown as BlizzardClient;
+    const first = await ensureItemDetails({ db, blizzard, now: 1 }, 'eu', [1, 2, 1]);
+    expect(first.get(1)).toEqual({ quality: 'EPIC', isTier: true });
+    expect(first.get(2)).toEqual({ quality: null, isTier: false });
+    await ensureItemDetails({ db, blizzard, now: 2 }, 'eu', [1, 2]);
+    expect(asked.sort()).toEqual([1, 2]);
+  });
+
+  it('skips items that fail to load so they retry later', async () => {
+    const db = await openTestDb();
+    const blizzard = { getItemDetails: async () => { throw new Error('down'); } } as unknown as BlizzardClient;
+    expect((await ensureItemDetails({ db, blizzard, now: 1 }, 'eu', [7])).has(7)).toBe(false);
   });
 });

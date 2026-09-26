@@ -4,15 +4,15 @@ import { createBlizzardClient, type BlizzardClient } from '@/core/blizzard/clien
 import { readConfig } from '@/core/config';
 import { openDb, type Db } from '@/core/db/client';
 import { createMethodSource } from '@/core/method/method';
-import { createRaidbotsTracksFetcher } from '@/core/raidbots/tracks';
+import { createRaidbotsFetcher, type RaidbotsData } from '@/core/raidbots/tracks';
 import { createCharacterSyncer, type CharacterSyncer } from '@/core/sync/character-sync';
-import type { BisSource, Track } from '@/core/types';
+import type { BisSource } from '@/core/types';
 
 export interface Services {
   db: Db;
   blizzard: BlizzardClient;
   bisSource: BisSource;
-  fetchTracks: () => Promise<Track[]>;
+  fetchRaidbots: () => Promise<RaidbotsData>;
   syncer: CharacterSyncer;
   now: () => number;
   fetchFn: typeof fetch;
@@ -29,7 +29,7 @@ async function build(): Promise<Services> {
     db,
     blizzard,
     bisSource: createMethodSource(),
-    fetchTracks: createRaidbotsTracksFetcher(),
+    fetchRaidbots: createRaidbotsFetcher(),
     syncer: createCharacterSyncer({ db, blizzard }),
     now: Date.now,
     fetchFn: fetch,

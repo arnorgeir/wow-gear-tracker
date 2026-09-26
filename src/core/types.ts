@@ -48,7 +48,10 @@ export interface Track {
   name: string;
   step: number;
   max: number;
+  /** Raidbots upgrade group, unique per track per season. Upgrade costs are keyed by it. */
+  group: number | null;
   currencyId: number | null;
+  currencyName: string | null;
   costPerStep: number | null;
 }
 
