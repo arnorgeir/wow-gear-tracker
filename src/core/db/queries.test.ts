@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { openDb } from './client';
 import { openTestDb } from '@/test/db';
 import {
-  deleteCharacter, getBonusQualityMap, replaceBonusQualities, equippedGear, getBisLists, getCharacter, getItemIcons, getLatestSnapshot, getMeta, getTrackMap,
+  deleteCharacter, getBonusQualityMap, getItemDetailsMap, upsertItemDetails, replaceBonusQualities, equippedGear, getBisLists, getCharacter, getItemIcons, getLatestSnapshot, getMeta, getTrackMap,
   gearToSnapshotItems, insertCharacter, listCharacters, replaceBisLists, replaceTracks, saveSnapshotIfChanged,
   setMeta, updateCharacter, upsertItemIcons, type NewCharacter,
 } from './queries';
@@ -84,6 +84,13 @@ describe('BiS lists', () => {
 });
 
 describe('tracks, meta and icons', () => {
+  it('stores item details', async () => {
+    const db = await openTestDb();
+    await upsertItemDetails(db, [{ itemId: 1, quality: 'EPIC', isTier: true }, { itemId: 2, quality: null, isTier: false }], 1);
+    expect(await getItemDetailsMap(db, [1, 2, 3])).toEqual(new Map([[1, { quality: 'EPIC', isTier: true }], [2, { quality: null, isTier: false }]]));
+    expect((await getItemDetailsMap(db, [])).size).toBe(0);
+  });
+
   it('stores bonus qualities', async () => {
     const db = await openTestDb();
     await replaceBonusQualities(db, [{ bonusId: 12805, quality: 'EPIC' }, { bonusId: 4775, quality: 'RARE' }]);

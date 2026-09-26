@@ -6,10 +6,13 @@ export interface CharacterProfile { name: string; realmId: number; realmSlug: st
 export interface Realm { id: number; name: string; slug: string }
 export interface PlayableClass { id: number; name: string; specs: string[] }
 
+export interface ItemDetails { quality: Quality | null; isTier: boolean }
+
 export interface BlizzardClient {
   getProfile(ref: CharacterRef): Promise<CharacterProfile>;
   getEquipment(ref: CharacterRef): Promise<GearItem[]>;
   getItemIconUrl(region: Region, itemId: number): Promise<string | null>;
+  getItemDetails(region: Region, itemId: number): Promise<ItemDetails | null>;
   getRealms(region: Region): Promise<Realm[]>;
   getClasses(region: Region): Promise<PlayableClass[]>;
 }
@@ -122,6 +125,16 @@ export function createBlizzardClient(options: Options): BlizzardClient {
       try {
         const media = await api<{ assets?: { key: string; value: string }[] }>(region, `/data/wow/media/item/${itemId}`, 'static');
         return media.assets?.find((asset) => asset.key === 'icon')?.value ?? null;
+      } catch (err) {
+        if (err instanceof HttpError && err.status === 404) return null;
+        throw err;
+      }
+    },
+
+    async getItemDetails(region, itemId) {
+      try {
+        const item = await api<{ quality?: { type: string }; preview_item?: { set?: unknown } }>(region, `/data/wow/item/${itemId}`, 'static');
+        return { quality: (item.quality?.type as Quality | undefined) ?? null, isTier: Boolean(item.preview_item?.set) };
       } catch (err) {
         if (err instanceof HttpError && err.status === 404) return null;
         throw err;

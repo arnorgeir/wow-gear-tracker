@@ -75,6 +75,13 @@ export const items = sqliteTable('items', {
   fetchedAt: integer('fetched_at').notNull(),
 });
 
+export const itemDetails = sqliteTable('item_details', {
+  itemId: integer('item_id').primaryKey(),
+  quality: text('quality').$type<Quality>(),
+  isTier: integer('is_tier', { mode: 'boolean' }).notNull(),
+  fetchedAt: integer('fetched_at').notNull(),
+});
+
 export const upgradeTracks = sqliteTable('upgrade_tracks', {
   bonusId: integer('bonus_id').primaryKey(),
   name: text('name').notNull(),

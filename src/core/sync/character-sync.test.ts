@@ -15,6 +15,7 @@ function fakeBlizzard(overrides: Partial<BlizzardClient> = {}) {
     getProfile: async () => { calls.profile++; return profile; },
     getEquipment: async () => { calls.equipment++; return gear; },
     getItemIconUrl: async () => null,
+    getItemDetails: async () => null,
     getRealms: async () => [],
     getClasses: async () => [],
     ...overrides,

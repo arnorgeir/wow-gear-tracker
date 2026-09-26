@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import type { ItemDetails } from '../blizzard/client';
 import type { BonusQuality } from '../raidbots/tracks';
 import type { Db } from './client';
-import { bisItems, bisLists, characters, gearSnapshots, items, meta, snapshotItems, upgradeTracks, bonusQualities, snapshotCurrencies } from './schema';
+import { bisItems, bisLists, characters, gearSnapshots, items, meta, snapshotItems, upgradeTracks, bonusQualities, snapshotCurrencies, itemDetails } from './schema';
 import {
   LIST_TYPES, type BisLists, type GearItem, type ItemLocation, type Quality, type Region, type SlotType, type SnapshotSource, type Track,
 } from '../types';
@@ -217,4 +218,19 @@ export async function getItemIcons(db: Db, ids: number[]): Promise<Map<number, s
   if (ids.length === 0) return new Map();
   const rows = await db.select().from(items).where(inArray(items.itemId, [...new Set(ids)]));
   return new Map(rows.map((r) => [r.itemId, r.iconUrl]));
+}
+
+export async function upsertItemDetails(db: Db, entries: ({ itemId: number } & ItemDetails)[], now: number) {
+  await withWriteLock(db, async () => {
+    for (const entry of entries) {
+      await db.insert(itemDetails).values({ ...entry, fetchedAt: now })
+        .onConflictDoUpdate({ target: itemDetails.itemId, set: { quality: entry.quality, isTier: entry.isTier, fetchedAt: now } });
+    }
+  });
+}
+
+export async function getItemDetailsMap(db: Db, ids: number[]): Promise<Map<number, ItemDetails>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db.select().from(itemDetails).where(inArray(itemDetails.itemId, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.itemId, { quality: r.quality, isTier: r.isTier }]));
 }
