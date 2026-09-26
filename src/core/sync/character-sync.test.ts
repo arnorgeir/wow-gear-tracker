@@ -115,6 +115,34 @@ describe('createCharacterSyncer', () => {
     expect((await getLatestSnapshot(db, id))?.source).toBe('simc');
   });
 
+  it('saves race, faction and avatar with the profile', async () => {
+    const { db, id, syncer } = await setup();
+    await syncer.sync(id);
+    expect(await getCharacter(db, id)).toMatchObject({ race: 'Troll', faction: 'HORDE', avatarUrl: 'https://render/avatar.jpg' });
+  });
+
+  it('keeps the stored avatar and still syncs gear when the avatar fetch fails', async () => {
+    let mediaFails = false;
+    const { db, id, syncer, advance } = await setup({
+      getCharacterMedia: async () => { if (mediaFails) throw new Error('media down'); return 'https://render/avatar.jpg'; },
+    });
+    await syncer.sync(id);
+    mediaFails = true;
+    advance(6 * 60 * 1000);
+    expect(await syncer.sync(id)).toBe('unchanged');
+    expect(await getCharacter(db, id)).toMatchObject({ avatarUrl: 'https://render/avatar.jpg', lastSyncError: null });
+  });
+
+  it('keeps the stored avatar when Blizzard has none', async () => {
+    let avatar: string | null = 'https://render/avatar.jpg';
+    const { db, id, syncer, advance } = await setup({ getCharacterMedia: async () => avatar });
+    await syncer.sync(id);
+    avatar = null;
+    advance(6 * 60 * 1000);
+    await syncer.sync(id);
+    expect((await getCharacter(db, id))?.avatarUrl).toBe('https://render/avatar.jpg');
+  });
+
   it('throws for an unknown character ID', async () => {
     const { syncer } = await setup();
     await expect(syncer.sync(999)).rejects.toThrow('Character 999 not found');

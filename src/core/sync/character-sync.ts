@@ -31,6 +31,8 @@ export function createCharacterSyncer({ db, blizzard, now = Date.now, ttlMs = GE
     if (!force && !isStale(character.lastSyncedAt, time, ttlMs)) return 'skipped';
 
     const ref = { region: character.region, realmSlug: character.realmSlug, name: character.name };
+    // The avatar is nice to have: a failed or empty media call never fails the sync.
+    const media = blizzard.getCharacterMedia(ref).catch(() => null);
     let profile, gear;
     try {
       [profile, gear] = await Promise.all([blizzard.getProfile(ref), blizzard.getEquipment(ref)]);
@@ -49,9 +51,13 @@ export function createCharacterSyncer({ db, blizzard, now = Date.now, ttlMs = GE
 
     // Save the gear before marking the character fresh, so a failed save is retried on the next load.
     const { changed } = await saveSnapshotIfChanged(db, characterId, 'blizzard', gearToSnapshotItems(gear), time);
+    const avatarUrl = await media;
     await updateCharacter(db, characterId, {
       className: profile.className,
       specName: profile.specName || character.specName,
+      race: profile.raceName || character.race,
+      faction: profile.faction ?? character.faction,
+      avatarUrl: avatarUrl ?? character.avatarUrl,
       status: 'ok',
       lastSyncedAt: time,
       lastSyncError: null,
