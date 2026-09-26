@@ -4,14 +4,23 @@ import type { CharacterCardView } from '@/server/views';
 import { classColor } from './class-colors';
 import { RemoveCharacterButton } from './RemoveCharacterButton';
 
+function crestLine(card: CharacterCardView): { text: string; tone: string } {
+  if (!card.crests) return { text: 'Crests unknown: paste SimC', tone: 'text-muted' };
+  const balances = card.crests.balances.map((b) => `${b.name.split(' ')[0]} ${b.quantity}`).join(', ') || 'No crests';
+  if (card.upgradesReady === 0) return { text: `${balances}: no BiS upgrades affordable`, tone: 'text-muted' };
+  const ready = `${card.upgradesReady} BiS ${card.upgradesReady === 1 ? 'upgrade' : 'upgrades'} ready`;
+  return { text: `${balances}: ${ready}`, tone: 'text-upgrade' };
+}
+
 export function CharacterCard({ card, now }: { card: CharacterCardView; now: number }) {
   const color = classColor(card.className);
   const counts = card.counts;
   const bis = counts ? counts.done + counts.mythUpgradable + counts.belowMyth : 0;
-  const source = card.snapshot
-    ? `${card.snapshot.source === 'simc' ? 'SimC, pasted' : 'Blizzard, synced'} ${formatAge(card.lastSyncedAt ?? card.snapshot.createdAt, now)}`
+  const source = card.snapshot && card.sourceAt !== null
+    ? `${card.snapshot.source === 'simc' ? 'SimC, pasted' : 'Blizzard, synced'} ${formatAge(card.sourceAt, now)}`
     : 'Not synced yet';
   const listName = card.priorityList === 'mythicPlus' ? 'Mythic+ BiS' : 'Overall BiS';
+  const crests = crestLine(card);
 
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
@@ -44,7 +53,9 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
           </div>
           <span className="text-sm text-muted">
             {counts.done} done, {counts.mythUpgradable} need crests, {counts.belowMyth} vault targets
+            {counts.inBags > 0 ? `, ${counts.inBags} in bags` : ''}
           </span>
+          <span className={`text-sm ${crests.tone}`}>{crests.text}</span>
         </div>
       ) : (
         <p className="text-sm text-muted">{card.bisError ?? 'Loading BiS list…'}</p>

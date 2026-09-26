@@ -2,12 +2,15 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CharacterSettings } from '@/components/CharacterSettings';
 import { classColor } from '@/components/class-colors';
+import { CrestSummary } from '@/components/CrestSummary';
 import { EmptySlotCard, ItemCard } from '@/components/ItemCard';
 import { RefreshButton } from '@/components/RefreshButton';
 import { RemoveCharacterButton } from '@/components/RemoveCharacterButton';
 import { SetupNotice } from '@/components/SetupNotice';
+import { SimcPaste } from '@/components/SimcPaste';
 import { StaleSync } from '@/components/StaleSync';
 import { StateBadge } from '@/components/StateBadge';
+import { UpgradeBadge } from '@/components/UpgradeBadge';
 import { MissingConfigError } from '@/core/config';
 import { formatAge } from '@/core/format';
 import { isStale } from '@/core/sync/character-sync';
@@ -24,10 +27,8 @@ type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ list?: s
 function BisTarget({ row }: { row: GearRowView }) {
   const name = row.bis.isTier ? `Tier piece (catalyst ${row.bis.name})` : row.bis.name;
   return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <ItemCard itemId={row.bis.itemId} name={name} quality={row.bis.quality} iconUrl={row.bis.iconUrl}
-        bonusIds={row.bis.bonusIds} itemLevel={null} detail={row.bis.source} />
-    </div>
+    <ItemCard itemId={row.bis.itemId} name={name} quality={row.bis.quality} iconUrl={row.bis.iconUrl}
+      bonusIds={row.bis.bonusIds} itemLevel={null} detail={row.bis.source} />
   );
 }
 
@@ -46,8 +47,8 @@ export default async function CharacterPage({ params, searchParams }: Props) {
 
   const now = services.now();
   const color = classColor(view.className);
-  const source = view.snapshot
-    ? `${view.snapshot.source === 'simc' ? 'From SimC, pasted' : 'From Blizzard, synced'} ${formatAge(view.lastSyncedAt ?? view.snapshot.createdAt, now)}`
+  const source = view.snapshot && view.sourceAt !== null
+    ? `${view.snapshot.source === 'simc' ? 'From SimC, pasted' : 'From Blizzard, synced'} ${formatAge(view.sourceAt, now)}`
     : 'Not synced yet';
 
   return (
@@ -83,8 +84,14 @@ export default async function CharacterPage({ params, searchParams }: Props) {
           {view.bisError}{view.bisFetchedAt ? `. Showing the list from ${formatAge(view.bisFetchedAt, now)}.` : '.'}
         </p>
       )}
-
       {view.tracksError && <p role="alert" className="text-[#f3c9a2]">{view.tracksError}.</p>}
+
+      <SimcPaste id={view.id} />
+
+      <section aria-label="Crests" className="flex flex-col gap-2">
+        <h2 className="text-[13px] font-semibold uppercase tracking-wider text-muted">Crests</h2>
+        <CrestSummary crests={view.crests} now={now} />
+      </section>
 
       <CharacterSettings id={view.id} specs={view.specs} spec={view.spec} activeSpec={view.activeSpec} priorityList={view.priorityList} />
 
@@ -98,12 +105,12 @@ export default async function CharacterPage({ params, searchParams }: Props) {
       </nav>
 
       <section aria-label="Gear by slot" className="flex flex-col rounded-2xl border border-line bg-surface">
-        <div className="hidden grid-cols-[110px_minmax(0,1fr)_minmax(0,1fr)_170px] gap-3 border-b border-line px-4 py-3 text-[13px] font-semibold uppercase tracking-wider text-muted md:grid">
+        <div className="hidden grid-cols-[110px_minmax(0,1fr)_minmax(0,1fr)_190px] gap-3 border-b border-line px-4 py-3 text-[13px] font-semibold uppercase tracking-wider text-muted md:grid">
           <span>Slot</span><span>Equipped</span><span>BiS</span><span>State</span>
         </div>
         {view.rows.length === 0 && <p className="p-6 text-muted">No BiS list to compare against yet.</p>}
         {view.rows.map((row, index) => (
-          <div key={`${row.slot}-${index}`} className="grid grid-cols-1 gap-3 border-b border-raised px-4 py-2 md:grid-cols-[110px_minmax(0,1fr)_minmax(0,1fr)_170px] md:items-center">
+          <div key={`${row.slot}-${index}`} className="grid grid-cols-1 gap-3 border-b border-raised px-4 py-2 md:grid-cols-[110px_minmax(0,1fr)_minmax(0,1fr)_190px] md:items-center">
             <span className="font-semibold text-muted">{row.slotLabel}</span>
             {row.equipped ? (
               <ItemCard itemId={row.equipped.itemId} name={row.equipped.name} quality={row.equipped.quality} iconUrl={row.equipped.iconUrl}
@@ -111,20 +118,47 @@ export default async function CharacterPage({ params, searchParams }: Props) {
                 detail={[row.equipped.trackLabel ?? 'no track', row.equipped.itemLevel].filter(Boolean).join(' · ')} />
             ) : <EmptySlotCard />}
             <BisTarget row={row} />
-            <StateBadge state={row.state} />
+            <div className="flex flex-col gap-1.5">
+              <StateBadge state={row.state} />
+              {row.upgrade && <UpgradeBadge upgrade={row.upgrade} />}
+            </div>
           </div>
         ))}
       </section>
 
-      <section aria-label="Great Vault targets" className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5">
-        <h2 className="font-display text-2xl font-bold">Great Vault targets</h2>
-        {view.vault.length === 0 ? (
-          <p className="text-muted">No BiS items below Myth track.</p>
-        ) : view.vault.map((row) => row.equipped && (
-          <ItemCard key={row.slot} itemId={row.equipped.itemId} name={row.equipped.name} quality={row.equipped.quality}
-            iconUrl={row.equipped.iconUrl} bonusIds={row.equipped.bonusIds} itemLevel={row.equipped.itemLevel}
-            detail={row.equipped.trackLabel ?? undefined} />
-        ))}
+      <section aria-label="Great Vault" className="flex flex-col gap-5 rounded-2xl border border-line bg-surface p-5">
+        <h2 className="font-display text-2xl font-bold">Great Vault</h2>
+
+        <div className="flex flex-col gap-2">
+          <h3 className="text-[13px] font-semibold uppercase tracking-wider text-muted">BiS items below Myth track</h3>
+          {view.vault.length === 0 ? (
+            <p className="text-muted">None. Every BiS item you have is on Myth track.</p>
+          ) : view.vault.map((row) => row.equipped && (
+            <ItemCard key={row.slot} itemId={row.equipped.itemId} name={row.equipped.name} quality={row.equipped.quality}
+              iconUrl={row.equipped.iconUrl} bonusIds={row.equipped.bonusIds} itemLevel={row.equipped.itemLevel}
+              detail={row.equipped.trackLabel ?? undefined} />
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <h3 className="text-[13px] font-semibold uppercase tracking-wider text-muted">
+            This week&rsquo;s choices{view.vaultChoicesAt !== null ? `, from SimC pasted ${formatAge(view.vaultChoicesAt, now)}` : ''}
+          </h3>
+          {view.vaultChoicesAt === null ? (
+            <p className="text-muted">Paste SimC to see your Great Vault choices.</p>
+          ) : view.vaultChoices.length === 0 ? (
+            <p className="text-muted">No item choices in the vault in the last paste.</p>
+          ) : view.vaultChoices.map((choice, index) => (
+            <div key={`${choice.itemId}-${index}`} className="flex items-center gap-3">
+              <div className="min-w-0 grow">
+                <ItemCard itemId={choice.itemId} name={choice.name} quality={choice.quality} iconUrl={choice.iconUrl}
+                  bonusIds={choice.bonusIds} itemLevel={choice.itemLevel}
+                  detail={[choice.trackLabel, choice.itemLevel].filter(Boolean).join(' · ') || undefined} />
+              </div>
+              <span className={`w-20 shrink-0 text-sm font-bold ${choice.isBis ? 'text-bags' : 'text-muted'}`}>{choice.isBis ? 'BiS' : 'Not BiS'}</span>
+            </div>
+          ))}
+        </div>
       </section>
 
       <StaleSync ids={view.status === 'ok' && isStale(view.lastSyncedAt, now) ? [view.id] : []} />
