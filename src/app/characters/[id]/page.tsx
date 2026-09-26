@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { CharacterAvatar } from '@/components/CharacterAvatar';
 import { CharacterSettings } from '@/components/CharacterSettings';
 import { classColor } from '@/components/class-colors';
 import { CrestSummary } from '@/components/CrestSummary';
@@ -58,13 +59,11 @@ export default async function CharacterPage({ params, searchParams }: Props) {
 
       <div className="flex flex-wrap items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <span className="flex size-16 items-center justify-center rounded-full border-2 bg-bg text-2xl font-bold" style={{ borderColor: color, color }}>
-            {view.name.charAt(0)}
-          </span>
+          <CharacterAvatar name={view.name} className={view.className} avatarUrl={view.avatarUrl} classIconUrl={view.classIconUrl} size={76} />
           <div className="flex flex-col">
             <h1 className="font-display text-4xl font-bold tracking-wide">{view.name}</h1>
             <span className="text-muted">{view.realmName} ({view.region.toUpperCase()})</span>
-            <span className="font-semibold" style={{ color }}>{view.spec} {view.className}</span>
+            <span className="font-semibold" style={{ color }}>{view.identity}</span>
           </div>
         </div>
         <div className="flex items-center gap-3">

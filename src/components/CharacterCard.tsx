@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { formatAge } from '@/core/format';
 import type { CharacterCardView } from '@/server/views';
+import { CharacterAvatar } from './CharacterAvatar';
 import { classColor } from './class-colors';
 import { RemoveCharacterButton } from './RemoveCharacterButton';
 
@@ -26,13 +27,11 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
       <div className="flex items-center gap-3.5">
-        <span className="flex size-[52px] shrink-0 items-center justify-center rounded-full border-2 bg-bg text-xl font-bold" style={{ borderColor: color, color }}>
-          {card.name.charAt(0)}
-        </span>
+        <CharacterAvatar name={card.name} className={card.className} avatarUrl={card.avatarUrl} classIconUrl={card.classIconUrl} size={52} />
         <div className="flex min-w-0 flex-col">
           <Link href={`/characters/${card.id}`} className="truncate text-xl font-bold text-ink no-underline hover:underline">{card.name}</Link>
           <span className="text-[15px] text-muted">{card.realmName}</span>
-          <span className="text-[15px] font-semibold" style={{ color }}>{card.spec} {card.className}</span>
+          <span className="text-[15px] font-semibold" style={{ color }}>{card.identity}</span>
         </div>
       </div>
 
