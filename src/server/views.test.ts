@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { getCharacterCards, getCharacterPage } from './views';
 import type { Services } from './services';
-import { gearToSnapshotItems, insertCharacter, saveSnapshotIfChanged } from '@/core/db/queries';
+import { gearToSnapshotItems, insertCharacter, saveSnapshotIfChanged, updateCharacter } from '@/core/db/queries';
 import type { BisLists, GearItem, Track } from '@/core/types';
 import type { BlizzardClient } from '@/core/blizzard/client';
 
@@ -28,6 +28,7 @@ async function services(bisLists: BisLists = lists): Promise<Services> {
   const blizzard = {
     getItemIconUrl: async (_r: string, id: number) => `https://i/${id}.jpg`,
     getClasses: async () => [{ id: 11, name: 'Druid', specs: ['Balance', 'Feral', 'Guardian', 'Restoration'] }],
+    getClassIconUrl: async (_r: string, id: number) => `https://i/class-${id}.jpg`,
   } as unknown as BlizzardClient;
   return {
     db, blizzard,
@@ -142,5 +143,21 @@ describe('SimC data', () => {
     const page = await getCharacterPage(s, id);
     expect(page).toMatchObject({ crests: null, vaultChoices: [], vaultChoicesAt: null });
     expect(page!.rows.every((r) => r.upgrade === null)).toBe(true);
+  });
+});
+
+describe('identity', () => {
+  it('shows race, spec and class, the avatar and the class icon', async () => {
+    const s = await services();
+    const id = await seed(s);
+    let page = await getCharacterPage(s, id);
+    expect(page).toMatchObject({ identity: 'Guardian Druid', race: null, faction: null, avatarUrl: null, classIconUrl: 'https://i/class-11.jpg' });
+
+    await updateCharacter(s.db, id, { race: 'Troll', faction: 'HORDE', avatarUrl: 'https://render/a.jpg', specOverride: 'Feral' });
+    page = await getCharacterPage(s, id);
+    expect(page).toMatchObject({ identity: 'Troll Feral Druid', faction: 'HORDE', avatarUrl: 'https://render/a.jpg' });
+
+    const [card] = await getCharacterCards(s);
+    expect(card).toMatchObject({ identity: 'Troll Feral Druid', avatarUrl: 'https://render/a.jpg', classIconUrl: 'https://i/class-11.jpg' });
   });
 });
