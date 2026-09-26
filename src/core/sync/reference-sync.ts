@@ -105,26 +105,38 @@ export async function ensureItemDetails(
 }
 
 const CLASS_ICONS_META_KEY = 'classIcons.v1.fetchedAt';
+const CLASS_ICONS_FAILED_META_KEY = 'classIcons.failedAt';
 const CLASS_ICONS_TTL_MS = 30 * DAY_MS;
+const CLASS_ICONS_RETRY_MS = 60 * 60 * 1000;
 
-/** Class icons change rarely: refresh every 30 days, and keep the cache when Blizzard fails. */
+/**
+ * Class icons change rarely: refresh every 30 days. A failed call never overwrites a cached icon,
+ * and after any failure the next attempt waits an hour, so a Blizzard outage can't slow every page.
+ */
 export async function ensureClassIcons(
   deps: { db: Db; blizzard: BlizzardClient; now: number }, region: Region,
 ): Promise<Map<string, string | null>> {
   const { db, blizzard, now } = deps;
   const fetchedAt = await getMeta(db, CLASS_ICONS_META_KEY);
-  if (!fetchedAt || now - fetchedAt.updatedAt >= CLASS_ICONS_TTL_MS) {
+  const failedAt = await getMeta(db, CLASS_ICONS_FAILED_META_KEY);
+  const fresh = fetchedAt && now - fetchedAt.updatedAt < CLASS_ICONS_TTL_MS;
+  const backingOff = failedAt && now - failedAt.updatedAt < CLASS_ICONS_RETRY_MS;
+  if (!fresh && !backingOff) {
     try {
       const classes = await blizzard.getClasses(region);
-      const entries = await Promise.all(classes.map(async (cls) => ({
-        className: cls.name,
-        classId: cls.id,
-        iconUrl: await blizzard.getClassIconUrl(region, cls.id).catch(() => null),
-      })));
-      await upsertClassIcons(db, entries, now);
-      await setMeta(db, CLASS_ICONS_META_KEY, String(now), now);
+      const results = await Promise.all(classes.map(async (cls) => {
+        try {
+          // null here means Blizzard has no icon for the class (404), which is safe to store.
+          return { className: cls.name, classId: cls.id, iconUrl: await blizzard.getClassIconUrl(region, cls.id) };
+        } catch {
+          return null;
+        }
+      }));
+      const found = results.filter((entry): entry is { className: string; classId: number; iconUrl: string | null } => entry !== null);
+      if (found.length > 0) await upsertClassIcons(db, found, now);
+      await setMeta(db, found.length === classes.length ? CLASS_ICONS_META_KEY : CLASS_ICONS_FAILED_META_KEY, String(now), now);
     } catch {
-      // Keep the cached icons. Anything without an icon falls back to the class-colored initial.
+      await setMeta(db, CLASS_ICONS_FAILED_META_KEY, String(now), now);
     }
   }
   return getClassIconMap(db);

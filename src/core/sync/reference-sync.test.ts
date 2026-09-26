@@ -151,6 +151,30 @@ describe('ensureClassIcons', () => {
     expect(calls.classes).toBe(2);
   });
 
+  it('keeps cached icons when some icon calls fail, and retries them later', async () => {
+    const db = await openTestDb();
+    await ensureClassIcons({ db, blizzard: blizzardWith().blizzard, now: 1 }, 'eu');
+    let iconCalls = 0;
+    const flaky = {
+      getClasses: async () => [{ id: 11, name: 'Druid', specs: [] }, { id: 10, name: 'Monk', specs: [] }],
+      getClassIconUrl: async () => { iconCalls++; throw new Error('timeout'); },
+    } as unknown as BlizzardClient;
+    const icons = await ensureClassIcons({ db, blizzard: flaky, now: 1 + 30 * DAY_MS }, 'eu');
+    expect(icons.get('Druid')).toBe('https://i/druid.jpg');
+    await ensureClassIcons({ db, blizzard: flaky, now: 1 + 30 * DAY_MS + 61 * 60_000 }, 'eu');
+    expect(iconCalls).toBe(4);
+  });
+
+  it('waits an hour before retrying after a failure', async () => {
+    const db = await openTestDb();
+    const { blizzard, calls } = blizzardWith(true);
+    await ensureClassIcons({ db, blizzard, now: 1000 }, 'eu');
+    await ensureClassIcons({ db, blizzard, now: 1000 + 59 * 60_000 }, 'eu');
+    expect(calls.classes).toBe(1);
+    await ensureClassIcons({ db, blizzard, now: 1000 + 61 * 60_000 }, 'eu');
+    expect(calls.classes).toBe(2);
+  });
+
   it('keeps the cache when Blizzard fails', async () => {
     const db = await openTestDb();
     await ensureClassIcons({ db, blizzard: blizzardWith().blizzard, now: 1 }, 'eu');
