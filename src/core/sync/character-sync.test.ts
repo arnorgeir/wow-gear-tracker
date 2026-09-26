@@ -1,0 +1,92 @@
+import { describe, expect, it } from 'vitest';
+import { openTestDb } from '@/test/db';
+import { createCharacterSyncer, isStale } from './character-sync';
+import { getCharacter, getLatestSnapshot, insertCharacter } from '../db/queries';
+import { HttpError } from '../http';
+import type { BlizzardClient, CharacterProfile } from '../blizzard/client';
+import type { GearItem } from '../types';
+
+const profile: CharacterProfile = { name: 'Testchar', realmId: 1, realmSlug: 'test-realm', realmName: 'Test Realm', className: 'Druid', specName: 'Feral' };
+const gear: GearItem[] = [{ slot: 'HEAD', itemId: 1, name: 'Helm', itemLevel: 300, quality: 'EPIC', bonusIds: [], isTier: false }];
+
+function fakeBlizzard(overrides: Partial<BlizzardClient> = {}) {
+  const calls = { profile: 0, equipment: 0 };
+  const client: BlizzardClient = {
+    getProfile: async () => { calls.profile++; return profile; },
+    getEquipment: async () => { calls.equipment++; return gear; },
+    getItemIconUrl: async () => null,
+    getRealms: async () => [],
+    getClasses: async () => [],
+    ...overrides,
+  };
+  return { client, calls };
+}
+
+async function setup(overrides: Partial<BlizzardClient> = {}, now = 1_000_000) {
+  const db = await openTestDb();
+  const { id } = await insertCharacter(db, { region: 'eu', realmId: 1, realmSlug: 'test-realm', realmName: 'Test Realm', name: 'Testchar', className: 'Druid', specName: 'Guardian' }, 0);
+  const blizzard = fakeBlizzard(overrides);
+  let clock = now;
+  const syncer = createCharacterSyncer({ db, blizzard: blizzard.client, now: () => clock });
+  return { db, id, syncer, calls: blizzard.calls, advance: (ms: number) => { clock += ms; } };
+}
+
+describe('isStale', () => {
+  it('treats never-synced and old data as stale', () => {
+    expect(isStale(null, 10)).toBe(true);
+    expect(isStale(0, 5 * 60 * 1000)).toBe(true);
+    expect(isStale(0, 5 * 60 * 1000 - 1)).toBe(false);
+  });
+});
+
+describe('createCharacterSyncer', () => {
+  it('saves gear and profile on the first sync', async () => {
+    const { db, id, syncer } = await setup();
+    expect(await syncer.sync(id)).toBe('updated');
+    expect(await getCharacter(db, id)).toMatchObject({ specName: 'Feral', lastSyncedAt: 1_000_000, status: 'ok', lastSyncError: null });
+    expect((await getLatestSnapshot(db, id))?.items).toHaveLength(1);
+  });
+
+  it('skips fresh data unless forced, and reports unchanged gear', async () => {
+    const { id, syncer, calls, advance } = await setup();
+    await syncer.sync(id);
+    expect(await syncer.sync(id)).toBe('skipped');
+    expect(await syncer.sync(id, { force: true })).toBe('unchanged');
+    advance(6 * 60 * 1000);
+    expect(await syncer.sync(id)).toBe('unchanged');
+    expect(calls.equipment).toBe(3);
+  });
+
+  it('shares one in-progress sync between concurrent callers', async () => {
+    const { id, syncer, calls } = await setup();
+    const [a, b] = await Promise.all([syncer.sync(id), syncer.sync(id)]);
+    expect([a, b]).toEqual(['updated', 'updated']);
+    expect(calls.equipment).toBe(1);
+  });
+
+  it('marks a character notFound on a Blizzard 404', async () => {
+    const { db, id, syncer } = await setup({ getProfile: async () => { throw new HttpError(404, 'u', ''); } });
+    expect(await syncer.sync(id)).toBe('notFound');
+    expect(await getCharacter(db, id)).toMatchObject({ status: 'notFound' });
+  });
+
+  it('keeps the last gear and records the error on other failures', async () => {
+    let fail = false;
+    const { db, id, syncer, advance } = await setup({
+      getEquipment: async () => { if (fail) throw new HttpError(503, 'u', 'down'); return gear; },
+    });
+    await syncer.sync(id);
+    fail = true;
+    advance(6 * 60 * 1000);
+    expect(await syncer.sync(id)).toBe('error');
+    const character = await getCharacter(db, id);
+    expect(character?.lastSyncError).toMatch(/Blizzard/);
+    expect(character?.lastSyncedAt).toBe(1_000_000);
+    expect((await getLatestSnapshot(db, id))?.items).toHaveLength(1);
+  });
+
+  it('throws for an unknown character ID', async () => {
+    const { syncer } = await setup();
+    await expect(syncer.sync(999)).rejects.toThrow('Character 999 not found');
+  });
+});
