@@ -2345,14 +2345,24 @@ Blizzard's API only updates a character after they log out. For instant updates,
 A paste also brings in bag items, Great Vault choices and crest counts, which Blizzard's API doesn't have. The pasted gear stays current until Blizzard's data changes, which happens after your next logout.
 ````
 
-- [ ] **Step 2: Run the full check**
+- [ ] **Step 2: Update the agent rules**
+
+`AGENTS.md` arrives on `main` with PR #19. If it's there, rebase this branch on `main` first, then make these edits in its "Architecture rules" and "External data facts" sections:
+
+- Replace ``  - Logic (`gear`) is pure functions, with no network or database access.`` with ``  - Logic (`gear`, `simc/parse`) is pure functions, with no network or database access.``
+- Replace ``  - Sync (`sync`, `characters`) combines clients and the database, and receives both as parameters.`` with ``  - Sync (`sync`, `characters`, `simc/import-simc`) combines clients and the database, and receives both as parameters.``
+- Replace `SimC pastes (plan 2) add instant updates.` with `SimC pastes add instant updates, plus bag items, Great Vault choices and crests. A paste stays current until Blizzard's own data changes.`
+
+If PR #19 isn't merged yet, skip this step and record that in the ledger.
+
+- [ ] **Step 3: Run the full check**
 
 Run: `npm run typecheck && npm run lint && npm test && npm run build`
 Expected: all succeed.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add README.md
-git commit -m "docs: explain SimC pastes in the README"
+git add README.md AGENTS.md
+git commit -m "docs: explain SimC pastes in the README and agent rules"
 ```
