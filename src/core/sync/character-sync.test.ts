@@ -6,7 +6,7 @@ import { HttpError } from '../http';
 import type { BlizzardClient, CharacterProfile } from '../blizzard/client';
 import type { GearItem } from '../types';
 
-const profile: CharacterProfile = { name: 'Testchar', realmId: 1, realmSlug: 'test-realm', realmName: 'Test Realm', className: 'Druid', specName: 'Feral' };
+const profile: CharacterProfile = { name: 'Testchar', realmId: 1, realmSlug: 'test-realm', realmName: 'Test Realm', className: 'Druid', specName: 'Feral', raceName: 'Troll', faction: 'HORDE' };
 const gear: GearItem[] = [{ slot: 'HEAD', itemId: 1, name: 'Helm', itemLevel: 300, quality: 'EPIC', bonusIds: [], isTier: false }];
 
 function fakeBlizzard(overrides: Partial<BlizzardClient> = {}) {
@@ -16,6 +16,8 @@ function fakeBlizzard(overrides: Partial<BlizzardClient> = {}) {
     getEquipment: async () => { calls.equipment++; return gear; },
     getItemIconUrl: async () => null,
     getItemDetails: async () => null,
+    getCharacterMedia: async () => 'https://render/avatar.jpg',
+    getClassIconUrl: async () => null,
     getRealms: async () => [],
     getClasses: async () => [],
     ...overrides,

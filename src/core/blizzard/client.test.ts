@@ -19,6 +19,8 @@ const profile = {
   realm: { id: 1306, name: 'Tarren Mill', slug: 'tarren-mill' },
   character_class: { name: 'Druid' },
   active_spec: { name: 'Guardian' },
+  race: { name: 'Troll' },
+  faction: { type: 'HORDE' },
 };
 
 function client(routes: Parameters<typeof fakeFetch>[0]) {
@@ -49,7 +51,8 @@ describe('Blizzard client', () => {
   it('maps the profile', async () => {
     const { api } = client([on('/character/tarren-mill/', () => json(profile))]);
     expect(await api.getProfile(ref)).toEqual({
-      name: 'Birkibjörn', realmId: 1306, realmSlug: 'tarren-mill', realmName: 'Tarren Mill', className: 'Druid', specName: 'Guardian',
+      name: 'Birkibjörn', realmId: 1306, realmSlug: 'tarren-mill', realmName: 'Tarren Mill',
+      className: 'Druid', specName: 'Guardian', raceName: 'Troll', faction: 'HORDE',
     });
   });
 
@@ -112,5 +115,29 @@ describe('Blizzard client', () => {
     expect(await api.getItemDetails('eu', 111)).toEqual({ quality: 'EPIC', isTier: true });
     expect(await api.getItemDetails('eu', 222)).toEqual({ quality: 'RARE', isTier: false });
     expect(await api.getItemDetails('eu', 999)).toBeNull();
+  });
+
+  it('treats a missing race and an unknown faction as empty', async () => {
+    const { api } = client([on('/character/tarren-mill/', () => json({ ...profile, race: undefined, faction: { type: 'NEUTRAL' } }))]);
+    expect(await api.getProfile(ref)).toMatchObject({ raceName: '', faction: null });
+  });
+
+  it('returns the character’s avatar URL, or null when Blizzard has none', async () => {
+    const { api, calls } = client([
+      on('/tarren-mill/birkibj%C3%B6rn/character-media', () => json({ assets: [{ key: 'avatar', value: 'https://render/a.jpg' }, { key: 'main-raw', value: 'https://render/m.png' }] })),
+      on('/tarren-mill/nobody/character-media', () => new Response('', { status: 404 })),
+    ]);
+    expect(await api.getCharacterMedia(ref)).toBe('https://render/a.jpg');
+    expect(calls.find((c) => c.url.includes('character-media'))!.url).toContain('namespace=profile-eu');
+    expect(await api.getCharacterMedia({ ...ref, name: 'Nobody' })).toBeNull();
+  });
+
+  it('returns a class icon URL, or null when the class has none', async () => {
+    const { api } = client([
+      on('/media/playable-class/11', () => json({ assets: [{ key: 'icon', value: 'https://render/druid.jpg' }] })),
+      on('/media/playable-class/99', () => new Response('', { status: 404 })),
+    ]);
+    expect(await api.getClassIconUrl('eu', 11)).toBe('https://render/druid.jpg');
+    expect(await api.getClassIconUrl('eu', 99)).toBeNull();
   });
 });
