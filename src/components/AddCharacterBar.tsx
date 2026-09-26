@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { REGIONS, type Region } from '@/core/types';
 import type { Faction } from '@/core/types';
@@ -19,6 +19,8 @@ interface Result {
 interface Realm { id: number; name: string; slug: string }
 
 const inputClass = 'h-12 rounded-xl border border-line-strong bg-surface-2 px-4 text-[17px] text-ink focus:border-gold focus:outline-none';
+// Narrower padding and width: the region select only ever shows two letters.
+const regionClass = `${inputClass.replace('px-4', 'px-3')} w-20`;
 const labelClass = 'text-[13px] font-semibold uppercase tracking-wider text-muted';
 
 export function AddCharacterBar() {
@@ -31,6 +33,25 @@ export function AddCharacterBar() {
   const [realmSlug, setRealmSlug] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Close the result list on a click or tap outside the search field and its list, or on Escape.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!searchRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (manual || term.trim().length < 3) return;
@@ -47,7 +68,7 @@ export function AddCharacterBar() {
     fetch(`/api/realms?region=${region}`).then((r) => (r.ok ? r.json() : [])).then(setRealms).catch(() => setRealms([]));
   }, [manual, region]);
 
-  const visibleResults = !manual && term.trim().length >= 3 ? results : [];
+  const visibleResults = open && !manual && term.trim().length >= 3 ? results : [];
 
   async function add(body: Record<string, unknown>) {
     setBusy(true);
@@ -65,14 +86,14 @@ export function AddCharacterBar() {
     <section aria-label="Add a character" className="relative flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-surface p-5">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="region" className={labelClass}>Region</label>
-        <select id="region" value={region} onChange={(e) => setRegion(e.target.value as Region)} className={`${inputClass} w-28`}>
+        <select id="region" value={region} onChange={(e) => setRegion(e.target.value as Region)} className={regionClass}>
           {REGIONS.map((r) => <option key={r} value={r}>{r.toUpperCase()}</option>)}
         </select>
       </div>
 
-      <div className="relative flex min-w-64 grow flex-col gap-1.5">
+      <div ref={searchRef} className="relative flex min-w-64 grow flex-col gap-1.5">
         <label htmlFor="character-name" className={labelClass}>Character name</label>
-        <input id="character-name" type="search" autoComplete="off" value={term} onChange={(e) => setTerm(e.target.value)}
+        <input id="character-name" type="search" autoComplete="off" value={term} onChange={(e) => { setTerm(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
           placeholder="Search by name" className={inputClass} />
         {visibleResults.length > 0 && (
           <ul role="listbox" aria-label="Matching characters"
