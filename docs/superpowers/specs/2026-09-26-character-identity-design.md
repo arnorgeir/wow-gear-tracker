@@ -1,6 +1,6 @@
 # Character identity: avatars, race, faction and class icons
 
-- **Status:** Draft for review
+- **Status:** Approved (2026-09-26)
 - **Date:** 2026-09-26
 - **Issues:** #12 (class icon and faction badge in search results), #21 (character avatar)
 - **Design:** the Characters, Character page, Group and Character search artboards on the design canvas
