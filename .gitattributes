@@ -1,0 +1,4 @@
+# Keep LF line endings in the working tree on every platform, so fixtures and tests match.
+* text=auto eol=lf
+*.jpg binary
+*.png binary

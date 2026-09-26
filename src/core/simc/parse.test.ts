@@ -38,7 +38,7 @@ describe('parseSimc', () => {
   });
 
   it('parses Windows line endings and indented lines the same way', () => {
-    const messy = text.split('\n').map((l) => `  ${l}`).join('\r\n');
+    const messy = text.replace(/\r\n/g, '\n').split('\n').map((l) => `  ${l}`).join('\r\n');
     expect(parseSimc(messy)).toEqual(profile);
   });
 
