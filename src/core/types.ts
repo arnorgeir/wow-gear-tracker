@@ -14,6 +14,7 @@ export const LIST_TYPES: readonly ListType[] = ['overall', 'raid', 'mythicPlus']
 
 export type ItemLocation = 'equipped' | 'bag' | 'vault';
 export type SnapshotSource = 'blizzard' | 'simc';
+export type Faction = 'HORDE' | 'ALLIANCE';
 
 export interface GearItem {
   slot: SlotType;

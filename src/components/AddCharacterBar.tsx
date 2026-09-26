@@ -3,9 +3,19 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { REGIONS, type Region } from '@/core/types';
+import type { Faction } from '@/core/types';
+import { CharacterAvatar } from './CharacterAvatar';
 import { classColor } from './class-colors';
+import { FACTION_TEXT, FactionBadge } from './FactionBadge';
 
-interface Result { name: string; realmName: string; blizzardRealmId: number; className: string }
+interface Result {
+  name: string;
+  realmName: string;
+  blizzardRealmId: number;
+  className: string;
+  faction: Faction | null;
+  classIconUrl: string | null;
+}
 interface Realm { id: number; name: string; slug: string }
 
 const inputClass = 'h-12 rounded-xl border border-line-strong bg-surface-2 px-4 text-[17px] text-ink focus:border-gold focus:outline-none';
@@ -71,8 +81,17 @@ export function AddCharacterBar() {
               <li key={`${r.blizzardRealmId}-${r.name}`} role="option" aria-selected="false">
                 <button type="button" disabled={busy} onClick={() => add({ name: r.name, realmId: r.blizzardRealmId })}
                   className="flex h-14 w-full items-center gap-3.5 rounded-lg px-3 text-left hover:bg-raised">
+                  <span className="relative shrink-0">
+                    {r.classIconUrl
+                      ? <img src={r.classIconUrl} alt="" width={40} height={40} className="size-10 rounded-lg border-2" style={{ borderColor: classColor(r.className) }} />
+                      : <CharacterAvatar name={r.name} className={r.className} avatarUrl={null} classIconUrl={null} size={40} />}
+                    {r.faction && <span className="absolute -bottom-1.5 -right-1.5"><FactionBadge faction={r.faction} /></span>}
+                  </span>
                   <span className="grow text-[17px]"><strong className="font-semibold">{r.name}</strong><span className="text-muted"> - {r.realmName}</span></span>
-                  <span className="text-sm font-semibold" style={{ color: classColor(r.className) }}>{r.className}</span>
+                  <span className="flex flex-col items-end">
+                    <span className="text-sm font-semibold" style={{ color: classColor(r.className) }}>{r.className}</span>
+                    {r.faction && <span className="text-xs font-semibold" style={{ color: FACTION_TEXT[r.faction].color }}>{FACTION_TEXT[r.faction].label}</span>}
+                  </span>
                 </button>
               </li>
             ))}

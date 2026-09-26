@@ -6,7 +6,7 @@ import { HttpError } from '../http';
 import type { BlizzardClient, CharacterProfile } from '../blizzard/client';
 import type { GearItem } from '../types';
 
-const profile: CharacterProfile = { name: 'Testchar', realmId: 1, realmSlug: 'test-realm', realmName: 'Test Realm', className: 'Druid', specName: 'Feral' };
+const profile: CharacterProfile = { name: 'Testchar', realmId: 1, realmSlug: 'test-realm', realmName: 'Test Realm', className: 'Druid', specName: 'Feral', raceName: 'Troll', faction: 'HORDE' };
 const gear: GearItem[] = [{ slot: 'HEAD', itemId: 1, name: 'Helm', itemLevel: 300, quality: 'EPIC', bonusIds: [], isTier: false }];
 
 function fakeBlizzard(overrides: Partial<BlizzardClient> = {}) {
@@ -16,6 +16,8 @@ function fakeBlizzard(overrides: Partial<BlizzardClient> = {}) {
     getEquipment: async () => { calls.equipment++; return gear; },
     getItemIconUrl: async () => null,
     getItemDetails: async () => null,
+    getCharacterMedia: async () => 'https://render/avatar.jpg',
+    getClassIconUrl: async () => null,
     getRealms: async () => [],
     getClasses: async () => [],
     ...overrides,
@@ -111,6 +113,34 @@ describe('createCharacterSyncer', () => {
     await saveSnapshotIfChanged(db, id, 'simc', gearToSnapshotItems(gear), 1_001_000, [{ kind: 'upgrade', currencyId: 3446, quantity: 85 }]);
     expect(await syncer.sync(id, { force: true })).toBe('unchanged');
     expect((await getLatestSnapshot(db, id))?.source).toBe('simc');
+  });
+
+  it('saves race, faction and avatar with the profile', async () => {
+    const { db, id, syncer } = await setup();
+    await syncer.sync(id);
+    expect(await getCharacter(db, id)).toMatchObject({ race: 'Troll', faction: 'HORDE', avatarUrl: 'https://render/avatar.jpg' });
+  });
+
+  it('keeps the stored avatar and still syncs gear when the avatar fetch fails', async () => {
+    let mediaFails = false;
+    const { db, id, syncer, advance } = await setup({
+      getCharacterMedia: async () => { if (mediaFails) throw new Error('media down'); return 'https://render/avatar.jpg'; },
+    });
+    await syncer.sync(id);
+    mediaFails = true;
+    advance(6 * 60 * 1000);
+    expect(await syncer.sync(id)).toBe('unchanged');
+    expect(await getCharacter(db, id)).toMatchObject({ avatarUrl: 'https://render/avatar.jpg', lastSyncError: null });
+  });
+
+  it('keeps the stored avatar when Blizzard has none', async () => {
+    let avatar: string | null = 'https://render/avatar.jpg';
+    const { db, id, syncer, advance } = await setup({ getCharacterMedia: async () => avatar });
+    await syncer.sync(id);
+    avatar = null;
+    advance(6 * 60 * 1000);
+    await syncer.sync(id);
+    expect((await getCharacter(db, id))?.avatarUrl).toBe('https://render/avatar.jpg');
   });
 
   it('throws for an unknown character ID', async () => {

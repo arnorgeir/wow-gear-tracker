@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { setMeta } from '../db/queries';
-import { DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails } from './reference-sync';
+import { DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons } from './reference-sync';
 import { HttpError } from '../http';
 import type { BisLists, BisSource, Track } from '../types';
 import type { BlizzardClient } from '../blizzard/client';
@@ -128,5 +128,57 @@ describe('ensureItemDetails', () => {
     const db = await openTestDb();
     const blizzard = { getItemDetails: async () => { throw new Error('down'); } } as unknown as BlizzardClient;
     expect((await ensureItemDetails({ db, blizzard, now: 1 }, 'eu', [7])).has(7)).toBe(false);
+  });
+});
+
+describe('ensureClassIcons', () => {
+  function blizzardWith(fail = false) {
+    const calls = { classes: 0 };
+    const blizzard = {
+      getClasses: async () => { calls.classes++; if (fail) throw new Error('down'); return [{ id: 11, name: 'Druid', specs: [] }, { id: 10, name: 'Monk', specs: [] }]; },
+      getClassIconUrl: async (_region: string, id: number) => (id === 11 ? 'https://i/druid.jpg' : null),
+    } as unknown as BlizzardClient;
+    return { blizzard, calls };
+  }
+
+  it('fills the cache and serves it for 30 days', async () => {
+    const db = await openTestDb();
+    const { blizzard, calls } = blizzardWith();
+    expect(await ensureClassIcons({ db, blizzard, now: 1 }, 'eu')).toEqual(new Map([['Druid', 'https://i/druid.jpg'], ['Monk', null]]));
+    await ensureClassIcons({ db, blizzard, now: 1 + 29 * DAY_MS }, 'eu');
+    expect(calls.classes).toBe(1);
+    await ensureClassIcons({ db, blizzard, now: 1 + 30 * DAY_MS }, 'eu');
+    expect(calls.classes).toBe(2);
+  });
+
+  it('keeps cached icons when some icon calls fail, and retries them later', async () => {
+    const db = await openTestDb();
+    await ensureClassIcons({ db, blizzard: blizzardWith().blizzard, now: 1 }, 'eu');
+    let iconCalls = 0;
+    const flaky = {
+      getClasses: async () => [{ id: 11, name: 'Druid', specs: [] }, { id: 10, name: 'Monk', specs: [] }],
+      getClassIconUrl: async () => { iconCalls++; throw new Error('timeout'); },
+    } as unknown as BlizzardClient;
+    const icons = await ensureClassIcons({ db, blizzard: flaky, now: 1 + 30 * DAY_MS }, 'eu');
+    expect(icons.get('Druid')).toBe('https://i/druid.jpg');
+    await ensureClassIcons({ db, blizzard: flaky, now: 1 + 30 * DAY_MS + 61 * 60_000 }, 'eu');
+    expect(iconCalls).toBe(4);
+  });
+
+  it('waits an hour before retrying after a failure', async () => {
+    const db = await openTestDb();
+    const { blizzard, calls } = blizzardWith(true);
+    await ensureClassIcons({ db, blizzard, now: 1000 }, 'eu');
+    await ensureClassIcons({ db, blizzard, now: 1000 + 59 * 60_000 }, 'eu');
+    expect(calls.classes).toBe(1);
+    await ensureClassIcons({ db, blizzard, now: 1000 + 61 * 60_000 }, 'eu');
+    expect(calls.classes).toBe(2);
+  });
+
+  it('keeps the cache when Blizzard fails', async () => {
+    const db = await openTestDb();
+    await ensureClassIcons({ db, blizzard: blizzardWith().blizzard, now: 1 }, 'eu');
+    const icons = await ensureClassIcons({ db, blizzard: blizzardWith(true).blizzard, now: 1 + 31 * DAY_MS }, 'eu');
+    expect(icons.get('Druid')).toBe('https://i/druid.jpg');
   });
 });

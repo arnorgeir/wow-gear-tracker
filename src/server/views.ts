@@ -6,9 +6,10 @@ import { affordableUpgrade, crestCostsByGroup, summarizeCrests, type CrestBalanc
 import { countStates, evaluateGear, type GearRow } from '@/core/gear/evaluate';
 import { methodSpecSlug } from '@/core/method/method';
 import { decodeTrack, trackLabel } from '@/core/raidbots/tracks';
-import { ensureBisLists, ensureItemIcons, ensureTracks, type BisResult } from '@/core/sync/reference-sync';
+import { identityLine } from '@/core/characters/identity';
+import { ensureBisLists, ensureClassIcons, ensureItemIcons, ensureTracks, type BisResult } from '@/core/sync/reference-sync';
 import {
-  LIST_TYPES, type GearItem, type ItemState, type ListType, type Quality, type Region, type SlotType, type SnapshotSource, type Track,
+  LIST_TYPES, type Faction, type GearItem, type ItemState, type ListType, type Quality, type Region, type SlotType, type SnapshotSource, type Track,
 } from '@/core/types';
 import type { Services } from './services';
 
@@ -56,6 +57,13 @@ export interface CharacterSummary {
   snapshot: { source: SnapshotSource; createdAt: number } | null;
   /** When the current gear was captured: the paste time for SimC, the last sync for Blizzard. */
   sourceAt: number | null;
+  race: string | null;
+  faction: Faction | null;
+  avatarUrl: string | null;
+  /** Fallback when there's no avatar. */
+  classIconUrl: string | null;
+  /** Race, spec and class, for example "Troll Guardian Druid". */
+  identity: string;
 }
 
 export interface CharacterCardView extends CharacterSummary {
@@ -103,7 +111,7 @@ async function loadGear(db: Db, characterId: number): Promise<GearContext> {
   };
 }
 
-function summarize(c: CharacterRow, snapshot: Snapshot | null): CharacterSummary {
+function summarize(c: CharacterRow, snapshot: Snapshot | null, classIcons: ReadonlyMap<string, string | null> = new Map()): CharacterSummary {
   const spec = c.specOverride || c.specName;
   return {
     id: c.id, name: c.name, realmName: c.realmName, region: c.region, className: c.className,
@@ -111,6 +119,11 @@ function summarize(c: CharacterRow, snapshot: Snapshot | null): CharacterSummary
     status: c.status, lastSyncedAt: c.lastSyncedAt, lastSyncError: c.lastSyncError, priorityList: c.priorityList,
     snapshot: snapshot && { source: snapshot.source, createdAt: snapshot.createdAt },
     sourceAt: !snapshot ? null : snapshot.source === 'simc' ? snapshot.createdAt : c.lastSyncedAt ?? snapshot.createdAt,
+    race: c.race,
+    faction: c.faction,
+    avatarUrl: c.avatarUrl,
+    classIconUrl: classIcons.get(c.className) ?? null,
+    identity: identityLine(c.race, spec, c.className),
   };
 }
 
@@ -124,15 +137,16 @@ const crestView = (gear: GearContext, costs: ReadonlyMap<number, CrestCost>): Cr
 const bisCount = (rows: GearRow[]) => rows.filter((r) => r.matched).length;
 
 export async function getCharacterCards(services: Services): Promise<CharacterCardView[]> {
-  const { db, bisSource, fetchRaidbots, now } = services;
+  const { db, blizzard, bisSource, fetchRaidbots, now } = services;
   const time = now();
   const { tracks, error: tracksError } = await ensureTracks({ db, fetchRaidbots, now: time });
   const costs = crestCostsByGroup(tracks.values());
-  const bisBySlug = new Map<string, Promise<BisResult>>();
   const characters = await listCharacters(db);
+  const classIcons = await ensureClassIcons({ db, blizzard, now: time }, characters[0]?.region ?? 'eu');
+  const bisBySlug = new Map<string, Promise<BisResult>>();
   return Promise.all(characters.map(async (c) => {
     const gear = await loadGear(db, c.id);
-    const summary = summarize(c, gear.current);
+    const summary = summarize(c, gear.current, classIcons);
     if (!bisBySlug.has(summary.specSlug)) bisBySlug.set(summary.specSlug, ensureBisLists({ db, source: bisSource, now: time }, summary.specSlug));
     const bis = await bisBySlug.get(summary.specSlug)!;
     const bisRows = bis.lists?.[c.priorityList] ?? [];
@@ -180,6 +194,7 @@ export async function getCharacterPage(services: Services, id: number, listType?
   const { tracks, error: tracksError } = await ensureTracks({ db, fetchRaidbots, now: time });
   const bis = await ensureBisLists({ db, source: bisSource, now: time }, summary.specSlug);
   const specs = await specsPromise;
+  const classIcons = await ensureClassIcons({ db, blizzard, now: time }, character.region);
   const costs = crestCostsByGroup(tracks.values());
 
   const evaluate = (l: ListType) => evaluateGear({ equipped: gear.equipped, bisRows: bis.lists?.[l] ?? [], tracks, bagItemIds: gear.bagItemIds });
@@ -215,6 +230,7 @@ export async function getCharacterPage(services: Services, id: number, listType?
 
   return {
     ...summary,
+    classIconUrl: classIcons.get(character.className) ?? null,
     listType: list,
     rows,
     vault: rows.filter((r) => r.state === 'belowMyth'),

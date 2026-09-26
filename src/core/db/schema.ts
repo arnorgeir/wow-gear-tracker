@@ -1,5 +1,5 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import type { ItemLocation, ListType, Quality, Region, SlotType, SnapshotSource } from '../types';
+import type { Faction, ItemLocation, ListType, Quality, Region, SlotType, SnapshotSource } from '../types';
 
 export const characters = sqliteTable('characters', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -11,6 +11,9 @@ export const characters = sqliteTable('characters', {
   nameKey: text('name_key').notNull(),
   className: text('class_name').notNull(),
   specName: text('spec_name').notNull(),
+  race: text('race'),
+  faction: text('faction').$type<Faction>(),
+  avatarUrl: text('avatar_url'),
   specOverride: text('spec_override'),
   priorityList: text('priority_list').$type<'mythicPlus' | 'overall'>().notNull().default('mythicPlus'),
   status: text('status').$type<'ok' | 'notFound'>().notNull().default('ok'),
@@ -79,6 +82,13 @@ export const itemDetails = sqliteTable('item_details', {
   itemId: integer('item_id').primaryKey(),
   quality: text('quality').$type<Quality>(),
   isTier: integer('is_tier', { mode: 'boolean' }).notNull(),
+  fetchedAt: integer('fetched_at').notNull(),
+});
+
+export const classMedia = sqliteTable('class_media', {
+  className: text('class_name').primaryKey(),
+  classId: integer('class_id').notNull(),
+  iconUrl: text('icon_url'),
   fetchedAt: integer('fetched_at').notNull(),
 });
 
