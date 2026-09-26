@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { openDb } from './client';
 import { openTestDb } from '@/test/db';
 import {
-  deleteCharacter, getBonusQualityMap, getItemDetailsMap, upsertItemDetails, replaceBonusQualities, equippedGear, getBisLists, getCharacter, getItemIcons, getLatestSnapshot, getMeta, getTrackMap,
+  deleteCharacter, getBonusQualityMap, getClassIconMap, upsertClassIcons, getItemDetailsMap, upsertItemDetails, replaceBonusQualities, equippedGear, getBisLists, getCharacter, getItemIcons, getLatestSnapshot, getMeta, getTrackMap,
   gearToSnapshotItems, insertCharacter, listCharacters, replaceBisLists, replaceTracks, saveSnapshotIfChanged,
   setMeta, updateCharacter, upsertItemIcons, type NewCharacter,
 } from './queries';
@@ -22,6 +22,14 @@ const gear: GearItem[] = [
 ];
 
 describe('characters', () => {
+  it('stores race, faction and avatar', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    expect(await getCharacter(db, id)).toMatchObject({ race: null, faction: null, avatarUrl: null });
+    await updateCharacter(db, id, { race: 'Troll', faction: 'HORDE', avatarUrl: 'https://render/a.jpg' });
+    expect(await getCharacter(db, id)).toMatchObject({ race: 'Troll', faction: 'HORDE', avatarUrl: 'https://render/a.jpg' });
+  });
+
   it('inserts, lists, updates and deletes', async () => {
     const db = await openTestDb();
     const { id, created } = await insertCharacter(db, newCharacter, 100);
@@ -84,6 +92,13 @@ describe('BiS lists', () => {
 });
 
 describe('tracks, meta and icons', () => {
+  it('stores class icons by class name', async () => {
+    const db = await openTestDb();
+    await upsertClassIcons(db, [{ className: 'Druid', classId: 11, iconUrl: 'https://i/druid.jpg' }, { className: 'Monk', classId: 10, iconUrl: null }], 1);
+    await upsertClassIcons(db, [{ className: 'Druid', classId: 11, iconUrl: 'https://i/druid2.jpg' }], 2);
+    expect(await getClassIconMap(db)).toEqual(new Map([['Druid', 'https://i/druid2.jpg'], ['Monk', null]]));
+  });
+
   it('stores item details', async () => {
     const db = await openTestDb();
     await upsertItemDetails(db, [{ itemId: 1, quality: 'EPIC', isTier: true }, { itemId: 2, quality: null, isTier: false }], 1);

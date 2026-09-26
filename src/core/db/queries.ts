@@ -3,7 +3,7 @@ import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import type { ItemDetails } from '../blizzard/client';
 import type { BonusQuality } from '../raidbots/tracks';
 import type { Db } from './client';
-import { bisItems, bisLists, characters, gearSnapshots, items, meta, snapshotItems, upgradeTracks, bonusQualities, snapshotCurrencies, itemDetails } from './schema';
+import { bisItems, bisLists, characters, gearSnapshots, items, meta, snapshotItems, upgradeTracks, bonusQualities, snapshotCurrencies, itemDetails, classMedia } from './schema';
 import {
   LIST_TYPES, type BisLists, type GearItem, type ItemLocation, type Quality, type Region, type SlotType, type SnapshotSource, type Track,
 } from '../types';
@@ -233,4 +233,18 @@ export async function getItemDetailsMap(db: Db, ids: number[]): Promise<Map<numb
   if (ids.length === 0) return new Map();
   const rows = await db.select().from(itemDetails).where(inArray(itemDetails.itemId, [...new Set(ids)]));
   return new Map(rows.map((r) => [r.itemId, { quality: r.quality, isTier: r.isTier }]));
+}
+
+export async function upsertClassIcons(db: Db, entries: { className: string; classId: number; iconUrl: string | null }[], now: number) {
+  await withWriteLock(db, async () => {
+    for (const entry of entries) {
+      await db.insert(classMedia).values({ ...entry, fetchedAt: now })
+        .onConflictDoUpdate({ target: classMedia.className, set: { classId: entry.classId, iconUrl: entry.iconUrl, fetchedAt: now } });
+    }
+  });
+}
+
+export async function getClassIconMap(db: Db): Promise<Map<string, string | null>> {
+  const rows = await db.select().from(classMedia);
+  return new Map(rows.map((r) => [r.className, r.iconUrl]));
 }
