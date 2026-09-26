@@ -85,6 +85,24 @@ describe('createCharacterSyncer', () => {
     expect((await getLatestSnapshot(db, id))?.items).toHaveLength(1);
   });
 
+  it('reports a network failure as Blizzard being unreachable', async () => {
+    const { db, id, syncer } = await setup({ getEquipment: async () => { throw new TypeError('fetch failed'); } });
+    expect(await syncer.sync(id)).toBe('error');
+    expect((await getCharacter(db, id))?.lastSyncError).toMatch(/couldn’t be reached/);
+  });
+
+  it('rethrows errors that are not Blizzard’s fault', async () => {
+    const { syncer, id } = await setup({ getEquipment: async () => { throw new Error('bug in our code'); } });
+    await expect(syncer.sync(id)).rejects.toThrow('bug in our code');
+  });
+
+  it('does not mark the character fresh when saving the snapshot fails', async () => {
+    const broken = [{ ...gear[0]!, quality: undefined as unknown as GearItem['quality'] }];
+    const { db, id, syncer } = await setup({ getEquipment: async () => broken });
+    await expect(syncer.sync(id)).rejects.toThrow();
+    expect((await getCharacter(db, id))?.lastSyncedAt).toBeNull();
+  });
+
   it('throws for an unknown character ID', async () => {
     const { syncer } = await setup();
     await expect(syncer.sync(999)).rejects.toThrow('Character 999 not found');

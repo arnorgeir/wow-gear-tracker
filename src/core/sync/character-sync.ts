@@ -31,26 +31,32 @@ export function createCharacterSyncer({ db, blizzard, now = Date.now, ttlMs = GE
     if (!force && !isStale(character.lastSyncedAt, time, ttlMs)) return 'skipped';
 
     const ref = { region: character.region, realmSlug: character.realmSlug, name: character.name };
+    let profile, gear;
     try {
-      const [profile, gear] = await Promise.all([blizzard.getProfile(ref), blizzard.getEquipment(ref)]);
-      await updateCharacter(db, characterId, {
-        className: profile.className,
-        specName: profile.specName || character.specName,
-        status: 'ok',
-        lastSyncedAt: time,
-        lastSyncError: null,
-      });
-      const { changed } = await saveSnapshotIfChanged(db, characterId, 'blizzard', gearToSnapshotItems(gear), time);
-      return changed ? 'updated' : 'unchanged';
+      [profile, gear] = await Promise.all([blizzard.getProfile(ref), blizzard.getEquipment(ref)]);
     } catch (err) {
       if (err instanceof HttpError && err.status === 404) {
         await updateCharacter(db, characterId, { status: 'notFound', lastSyncedAt: time, lastSyncError: 'Blizzard can’t find this character' });
         return 'notFound';
       }
+      // HttpError is a Blizzard response; fetch throws TypeError (or a TimeoutError) when Blizzard can't be reached.
+      const isNetwork = err instanceof TypeError || (err instanceof Error && err.name === 'TimeoutError');
+      if (!(err instanceof HttpError) && !isNetwork) throw err;
       const reason = err instanceof HttpError ? `Blizzard returned ${err.status}` : 'Blizzard couldn’t be reached';
       await updateCharacter(db, characterId, { lastSyncError: `${reason}. Showing the last saved gear.` });
       return 'error';
     }
+
+    // Save the gear before marking the character fresh, so a failed save is retried on the next load.
+    const { changed } = await saveSnapshotIfChanged(db, characterId, 'blizzard', gearToSnapshotItems(gear), time);
+    await updateCharacter(db, characterId, {
+      className: profile.className,
+      specName: profile.specName || character.specName,
+      status: 'ok',
+      lastSyncedAt: time,
+      lastSyncError: null,
+    });
+    return changed ? 'updated' : 'unchanged';
   }
 
   return {
