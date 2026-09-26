@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
+import { setMeta } from '../db/queries';
 import { DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails } from './reference-sync';
 import { HttpError } from '../http';
 import type { BisLists, BisSource, Track } from '../types';
@@ -63,6 +64,15 @@ describe('ensureTracks', () => {
     expect(stale.tracks.size).toBe(1);
     expect(stale.qualities.size).toBe(1);
     expect(stale.error).toBeNull();
+  });
+
+  it('refetches track data saved by an older version of the app', async () => {
+    const db = await openTestDb();
+    await setMeta(db, 'tracks.fetchedAt', '1', 1);
+    let calls = 0;
+    const result = await ensureTracks({ db, fetchRaidbots: async () => { calls++; return data; }, now: 2 });
+    expect(calls).toBe(1);
+    expect(result.tracks.get(1)?.group).toBe(618);
   });
 
   it('reports missing track data and waits an hour before retrying', async () => {
