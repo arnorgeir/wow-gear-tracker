@@ -63,6 +63,16 @@ describe('getCharacterPage', () => {
     expect(page!.rows.every((r) => r.state === 'missing' && r.equipped === null)).toBe(true);
   });
 
+  it('flags missing track data instead of marking matched items done', async () => {
+    const s = await services();
+    s.fetchTracks = async () => { throw new Error('down'); };
+    const id = await seed(s);
+    const page = await getCharacterPage(s, id);
+    expect(page!.tracksError).toMatch(/Upgrade track data/);
+    const [card] = await getCharacterCards(s);
+    expect(card!.tracksError).toMatch(/Upgrade track data/);
+  });
+
   it('returns null for an unknown character', async () => {
     expect(await getCharacterPage(await services(), 404)).toBeNull();
   });

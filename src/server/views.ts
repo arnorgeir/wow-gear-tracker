@@ -42,6 +42,7 @@ export interface CharacterSummary {
 
 export interface CharacterCardView extends CharacterSummary {
   counts: Record<ItemState, number> | null;
+  tracksError: string | null;
   total: number;
   bisError: string | null;
 }
@@ -53,6 +54,7 @@ export interface CharacterPageView extends CharacterSummary {
   counts: Record<ListType, { bis: number; total: number }>;
   bisFetchedAt: number | null;
   bisError: string | null;
+  tracksError: string | null;
   specs: string[];
 }
 
@@ -71,7 +73,7 @@ const bisCount = (rows: GearRow[]) => rows.filter((r) => r.matched).length;
 export async function getCharacterCards(services: Services): Promise<CharacterCardView[]> {
   const { db, bisSource, fetchTracks, now } = services;
   const time = now();
-  const tracks = await ensureTracks({ db, fetchTracks, now: time });
+  const { tracks, error: tracksError } = await ensureTracks({ db, fetchTracks, now: time });
   const bisBySlug = new Map<string, Promise<BisResult>>();
   const characters = await listCharacters(db);
   return Promise.all(characters.map(async (c) => {
@@ -81,7 +83,7 @@ export async function getCharacterCards(services: Services): Promise<CharacterCa
     const bis = await bisBySlug.get(summary.specSlug)!;
     const bisRows = bis.lists?.[c.priorityList] ?? [];
     const rows = evaluateGear({ equipped: snapshot ? equippedGear(snapshot) : [], bisRows, tracks });
-    return { ...summary, counts: bis.lists ? countStates(rows) : null, total: rows.length, bisError: bis.error };
+    return { ...summary, counts: bis.lists ? countStates(rows) : null, total: rows.length, bisError: bis.error, tracksError };
   }));
 }
 
@@ -98,7 +100,7 @@ export async function getCharacterPage(services: Services, id: number, listType?
     .then((classes) => classes.find((cls) => cls.name === character.className)?.specs ?? [summary.spec])
     .catch(() => [summary.spec]);
   // Database work runs in sequence: an in-memory libsql database can't serve a read while a write transaction is open.
-  const tracks = await ensureTracks({ db, fetchTracks, now: time });
+  const { tracks, error: tracksError } = await ensureTracks({ db, fetchTracks, now: time });
   const bis = await ensureBisLists({ db, source: bisSource, now: time }, summary.specSlug);
   const specs = await specsPromise;
 
@@ -150,6 +152,7 @@ export async function getCharacterPage(services: Services, id: number, listType?
     counts,
     bisFetchedAt: bis.fetchedAt,
     bisError: bis.error,
+    tracksError,
     specs,
   };
 }

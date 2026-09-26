@@ -84,6 +84,8 @@ export default async function CharacterPage({ params, searchParams }: Props) {
         </p>
       )}
 
+      {view.tracksError && <p role="alert" className="text-[#f3c9a2]">{view.tracksError}.</p>}
+
       <CharacterSettings id={view.id} specs={view.specs} spec={view.spec} activeSpec={view.activeSpec} priorityList={view.priorityList} />
 
       <nav aria-label="BiS lists" className="flex gap-2 border-b border-line">
@@ -105,7 +107,7 @@ export default async function CharacterPage({ params, searchParams }: Props) {
             <span className="font-semibold text-muted">{row.slotLabel}</span>
             {row.equipped ? (
               <ItemCard itemId={row.equipped.itemId} name={row.equipped.name} quality={row.equipped.quality} iconUrl={row.equipped.iconUrl}
-                bonusIds={row.equipped.bonusIds} itemLevel={row.equipped.itemLevel} golden={row.state === 'done'}
+                bonusIds={row.equipped.bonusIds} itemLevel={row.equipped.itemLevel} golden={row.state === 'done' && !view.tracksError}
                 detail={[row.equipped.trackLabel ?? 'no track', row.equipped.itemLevel].filter(Boolean).join(' · ')} />
             ) : <EmptySlotCard />}
             <BisTarget row={row} />

@@ -47,16 +47,31 @@ describe('ensureBisLists', () => {
 
 describe('ensureTracks', () => {
   const tracks: Track[] = [{ bonusId: 1, name: 'Myth', step: 1, max: 6, currencyId: null, costPerStep: null }];
+  const failing = async (): Promise<Track[]> => { throw new Error('down'); };
 
   it('refreshes daily and keeps old data on failure', async () => {
     const db = await openTestDb();
     let calls = 0;
     const ok = async () => { calls++; return tracks; };
-    expect((await ensureTracks({ db, fetchTracks: ok, now: 1 })).size).toBe(1);
+    expect(await ensureTracks({ db, fetchTracks: ok, now: 1 })).toMatchObject({ error: null });
     await ensureTracks({ db, fetchTracks: ok, now: 2 });
     expect(calls).toBe(1);
-    const failing = async () => { throw new Error('down'); };
-    expect((await ensureTracks({ db, fetchTracks: failing, now: 2 + DAY_MS })).size).toBe(1);
+    const stale = await ensureTracks({ db, fetchTracks: failing, now: 2 + DAY_MS });
+    expect(stale.tracks.size).toBe(1);
+    expect(stale.error).toBeNull();
+  });
+
+  it('reports missing track data and waits an hour before retrying', async () => {
+    const db = await openTestDb();
+    let calls = 0;
+    const counting = async () => { calls++; return failing(); };
+    const first = await ensureTracks({ db, fetchTracks: counting, now: 1000 });
+    expect(first.tracks.size).toBe(0);
+    expect(first.error).toBe('Upgrade track data couldn’t be loaded, so upgrade states may be wrong');
+    await ensureTracks({ db, fetchTracks: counting, now: 1000 + 59 * 60_000 });
+    expect(calls).toBe(1);
+    await ensureTracks({ db, fetchTracks: counting, now: 1000 + 61 * 60_000 });
+    expect(calls).toBe(2);
   });
 });
 

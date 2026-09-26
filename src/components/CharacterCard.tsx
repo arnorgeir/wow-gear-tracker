@@ -50,6 +50,7 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
         <p className="text-sm text-muted">{card.bisError ?? 'Loading BiS list…'}</p>
       )}
 
+      {card.tracksError && card.status === 'ok' && <p className="text-sm text-[#f3c9a2]">{card.tracksError}.</p>}
       {card.lastSyncError && card.status === 'ok' && <p className="text-sm text-[#f3c9a2]">{card.lastSyncError}</p>}
 
       <div className="mt-auto flex items-center justify-between border-t border-line pt-3">

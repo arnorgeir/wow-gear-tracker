@@ -6,6 +6,14 @@ import type { BisLists, BisSource, Region, Track } from '../types';
 
 export const DAY_MS = 86_400_000;
 const TRACKS_META_KEY = 'tracks.fetchedAt';
+const TRACKS_FAILED_META_KEY = 'tracks.failedAt';
+const TRACKS_RETRY_MS = 60 * 60 * 1000;
+const TRACKS_ERROR = 'Upgrade track data couldn’t be loaded, so upgrade states may be wrong';
+
+export interface TracksResult {
+  tracks: Map<number, Track>;
+  error: string | null;
+}
 
 export interface BisResult {
   lists: BisLists | null;
@@ -30,20 +38,25 @@ export async function ensureBisLists(deps: { db: Db; source: BisSource; now: num
   }
 }
 
-export async function ensureTracks(deps: { db: Db; fetchTracks: () => Promise<Track[]>; now: number }): Promise<Map<number, Track>> {
+/** Refreshes Raidbots track data daily. On failure keeps what it has, and retries at most hourly. */
+export async function ensureTracks(deps: { db: Db; fetchTracks: () => Promise<Track[]>; now: number }): Promise<TracksResult> {
   const { db, fetchTracks, now } = deps;
   const fetchedAt = await getMeta(db, TRACKS_META_KEY);
-  if (fetchedAt && now - fetchedAt.updatedAt < DAY_MS) return getTrackMap(db);
-  try {
-    const tracks = await fetchTracks();
-    if (tracks.length > 0) {
+  const failedAt = await getMeta(db, TRACKS_FAILED_META_KEY);
+  const fresh = fetchedAt && now - fetchedAt.updatedAt < DAY_MS;
+  const backingOff = failedAt && now - failedAt.updatedAt < TRACKS_RETRY_MS;
+  if (!fresh && !backingOff) {
+    try {
+      const tracks = await fetchTracks();
+      if (tracks.length === 0) throw new Error('No upgrade tracks in the Raidbots data');
       await replaceTracks(db, tracks);
       await setMeta(db, TRACKS_META_KEY, String(now), now);
+    } catch {
+      await setMeta(db, TRACKS_FAILED_META_KEY, String(now), now);
     }
-  } catch {
-    // Keep the tracks we already have. Items without a track show their item level only.
   }
-  return getTrackMap(db);
+  const tracks = await getTrackMap(db);
+  return { tracks, error: tracks.size === 0 ? TRACKS_ERROR : null };
 }
 
 export async function ensureItemIcons(
