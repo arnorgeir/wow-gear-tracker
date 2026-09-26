@@ -1,6 +1,6 @@
 # WoW gear tracker: design
 
-- **Status:** Draft for review
+- **Status:** Approved (2026-09-26)
 - **Date:** 2026-09-26
 - **Scope:** First version (gear tracking and group dungeon priority)
 
