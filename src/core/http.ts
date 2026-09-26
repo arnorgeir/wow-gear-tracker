@@ -1,0 +1,42 @@
+export type FetchFn = typeof fetch;
+export type SleepFn = (ms: number) => Promise<void>;
+
+const defaultSleep: SleepFn = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export class HttpError extends Error {
+  constructor(public readonly status: number, public readonly url: string, body: string) {
+    super(`HTTP ${status} for ${url}: ${body.slice(0, 200)}`);
+    this.name = 'HttpError';
+  }
+}
+
+/** Fetches once; on 429 waits for Retry-After (default 1 s) and tries one more time. */
+export async function fetchWithRetry(fetchFn: FetchFn, url: string, init?: RequestInit, sleep: SleepFn = defaultSleep): Promise<Response> {
+  const res = await fetchFn(url, init);
+  if (res.status !== 429) return res;
+  const seconds = Number(res.headers.get('retry-after'));
+  await sleep((Number.isFinite(seconds) && seconds > 0 ? seconds : 1) * 1000);
+  return fetchFn(url, init);
+}
+
+export async function fetchJson<T>(fetchFn: FetchFn, url: string, init?: RequestInit, sleep?: SleepFn): Promise<T> {
+  const res = await fetchWithRetry(fetchFn, url, init, sleep);
+  if (!res.ok) throw new HttpError(res.status, url, await res.text());
+  return (await res.json()) as T;
+}
+
+/** Runs at most `max` async tasks at once; extra tasks wait in order. */
+export function createLimiter(max: number) {
+  let active = 0;
+  const waiting: (() => void)[] = [];
+  return async function limit<T>(task: () => Promise<T>): Promise<T> {
+    if (active >= max) await new Promise<void>((resolve) => waiting.push(resolve));
+    active++;
+    try {
+      return await task();
+    } finally {
+      active--;
+      waiting.shift()?.();
+    }
+  };
+}
