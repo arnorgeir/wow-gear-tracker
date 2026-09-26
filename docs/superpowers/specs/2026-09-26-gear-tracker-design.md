@@ -17,6 +17,7 @@ The app runs locally first. The repo is public on GitHub so friends can contribu
 3. Show each BiS item's upgrade state, and highlight fully upgraded Myth-track BiS items.
 4. Rank the season's Mythic+ dungeons by how many needed upgrades they drop, for one character or a group.
 5. Accept a pasted SimulationCraft (SimC) string for instant gear updates without logging out.
+6. Show each character's upgrade crests, and flag BiS items the character can upgrade right now.
 
 ## Non-goals for the first version
 
@@ -106,13 +107,14 @@ Notes:
 |---|---|
 | `characters` | id, region, realm ID, realm slug, realm name, name, class, active spec, spec override, priority list (`mythicPlus` or `overall`), status (`ok` or `notFound`), last synced at, added at |
 | `gear_snapshots` | id, character ID, source (`blizzard` or `simc`), created at, content hash |
-| `snapshot_items` | snapshot ID, location (`equipped`, `bag` or `vault`), slot, item ID, name, item level, bonus IDs, is tier |
+| `snapshot_items` | snapshot ID, location (`equipped`, `bag` or `vault`), slot, item ID, name, item level, quality, bonus IDs, is tier |
+| `snapshot_currencies` | snapshot ID, currency ID, name, quantity (SimC snapshots only) |
 | `bis_lists` | id, spec slug, list type (`overall`, `raid`, `mythicPlus`), fetched at |
 | `bis_items` | list ID, slot label, allowed slots, item ID, name, bonus IDs, is tier, is catalyst, source text |
 | `season_dungeons` | id, season slug, name, Blizzard journal instance ID, Raider.IO dungeon ID, challenge mode ID |
 | `dungeon_loot` | dungeon ID, encounter ID, encounter name, item ID |
 | `items` | item ID, name, inventory type, item class, armor subclass, icon URL |
-| `upgrade_tracks` | bonus ID, track name, step, max step, fetched at |
+| `upgrade_tracks` | bonus ID, track name, step, max step, upgrade currency ID, upgrade cost per step, fetched at |
 
 Rules:
 
@@ -172,6 +174,31 @@ For ring and trinket rows, the weaker of the two unmatched items sets the weight
 
 A dungeon's score is the sum of the weights it's credited with, across all selected characters. Ties are broken by the number of characters who get at least one credited row. Each dungeon lists who benefits and which items.
 
+### Item quality
+
+Each item card is colored by the item's actual quality: Uncommon, Rare, Epic and so on. The icon border and item name use the quality color, and the card gets a matching tint and border.
+
+- **Blizzard data:** use the `quality` field on each equipped item.
+- **SimC data:** derive quality from the bonus IDs using Raidbots' data. If no bonus ID sets a quality, use the item's base quality from the `items` table.
+
+Blizzard's item catalog endpoint only returns base quality, which is often lower than the equipped copy's. Never use it for equipped items when better data exists.
+
+The `done` state's golden ring sits outside the quality border, so both stay visible.
+
+### Crests and upgrade flags
+
+Crest counts come only from SimC pastes. The SimC addon writes them in the `# upgrade_currencies=` comment line, as `c:<currency ID>:<quantity>` entries separated by `/`. Catalyst charges come from the `# catalyst_currencies=` line. Blizzard's API doesn't expose currencies.
+
+A BiS item gets a "Can upgrade" flag when all of these are true:
+
+- It's equipped and in the `mythUpgradable` or `belowMyth` state.
+- It's below its track's max step.
+- The character has at least one step's cost in that track's crest, per Raidbots' upgrade cost data.
+
+The flag shows how many steps the character can afford for that item alone. Crests are a shared pool, so the character's crest summary shows the total steps the crests cover. Non-BiS items never get the flag, since crests spent on them are wasted once the BiS item drops.
+
+If the latest snapshot comes from Blizzard, crests show as unknown with a prompt to paste SimC.
+
 ### Great Vault list
 
 Per character, the Great Vault list shows:
@@ -220,7 +247,9 @@ If the string's name, realm or region doesn't match the character, the app rejec
 - The dungeon priority list: dungeon, score, and who needs which items from it.
 - Each character's Great Vault list.
 
-Item hover tooltips use Wowhead's tooltip script. Item icons come from Blizzard's media endpoint and are cached in the `items` table.
+Every item card shows the item's icon, from Blizzard's media endpoint and cached in the `items` table. Hovering an item shows Wowhead's tooltip. Each item links to `https://www.wowhead.com/item={id}` with the item's bonus IDs in the Wowhead link data, so the tooltip shows the right item level, track and stats. Wowhead's tooltip script is loaded once in the root layout.
+
+The group page shows each character's crest counts in the grid header. Character cards show a one-line crest summary.
 
 ## Data refresh
 
