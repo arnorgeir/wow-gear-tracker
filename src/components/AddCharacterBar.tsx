@@ -1,0 +1,106 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { REGIONS, type Region } from '@/core/types';
+import { classColor } from './class-colors';
+
+interface Result { name: string; realmName: string; blizzardRealmId: number; className: string }
+interface Realm { id: number; name: string; slug: string }
+
+const inputClass = 'h-12 rounded-xl border border-line-strong bg-surface-2 px-4 text-[17px] text-ink focus:border-gold focus:outline-none';
+const labelClass = 'text-[13px] font-semibold uppercase tracking-wider text-muted';
+
+export function AddCharacterBar() {
+  const router = useRouter();
+  const [region, setRegion] = useState<Region>('eu');
+  const [term, setTerm] = useState('');
+  const [results, setResults] = useState<Result[]>([]);
+  const [manual, setManual] = useState(false);
+  const [realms, setRealms] = useState<Realm[]>([]);
+  const [realmSlug, setRealmSlug] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (manual || term.trim().length < 3) return;
+    const timer = setTimeout(async () => {
+      const res = await fetch(`/api/search?region=${region}&term=${encodeURIComponent(term.trim())}`).catch(() => null);
+      if (!res?.ok) { setManual(true); setError('Search is unavailable. Pick the realm yourself.'); return; }
+      setResults(await res.json());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [term, region, manual]);
+
+  useEffect(() => {
+    if (!manual) return;
+    fetch(`/api/realms?region=${region}`).then((r) => (r.ok ? r.json() : [])).then(setRealms).catch(() => setRealms([]));
+  }, [manual, region]);
+
+  const visibleResults = !manual && term.trim().length >= 3 ? results : [];
+
+  async function add(body: Record<string, unknown>) {
+    setBusy(true);
+    setError(null);
+    const res = await fetch('/api/characters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ region, ...body }) });
+    const data = (await res.json().catch(() => ({}))) as { id?: number; error?: string };
+    setBusy(false);
+    if (!res.ok || !data.id) { setError(data.error ?? 'Couldn’t add that character.'); return; }
+    setTerm('');
+    setResults([]);
+    router.push(`/characters/${data.id}`);
+  }
+
+  return (
+    <section aria-label="Add a character" className="relative flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-surface p-5">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="region" className={labelClass}>Region</label>
+        <select id="region" value={region} onChange={(e) => setRegion(e.target.value as Region)} className={`${inputClass} w-28`}>
+          {REGIONS.map((r) => <option key={r} value={r}>{r.toUpperCase()}</option>)}
+        </select>
+      </div>
+
+      <div className="relative flex min-w-64 grow flex-col gap-1.5">
+        <label htmlFor="character-name" className={labelClass}>Character name</label>
+        <input id="character-name" type="search" autoComplete="off" value={term} onChange={(e) => setTerm(e.target.value)}
+          placeholder="Search by name" className={inputClass} />
+        {visibleResults.length > 0 && (
+          <ul role="listbox" aria-label="Matching characters"
+            className="absolute top-full z-10 mt-2 flex w-full flex-col gap-0.5 rounded-xl border border-line-strong bg-surface-2 p-1.5 shadow-2xl">
+            {visibleResults.map((r) => (
+              <li key={`${r.blizzardRealmId}-${r.name}`} role="option" aria-selected="false">
+                <button type="button" disabled={busy} onClick={() => add({ name: r.name, realmId: r.blizzardRealmId })}
+                  className="flex h-14 w-full items-center gap-3.5 rounded-lg px-3 text-left hover:bg-raised">
+                  <span className="grow text-[17px]"><strong className="font-semibold">{r.name}</strong><span className="text-muted"> - {r.realmName}</span></span>
+                  <span className="text-sm font-semibold" style={{ color: classColor(r.className) }}>{r.className}</span>
+                </button>
+              </li>
+            ))}
+            <li className="border-t border-line px-3 pb-1 pt-2.5 text-sm text-muted">
+              Not listed? <button type="button" className="text-gold underline" onClick={() => setManual(true)}>Pick the realm yourself</button>
+            </li>
+          </ul>
+        )}
+      </div>
+
+      {manual && (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="realm" className={labelClass}>Realm</label>
+          <select id="realm" value={realmSlug} onChange={(e) => setRealmSlug(e.target.value)} className={`${inputClass} w-56`}>
+            <option value="">Choose a realm</option>
+            {realms.map((r) => <option key={r.id} value={r.slug}>{r.name}</option>)}
+          </select>
+        </div>
+      )}
+
+      {manual && (
+        <button type="button" disabled={busy || !realmSlug || !term.trim()} onClick={() => add({ name: term.trim(), realmSlug })}
+          className="h-12 rounded-xl border border-line-strong bg-raised px-5 font-semibold disabled:opacity-50">
+          Add character
+        </button>
+      )}
+
+      {error && <p role="alert" className="w-full text-sm text-[#f3c9a2]">{error}</p>}
+    </section>
+  );
+}

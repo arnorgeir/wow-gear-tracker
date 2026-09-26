@@ -1,0 +1,61 @@
+import Link from 'next/link';
+import { formatAge } from '@/core/format';
+import type { CharacterCardView } from '@/server/views';
+import { classColor } from './class-colors';
+import { RemoveCharacterButton } from './RemoveCharacterButton';
+
+export function CharacterCard({ card, now }: { card: CharacterCardView; now: number }) {
+  const color = classColor(card.className);
+  const counts = card.counts;
+  const bis = counts ? counts.done + counts.mythUpgradable + counts.belowMyth : 0;
+  const source = card.snapshot
+    ? `${card.snapshot.source === 'simc' ? 'SimC, pasted' : 'Blizzard, synced'} ${formatAge(card.lastSyncedAt ?? card.snapshot.createdAt, now)}`
+    : 'Not synced yet';
+  const listName = card.priorityList === 'mythicPlus' ? 'Mythic+ BiS' : 'Overall BiS';
+
+  return (
+    <article className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
+      <div className="flex items-center gap-3.5">
+        <span className="flex size-[52px] shrink-0 items-center justify-center rounded-full border-2 bg-bg text-xl font-bold" style={{ borderColor: color, color }}>
+          {card.name.charAt(0)}
+        </span>
+        <div className="flex min-w-0 flex-col">
+          <Link href={`/characters/${card.id}`} className="truncate text-xl font-bold text-ink no-underline hover:underline">{card.name}</Link>
+          <span className="text-[15px] text-muted">{card.realmName}</span>
+          <span className="text-[15px] font-semibold" style={{ color }}>{card.spec} {card.className}</span>
+        </div>
+      </div>
+
+      {card.status === 'notFound' ? (
+        <p className="rounded-lg border border-[#8a5a2b] bg-[#2e1f16] p-3 text-[15px] text-[#f3c9a2]">
+          Blizzard can&rsquo;t find this character. It may have been renamed or transferred.
+        </p>
+      ) : counts ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm font-semibold uppercase tracking-wider text-muted">{listName}</span>
+            <span className="font-mono"><strong className="text-gold">{bis}</strong><span className="text-muted"> / {card.total}</span></span>
+          </div>
+          <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-line" aria-hidden="true">
+            <div className="bg-gold" style={{ flexGrow: counts.done }} />
+            <div className="bg-crest" style={{ flexGrow: counts.mythUpgradable }} />
+            <div className="bg-vault" style={{ flexGrow: counts.belowMyth }} />
+            <div style={{ flexGrow: counts.missing + counts.inBags }} />
+          </div>
+          <span className="text-sm text-muted">
+            {counts.done} done, {counts.mythUpgradable} need crests, {counts.belowMyth} vault targets
+          </span>
+        </div>
+      ) : (
+        <p className="text-sm text-muted">{card.bisError ?? 'Loading BiS list…'}</p>
+      )}
+
+      {card.lastSyncError && card.status === 'ok' && <p className="text-sm text-[#f3c9a2]">{card.lastSyncError}</p>}
+
+      <div className="mt-auto flex items-center justify-between border-t border-line pt-3">
+        <span className="text-sm text-muted">{source}</span>
+        <RemoveCharacterButton id={card.id} name={card.name} />
+      </div>
+    </article>
+  );
+}
