@@ -22,7 +22,7 @@ async function setup(realmName = 'Tarren Mill', realmSlug = 'tarren-mill') {
 describe('importSimc', () => {
   it('saves a SimC snapshot with equipped, bag and vault items and crests', async () => {
     const { db, id, deps } = await setup();
-    expect(await importSimc(deps, id, text)).toEqual({ changed: true, equipped: 3, bags: 2, vault: 1 });
+    expect(await importSimc(deps, id, text)).toEqual({ changed: true, equipped: 5, bags: 2, vault: 1 });
     const snapshot = await getLatestSnapshot(db, id);
     expect(snapshot).toMatchObject({ source: 'simc', createdAt: 500 });
     expect(snapshot!.currencies).toHaveLength(3);
@@ -54,6 +54,13 @@ describe('importSimc', () => {
     const { id, deps } = await setup();
     await expect(importSimc(deps, id, text.replace('server=tarren_mill', 'server=draenor'))).rejects.toThrow(/realm "draenor"/);
     await expect(importSimc(deps, id, text.replace('region=eu', 'region=us'))).rejects.toThrow(/region US/);
+  });
+
+  it('refuses to save when Blizzard can’t confirm which items are tier pieces', async () => {
+    const { db, id, deps } = await setup();
+    const down = { getItemDetails: async () => { throw new Error('down'); } } as unknown as BlizzardClient;
+    await expect(importSimc({ ...deps, blizzard: down }, id, text)).rejects.toThrow(/Couldn’t reach Blizzard/);
+    expect(await getLatestSnapshot(db, id)).toBeNull();
   });
 
   it('turns parse errors into a readable message', async () => {

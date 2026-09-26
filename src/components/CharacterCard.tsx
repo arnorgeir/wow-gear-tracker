@@ -4,9 +4,10 @@ import type { CharacterCardView } from '@/server/views';
 import { classColor } from './class-colors';
 import { RemoveCharacterButton } from './RemoveCharacterButton';
 
-function crestLine(card: CharacterCardView): { text: string; tone: string } {
+function crestLine(card: CharacterCardView, now: number): { text: string; tone: string } {
   if (!card.crests) return { text: 'Crests unknown: paste SimC', tone: 'text-muted' };
-  const balances = card.crests.balances.map((b) => `${b.name.split(' ')[0]} ${b.quantity}`).join(', ') || 'No crests';
+  const age = card.snapshot?.source === 'simc' ? '' : ` (pasted ${formatAge(card.crests.pastedAt, now)})`;
+  const balances = (card.crests.balances.map((b) => `${b.name.split(' ')[0]} ${b.quantity}`).join(', ') || 'No crests') + age;
   if (card.upgradesReady === 0) return { text: `${balances}: no BiS upgrades affordable`, tone: 'text-muted' };
   const ready = `${card.upgradesReady} BiS ${card.upgradesReady === 1 ? 'upgrade' : 'upgrades'} ready`;
   return { text: `${balances}: ${ready}`, tone: 'text-upgrade' };
@@ -20,7 +21,7 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
     ? `${card.snapshot.source === 'simc' ? 'SimC, pasted' : 'Blizzard, synced'} ${formatAge(card.sourceAt, now)}`
     : 'Not synced yet';
   const listName = card.priorityList === 'mythicPlus' ? 'Mythic+ BiS' : 'Overall BiS';
-  const crests = crestLine(card);
+  const crests = crestLine(card, now);
 
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">

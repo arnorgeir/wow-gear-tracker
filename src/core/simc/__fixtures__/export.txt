@@ -24,6 +24,10 @@ head=,id=271528,enchant_id=7960,bonus_id=13692/13440/6652/13696/13698/12850
 neck=,id=251173,gem_id=240892,bonus_id=13440/6652/13668/12699/12845
 # Plain Shirt (1)
 shirt=,id=6833
+# Band of the Amani Warlord (334)
+finger1=,id=273792,bonus_id=13440/6652/13668/12699/12854
+# Heart of Wind (298)
+trinket1=,id=250256,bonus_id=13440/40/12699/13654
 # Toxin-Coated Warstaff (321)
 main_hand=,id=273783,enchant_id=7981,bonus_id=13440/6652/12701/12846
 
@@ -46,3 +50,5 @@ main_hand=,id=273783,enchant_id=7981,bonus_id=13440/6652/12701/12846
 #
 # catalyst_currencies=3378:2
 # upgrade_currencies=c:3446:85/c:3445:140/i:224072:3
+
+# Checksum: 1a2b3c4d

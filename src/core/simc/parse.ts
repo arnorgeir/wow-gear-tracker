@@ -96,6 +96,7 @@ export function parseSimc(text: string): SimcProfile {
   let realmToken = '';
   let specToken = '';
   let pending: { name: string; itemLevel: number } | null = null;
+  let sawChecksum = false;
   const items: SimcItem[] = [];
   const currencies: SimcCurrency[] = [];
 
@@ -107,6 +108,8 @@ export function parseSimc(text: string): SimcProfile {
 
     if (line.startsWith('#')) {
       const body = line.slice(1).trim();
+      // The addon always writes the checksum last, so its absence means the text was cut off.
+      if (/^Checksum:/i.test(body)) { sawChecksum = true; return; }
       const currency = body.match(/^(upgrade|catalyst)_currencies=(.*)$/);
       if (currency) { currencies.push(...parseCurrencies(currency[1] as SimcCurrency['kind'], currency[2]!)); return; }
       if (section === 'bag' || section === 'vault') {
@@ -124,7 +127,7 @@ export function parseSimc(text: string): SimcProfile {
       if (name === null) { classToken = header[1]!; name = header[2]!; }
       return;
     }
-    const setting = line.match(/^([a-z_]+)=(.*)$/);
+    const setting = line.match(/^([a-z0-9_]+)=(.*)$/);
     if (!setting) return;
     if (setting[1] === 'region') region = setting[2]!;
     else if (setting[1] === 'server') realmToken = setting[2]!;
@@ -140,5 +143,8 @@ export function parseSimc(text: string): SimcProfile {
     throw new SimcParseError('The character line is missing, for example druid="Name". Copy the whole text from the /simc window.', null);
   }
   if (!items.some((i) => i.location === 'equipped')) throw new SimcParseError('No equipped items found in the SimC text.', null);
+  if (!sawChecksum) {
+    throw new SimcParseError('The SimC text looks cut off: the "# Checksum" line at the end is missing. Copy all of the text from the /simc window.', null);
+  }
   return { name, classToken, region, realmToken, specToken, items, currencies };
 }

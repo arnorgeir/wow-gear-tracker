@@ -197,7 +197,7 @@ A BiS item gets a "Can upgrade" flag when all of these are true:
 
 The flag shows how many steps the character can afford for that item alone. Crests are a shared pool, so the character's crest summary shows the total steps the crests cover. Non-BiS items never get the flag, since crests spent on them are wasted once the BiS item drops.
 
-If the latest snapshot comes from Blizzard, crests show as unknown with a prompt to paste SimC.
+Crests always come from the latest SimC paste, shown with the paste's age. Without any paste, crests show as unknown with a prompt to paste SimC. After Blizzard data replaces a paste, the last pasted crests stay visible with their age, and a new paste updates them. (Amended 2026-09-26 while building plan 2.)
 
 ### Great Vault list
 

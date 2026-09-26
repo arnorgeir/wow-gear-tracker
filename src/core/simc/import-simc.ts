@@ -49,6 +49,10 @@ export async function importSimc({ db, blizzard, qualities, now }: Deps, charact
 
   const time = now();
   const details = await ensureItemDetails({ db, blizzard, now: time }, character.region, profile.items.map((i) => i.itemId));
+  // Tier membership only comes from Blizzard. Saving without it would mark every tier piece as missing.
+  if (profile.items.some((i) => i.location !== 'bag' && !details.has(i.itemId))) {
+    throw new UserError('Couldn’t reach Blizzard to check which items are tier pieces. Try the import again in a moment.');
+  }
   const items: SnapshotItemInput[] = profile.items.map((item) => ({
     location: item.location,
     slot: item.slot,

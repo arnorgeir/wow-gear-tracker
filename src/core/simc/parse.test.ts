@@ -15,6 +15,8 @@ describe('parseSimc', () => {
     expect(profile.items.filter((i) => i.location === 'equipped')).toEqual([
       { location: 'equipped', slot: 'HEAD', itemId: 271528, name: 'Enigmatic Dreamwatcher\'s Somnolent Stare', itemLevel: 321, bonusIds: [13692, 13440, 6652, 13696, 13698, 12850] },
       { location: 'equipped', slot: 'NECK', itemId: 251173, name: 'Yoke of the Charging Bear', itemLevel: 318, bonusIds: [13440, 6652, 13668, 12699, 12845] },
+      { location: 'equipped', slot: 'FINGER_1', itemId: 273792, name: 'Band of the Amani Warlord', itemLevel: 334, bonusIds: [13440, 6652, 13668, 12699, 12854] },
+      { location: 'equipped', slot: 'TRINKET_1', itemId: 250256, name: 'Heart of Wind', itemLevel: 298, bonusIds: [13440, 40, 12699, 13654] },
       { location: 'equipped', slot: 'MAIN_HAND', itemId: 273783, name: 'Toxin-Coated Warstaff', itemLevel: 321, bonusIds: [13440, 6652, 12701, 12846] },
     ]);
   });
@@ -43,6 +45,11 @@ describe('parseSimc', () => {
   it('rejects text without a character line', () => {
     expect(() => parseSimc('head=,id=1\nneck=,id=2')).toThrow(SimcParseError);
     expect(() => parseSimc('')).toThrow(/character line is missing/);
+  });
+
+  it('rejects a paste that was cut off before the end', () => {
+    const cut = text.slice(0, text.indexOf('### Gear from Bags'));
+    expect(() => parseSimc(cut)).toThrow(/cut off/);
   });
 
   it('rejects an export with no equipped items', () => {
