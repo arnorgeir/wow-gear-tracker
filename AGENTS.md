@@ -92,7 +92,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 
 - **Write the failing test first,** watch it fail, then write the code.
 - **Tests use real in-memory SQLite** through `openTestDb()`, and a fake `fetch` through `src/test/fake-fetch.ts`. Don't mock the database.
-- **Fixtures use made-up character names and trimmed pages.** The repo is public: never commit real players' character names or full copies of third-party pages.
+- **Fixtures use realistic made-up character names and trimmed pages.** A name like Birkibjörn reads like real data without belonging to anyone, and its `ö` exercises encoding and case folding that an ASCII placeholder like Testbear never would. The repo is public: never commit real players' character names or full copies of third-party pages.
 
 ## Branches, commits and pull requests
 

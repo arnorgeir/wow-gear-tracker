@@ -8,7 +8,7 @@ describe('parseSimc', () => {
   const profile = parseSimc(text);
 
   it('reads the character header', () => {
-    expect(profile).toMatchObject({ name: 'Testbear', classToken: 'druid', region: 'eu', realmToken: 'tarren_mill', specToken: 'guardian' });
+    expect(profile).toMatchObject({ name: 'Birkibjörn', classToken: 'druid', region: 'eu', realmToken: 'tarren_mill', specToken: 'guardian' });
   });
 
   it('reads equipped items with name and item level, and skips the shirt', () => {
@@ -53,12 +53,12 @@ describe('parseSimc', () => {
   });
 
   it('rejects an export with no equipped items', () => {
-    expect(() => parseSimc('druid="Testbear"\nregion=eu\nserver=tarren_mill')).toThrow(/No equipped items/);
+    expect(() => parseSimc('druid="Birkibjörn"\nregion=eu\nserver=tarren_mill')).toThrow(/No equipped items/);
   });
 
   it('names the line of an item without an id', () => {
     try {
-      parseSimc('druid="Testbear"\nregion=eu\nserver=tarren_mill\nhead=,bonus_id=1');
+      parseSimc('druid="Birkibjörn"\nregion=eu\nserver=tarren_mill\nhead=,bonus_id=1');
       expect.unreachable();
     } catch (err) {
       expect(err).toBeInstanceOf(SimcParseError);

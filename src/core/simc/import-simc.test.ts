@@ -16,7 +16,7 @@ const qualities = new Map([[12850, 'EPIC' as const]]);
 
 async function setup(realmName = 'Tarren Mill', realmSlug = 'tarren-mill') {
   const db = await openTestDb();
-  const { id } = await insertCharacter(db, { region: 'eu', realmId: 1, realmSlug, realmName, name: 'Testbear', className: 'Druid', specName: 'Guardian' }, 1);
+  const { id } = await insertCharacter(db, { region: 'eu', realmId: 1, realmSlug, realmName, name: 'Birkibjörn', className: 'Druid', specName: 'Guardian' }, 1);
   return { db, id, deps: { db, blizzard, qualities, now: () => 500 } };
 }
 
@@ -47,8 +47,8 @@ describe('importSimc', () => {
 
   it('rejects a paste from another character, naming who it belongs to', async () => {
     const { id, deps } = await setup();
-    await expect(importSimc(deps, id, text.replace('druid="Testbear"', 'druid="Otherbear"')))
-      .rejects.toThrow('This SimC export is for Otherbear, not Testbear.');
+    await expect(importSimc(deps, id, text.replace('druid="Birkibjörn"', 'druid="Grenibjörn"')))
+      .rejects.toThrow('This SimC export is for Grenibjörn, not Birkibjörn.');
   });
 
   it('rejects a paste from another realm or region', async () => {
