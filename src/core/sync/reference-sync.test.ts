@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
-import { setMeta } from '../db/queries';
+import { setMeta } from '../db/queries/meta';
 import { DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons } from './reference-sync';
 import { HttpError } from '../http';
 import type { BisLists, BisSource, Track } from '../types';

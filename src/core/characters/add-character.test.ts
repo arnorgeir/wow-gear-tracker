@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { addCharacter } from './add-character';
-import { getCharacter } from '../db/queries';
+import { getCharacter } from '../db/queries/characters';
 import { HttpError } from '../http';
 import { UserError } from '../errors';
 import type { BlizzardClient, CharacterRef } from '../blizzard/client';

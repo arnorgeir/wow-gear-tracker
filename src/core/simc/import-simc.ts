@@ -1,6 +1,7 @@
 import type { BlizzardClient } from '../blizzard/client';
 import type { Db } from '../db/client';
-import { getCharacter, saveSnapshotIfChanged, type SnapshotItemInput } from '../db/queries';
+import { getCharacter } from '../db/queries/characters';
+import { saveSnapshotIfChanged, type SnapshotItemInput } from '../db/queries/snapshots';
 import { UserError } from '../errors';
 import { qualityFromBonuses } from '../raidbots/tracks';
 import { ensureItemDetails } from '../sync/reference-sync';

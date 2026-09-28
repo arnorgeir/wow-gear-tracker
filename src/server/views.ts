@@ -1,7 +1,6 @@
 import type { Db } from '@/core/db/client';
-import {
-  equippedGear, getCharacter, getLatestSnapshot, listCharacters, type CharacterRow, type Snapshot, type SnapshotItemInput,
-} from '@/core/db/queries';
+import { equippedGear, getLatestSnapshot, type Snapshot, type SnapshotItemInput } from '@/core/db/queries/snapshots';
+import { getCharacter, listCharacters, type CharacterRow } from '@/core/db/queries/characters';
 import { affordableUpgrade, crestCostsByGroup, summarizeCrests, type CrestBalance, type CrestCost, type UpgradeOption } from '@/core/gear/crests';
 import { countStates, evaluateGear, type GearRow } from '@/core/gear/evaluate';
 import { methodSpecSlug } from '@/core/method/method';

@@ -68,7 +68,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 
 ## Database rules
 
-- **Every write goes through `withWriteLock`** in `src/core/db/queries.ts`. libsql's SQLite driver runs synchronously on the main thread: a write that waits on another connection's lock blocks the event loop, so the lock holder can never finish.
+- **Every write goes through `withWriteLock`** in `src/core/db/queries/write-lock.ts`. libsql's SQLite driver runs synchronously on the main thread: a write that waits on another connection's lock blocks the event loop, so the lock holder can never finish.
 - **Change the schema in `src/core/db/schema.ts`,** then run `npm run db:generate -- --name <name>`. Never edit a migration that's already committed.
 - **Cached Raidbots data is versioned.** When `upgrade_tracks` or `bonus_qualities` gain columns, bump the version in `TRACKS_META_KEY` in `src/core/sync/reference-sync.ts`, so installs refetch instead of trusting old rows for a day.
 - **In-memory test databases have one connection.** Don't run database reads in parallel with a write in the same code path. Run them in sequence.

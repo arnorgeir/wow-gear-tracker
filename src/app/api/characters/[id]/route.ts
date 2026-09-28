@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { deleteCharacter, getCharacter, updateCharacter } from '@/core/db/queries';
+import { deleteCharacter, getCharacter, updateCharacter } from '@/core/db/queries/characters';
 import { getServices } from '@/server/services';
 import { errorResponse, parseId } from '@/server/route-helpers';
 
