@@ -51,9 +51,10 @@ New: `src/components/hooks/use-api-action.ts` — owns `busy`, the request, the 
 | `RemoveCharacterButton` | own `busy` + confirm + fetch + push/refresh | `useApiAction`, keeps its own `window.confirm` |
 | `CharacterSettings` | own `patch` + refresh | `useApiAction` |
 | `SimcPaste` | own `busy`, message state, fetch | `useApiAction` + its own message formatting |
+| `AddCharacterBar` | own `busy`, `error`, fetch, push | `useApiAction`, keeps its own `searchError` |
 | `StaleSync` | mount effect, parallel requests | unchanged |
 
-Tests: `use-api-action.test.ts` covers the success path, a failed response carrying a `UserError` message, a network rejection, and that `refresh` is called once on success and not on failure. The four components have no automated tests today and get none here; the risk is stated in the PR description and checked by hand on the dev server.
+Tests: `shared/api-action.test.ts` covers the success path, a route's own error message, a non-string error body, an unreachable server, a body that is not JSON, and an empty failed response. The hook itself has no test: this repo runs Vitest in a Node environment with no DOM, so hook state cannot be exercised, which is the reason every branch lives in the pure function instead. The six components have no automated tests today and get none here; the risk is stated in the pull request description and checked by hand.
 
 ## PR 2: the structural sweep
 
