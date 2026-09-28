@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { formatAge } from '@/core/format';
-import type { CharacterCardView } from '@/server/views';
+import type { CharacterCardView } from '@/server/views/types';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { classColor } from '@/components/shared/class-colors';
 import { RemoveCharacterButton } from '@/components/remove-character-button/RemoveCharacterButton';

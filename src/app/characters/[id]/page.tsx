@@ -14,7 +14,7 @@ import { MissingConfigError } from '@/core/config';
 import { isStale } from '@/core/sync/character-sync';
 import { LIST_TYPES, type ListType } from '@/core/types';
 import { getServices, type Services } from '@/server/services';
-import { getCharacterPage } from '@/server/views';
+import { getCharacterPage } from '@/server/views/character-page';
 
 export const dynamic = 'force-dynamic';
 

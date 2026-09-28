@@ -3,7 +3,7 @@ import { RefreshButton } from '@/components/refresh-button/RefreshButton';
 import { RemoveCharacterButton } from '@/components/remove-character-button/RemoveCharacterButton';
 import { classColor } from '@/components/shared/class-colors';
 import { formatAge } from '@/core/format';
-import type { CharacterPageView } from '@/server/views';
+import type { CharacterPageView } from '@/server/views/types';
 
 export function CharacterHeader({ view, now }: { view: CharacterPageView; now: number }) {
   const source = view.snapshot && view.sourceAt !== null

@@ -1,5 +1,5 @@
 import { formatAge } from '@/core/format';
-import type { CharacterPageView } from '@/server/views';
+import type { CharacterPageView } from '@/server/views/types';
 
 export function CharacterAlerts({ view, now }: { view: CharacterPageView; now: number }) {
   return (

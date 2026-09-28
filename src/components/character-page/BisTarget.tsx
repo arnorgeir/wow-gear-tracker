@@ -1,5 +1,5 @@
 import { ItemCard } from '@/components/item-card/ItemCard';
-import type { GearRowView } from '@/server/views';
+import type { GearRowView } from '@/server/views/types';
 
 export function BisTarget({ row }: { row: GearRowView }) {
   const name = row.bis.isTier ? `Tier piece (catalyst ${row.bis.name})` : row.bis.name;

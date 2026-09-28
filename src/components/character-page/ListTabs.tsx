@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { LIST_TYPES, type ListType } from '@/core/types';
-import type { CharacterPageView } from '@/server/views';
+import type { CharacterPageView } from '@/server/views/types';
 
 const LIST_NAMES: Record<ListType, string> = { overall: 'Overall', raid: 'Raid', mythicPlus: 'Mythic+' };
 

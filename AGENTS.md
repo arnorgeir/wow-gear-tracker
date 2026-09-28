@@ -40,11 +40,11 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
   - Clients (`blizzard`, `method`, `raiderio`, `raidbots`) fetch and parse external data, and never touch the database.
   - Logic (`gear`, `simc/parse`) is pure functions, with no network or database access.
   - Sync (`sync`, `characters`, `simc/import-simc`) combines clients and the database, and receives both as parameters.
-- **`src/server` has three files with distinct jobs:**
+- **`src/server` has three parts with distinct jobs:**
   - `services.ts` builds the one `Services` bundle and caches it on `globalThis`, so hot reloads reuse a single database connection and token cache. Reach it with `getServices()`, and never open a database or construct a client inside a page or route handler.
-  - `views.ts` turns rows into `*View` types shaped for rendering. Pages receive view types, never database rows.
+  - `views/` turns rows into `*View` types shaped for rendering, one loader per page, with the types in `views/types.ts`. Pages receive view types, never database rows.
   - `route-helpers.ts` parses request input and maps errors to status codes.
-- **Pages and route handlers stay thin.** They call `src/server/views.ts` or a core function and render the result.
+- **Pages and route handlers stay thin.** They call a loader in `src/server/views/` or a core function and render the result.
 - **Plain functions and TypeScript types.** No class hierarchies, dependency injection containers, or interfaces with one implementation. `BisSource` is the one intentional interface.
 - **`now` and `fetchFn` travel on `Services`,** so tests can inject them. Core code never calls `Date.now()` or global `fetch` directly.
 - **Logic functions take only the data they need,** never a database client or a whole character row.

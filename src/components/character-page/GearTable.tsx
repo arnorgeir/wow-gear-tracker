@@ -3,7 +3,7 @@ import { ItemCard } from '@/components/item-card/ItemCard';
 import { ROW_TONE_STYLES, rowTone } from '@/components/shared/row-tone';
 import { StateBadge } from '@/components/state-badge/StateBadge';
 import { UpgradeBadge } from '@/components/upgrade-badge/UpgradeBadge';
-import type { GearRowView } from '@/server/views';
+import type { GearRowView } from '@/server/views/types';
 import { BisTarget } from './BisTarget';
 
 export function GearTable({ rows, tracksKnown }: { rows: GearRowView[]; tracksKnown: boolean }) {

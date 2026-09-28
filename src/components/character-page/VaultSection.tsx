@@ -1,6 +1,6 @@
 import { ItemCard } from '@/components/item-card/ItemCard';
 import { formatAge } from '@/core/format';
-import type { CharacterPageView } from '@/server/views';
+import type { CharacterPageView } from '@/server/views/types';
 
 type Props = Pick<CharacterPageView, 'vault' | 'vaultChoices' | 'vaultChoicesAt'> & { now: number };
 

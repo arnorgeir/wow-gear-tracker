@@ -5,7 +5,7 @@ import { StaleSync } from '@/components/stale-sync/StaleSync';
 import { MissingConfigError } from '@/core/config';
 import { isStale } from '@/core/sync/character-sync';
 import { getServices, type Services } from '@/server/services';
-import { getCharacterCards } from '@/server/views';
+import { getCharacterCards } from '@/server/views/character-cards';
 
 export const dynamic = 'force-dynamic';
 
