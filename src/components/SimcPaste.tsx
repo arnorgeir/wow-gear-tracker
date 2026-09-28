@@ -1,44 +1,28 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useApiAction } from '@/components/hooks/use-api-action';
 
-interface ImportResponse { error?: string; changed?: boolean; equipped?: number; bags?: number; vault?: number }
+interface ImportResponse { changed?: boolean; equipped?: number; bags?: number; vault?: number }
 
 export function SimcPaste({ id }: { id: number }) {
-  const router = useRouter();
+  const { busy, error, run } = useApiAction();
   const [text, setText] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const [imported, setImported] = useState<string | null>(null);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    setBusy(true);
-    setMessage(null);
-    try {
-      const res = await fetch(`/api/characters/${id}/simc`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      });
-      const data = (await res.json().catch(() => ({}))) as ImportResponse;
-      if (!res.ok) {
-        setMessage({ kind: 'error', text: data.error ?? 'Couldn’t import that SimC text.' });
-        return;
-      }
-      setText('');
-      setMessage({
-        kind: 'ok',
-        text: data.changed
-          ? `Imported ${data.equipped} equipped, ${data.bags} bag and ${data.vault} Great Vault items.`
-          : 'Nothing changed since your last paste.',
-      });
-      router.refresh();
-    } catch {
-      setMessage({ kind: 'error', text: 'Couldn’t reach the app server.' });
-    } finally {
-      setBusy(false);
-    }
+    setImported(null);
+    const result = await run<ImportResponse>(`/api/characters/${id}/simc`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    }, { fallbackError: 'Couldn’t import that SimC text.' });
+    if (!result.ok) return;
+    setText('');
+    setImported(result.data?.changed
+      ? `Imported ${result.data.equipped} equipped, ${result.data.bags} bag and ${result.data.vault} Great Vault items.`
+      : 'Nothing changed since your last paste.');
   }
 
   return (
@@ -63,11 +47,8 @@ export function SimcPaste({ id }: { id: number }) {
           <button type="submit" disabled={busy || !text.trim()} className="h-11 rounded-xl bg-gold px-5 font-bold text-[#1a1408] disabled:opacity-50">
             {busy ? 'Importing…' : 'Import'}
           </button>
-          {message && (
-            <p role={message.kind === 'error' ? 'alert' : 'status'} className={`text-sm ${message.kind === 'error' ? 'text-[#f3c9a2]' : 'text-upgrade'}`}>
-              {message.text}
-            </p>
-          )}
+          {error && <p role="alert" className="text-sm text-[#f3c9a2]">{error}</p>}
+          {imported && <p role="status" className="text-sm text-upgrade">{imported}</p>}
         </div>
       </form>
     </details>

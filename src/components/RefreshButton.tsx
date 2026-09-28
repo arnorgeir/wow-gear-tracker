@@ -1,19 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useApiAction } from '@/components/hooks/use-api-action';
 
 export function RefreshButton({ id }: { id: number }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  async function refresh() {
-    setBusy(true);
-    await fetch(`/api/characters/${id}/sync?force=1`, { method: 'POST' }).catch(() => null);
-    setBusy(false);
-    router.refresh();
-  }
+  // A failed sync still refreshes: the server records the failure on the character, and the
+  // refreshed page is what shows it.
+  const { busy, run } = useApiAction();
   return (
-    <button type="button" onClick={refresh} disabled={busy}
+    <button type="button" onClick={() => run(`/api/characters/${id}/sync?force=1`, { method: 'POST' }, { after: 'refresh-always' })} disabled={busy}
       className="h-11 rounded-xl border border-line-strong bg-raised px-4 font-semibold disabled:opacity-50">
       {busy ? 'Refreshing…' : 'Refresh'}
     </button>

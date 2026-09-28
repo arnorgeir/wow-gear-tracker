@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useApiAction } from '@/components/hooks/use-api-action';
 import { REGIONS, type Region } from '@/core/types';
 import type { Faction } from '@/core/types';
 import { CharacterAvatar } from './CharacterAvatar';
@@ -31,8 +32,8 @@ export function AddCharacterBar() {
   const [manual, setManual] = useState(false);
   const [realms, setRealms] = useState<Realm[]>([]);
   const [realmSlug, setRealmSlug] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { busy, error, run } = useApiAction();
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -57,7 +58,7 @@ export function AddCharacterBar() {
     if (manual || term.trim().length < 3) return;
     const timer = setTimeout(async () => {
       const res = await fetch(`/api/search?region=${region}&term=${encodeURIComponent(term.trim())}`).catch(() => null);
-      if (!res?.ok) { setManual(true); setError('Search is unavailable. Pick the realm yourself.'); return; }
+      if (!res?.ok) { setManual(true); setSearchError('Search is unavailable. Pick the realm yourself.'); return; }
       setResults(await res.json());
     }, 300);
     return () => clearTimeout(timer);
@@ -71,15 +72,15 @@ export function AddCharacterBar() {
   const visibleResults = open && !manual && term.trim().length >= 3 ? results : [];
 
   async function add(body: Record<string, unknown>) {
-    setBusy(true);
-    setError(null);
-    const res = await fetch('/api/characters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ region, ...body }) });
-    const data = (await res.json().catch(() => ({}))) as { id?: number; error?: string };
-    setBusy(false);
-    if (!res.ok || !data.id) { setError(data.error ?? 'Couldn’t add that character.'); return; }
+    const result = await run<{ id?: number }>('/api/characters', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ region, ...body }),
+    }, { fallbackError: 'Couldn’t add that character.', after: 'none' });
+    if (!result.ok || !result.data?.id) return;
     setTerm('');
     setResults([]);
-    router.push(`/characters/${data.id}`);
+    router.push(`/characters/${result.data.id}`);
   }
 
   return (
@@ -140,7 +141,10 @@ export function AddCharacterBar() {
         </button>
       )}
 
+      {/* Two paragraphs, not one with a precedence: the search hint explains the realm dropdown and has to
+          stay readable while a failed add request is also on screen. */}
       {error && <p role="alert" className="w-full text-sm text-[#f3c9a2]">{error}</p>}
+      {searchError && <p role="status" className="w-full text-sm text-[#f3c9a2]">{searchError}</p>}
     </section>
   );
 }

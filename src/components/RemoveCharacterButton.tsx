@@ -1,17 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useApiAction } from '@/components/hooks/use-api-action';
 
 export function RemoveCharacterButton({ id, name, redirectTo }: { id: number; name: string; redirectTo?: string }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useApiAction();
   async function remove() {
     if (!window.confirm(`Remove ${name} from the tracker?`)) return;
-    setBusy(true);
-    await fetch(`/api/characters/${id}`, { method: 'DELETE' });
-    if (redirectTo) router.push(redirectTo);
-    else router.refresh();
+    // No message is rendered here — the button is an icon with nowhere to put one — so a failed
+    // delete refreshes instead, and the character staying in the list is the feedback.
+    await run(`/api/characters/${id}`, { method: 'DELETE' }, {
+      after: redirectTo ? { push: redirectTo } : 'refresh-always',
+    });
   }
   return (
     <button type="button" onClick={remove} disabled={busy} aria-label={`Remove ${name}`}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useApiAction } from '@/components/hooks/use-api-action';
 
 interface Props {
   id: number;
@@ -11,11 +11,13 @@ interface Props {
 }
 
 export function CharacterSettings({ id, specs, spec, activeSpec, priorityList }: Props) {
-  const router = useRouter();
-  async function patch(body: Record<string, unknown>) {
-    await fetch(`/api/characters/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    router.refresh();
-  }
+  const { run } = useApiAction();
+  const patch = (body: Record<string, unknown>) =>
+    run(`/api/characters/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }, { after: 'refresh-always' });
   return (
     <div className="flex flex-wrap items-end gap-6">
       <div className="flex flex-col gap-1.5">
