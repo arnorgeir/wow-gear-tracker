@@ -1,4 +1,4 @@
-import { classColor } from './class-colors';
+import { classColor } from '@/components/shared/class-colors';
 
 interface Props {
   name: string;

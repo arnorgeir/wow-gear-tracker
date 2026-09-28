@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Script from 'next/script';
 import { Suspense } from 'react';
 import { Barlow, Cinzel, IBM_Plex_Mono } from 'next/font/google';
-import { WowheadRefresh } from '@/components/WowheadRefresh';
+import { WowheadRefresh } from '@/components/wowhead-refresh/WowheadRefresh';
 import './globals.css';
 
 const cinzel = Cinzel({ subsets: ['latin'], weight: ['600', '700'], variable: '--font-cinzel' });

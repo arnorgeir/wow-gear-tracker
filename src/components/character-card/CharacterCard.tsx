@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { formatAge } from '@/core/format';
 import type { CharacterCardView } from '@/server/views';
-import { CharacterAvatar } from './CharacterAvatar';
-import { classColor } from './class-colors';
-import { RemoveCharacterButton } from './RemoveCharacterButton';
+import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
+import { classColor } from '@/components/shared/class-colors';
+import { RemoveCharacterButton } from '@/components/remove-character-button/RemoveCharacterButton';
 
 function crestLine(card: CharacterCardView, now: number): { text: string; tone: string } {
   if (!card.crests) return { text: 'Crests unknown: paste SimC', tone: 'text-muted' };

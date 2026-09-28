@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { REGIONS, type Region } from '@/core/types';
 import type { Faction } from '@/core/types';
-import { CharacterAvatar } from './CharacterAvatar';
-import { classColor } from './class-colors';
-import { FACTION_TEXT, FactionBadge } from './FactionBadge';
+import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
+import { classColor } from '@/components/shared/class-colors';
+import { FACTION_TEXT, FactionBadge } from '@/components/faction-badge/FactionBadge';
 
 interface Result {
   name: string;

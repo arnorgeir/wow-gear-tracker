@@ -1,7 +1,7 @@
-import { AddCharacterBar } from '@/components/AddCharacterBar';
-import { CharacterCard } from '@/components/CharacterCard';
-import { SetupNotice } from '@/components/SetupNotice';
-import { StaleSync } from '@/components/StaleSync';
+import { AddCharacterBar } from '@/components/add-character-bar/AddCharacterBar';
+import { CharacterCard } from '@/components/character-card/CharacterCard';
+import { SetupNotice } from '@/components/setup-notice/SetupNotice';
+import { StaleSync } from '@/components/stale-sync/StaleSync';
 import { MissingConfigError } from '@/core/config';
 import { isStale } from '@/core/sync/character-sync';
 import { getServices, type Services } from '@/server/services';
