@@ -1,17 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useApiAction } from '@/components/hooks/use-api-action';
 
 export function RemoveCharacterButton({ id, name, redirectTo }: { id: number; name: string; redirectTo?: string }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useApiAction();
   async function remove() {
     if (!window.confirm(`Remove ${name} from the tracker?`)) return;
-    setBusy(true);
-    await fetch(`/api/characters/${id}`, { method: 'DELETE' });
-    if (redirectTo) router.push(redirectTo);
-    else router.refresh();
+    await run(`/api/characters/${id}`, { method: 'DELETE' }, {
+      after: redirectTo ? { push: redirectTo } : 'refresh',
+      fallbackError: `Couldn’t remove ${name}.`,
+    });
   }
   return (
     <button type="button" onClick={remove} disabled={busy} aria-label={`Remove ${name}`}
