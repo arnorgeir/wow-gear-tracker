@@ -14,7 +14,7 @@ This brings the existing code up to the written rules in one sweep, so there is 
 - Every rule in the `Splitting code` section of `AGENTS.md` holds for the code as it stands, not only for new code.
 - Every component lives in a kebab-case directory holding a PascalCase file.
 - The duplicated fetch-then-refresh logic exists once.
-- Three pure functions that currently have no tests have them: the crest line, the SimC import message, and the Wowhead data attribute.
+- Two pure functions that had no tests have them: the crest line and the SimC import message. The Wowhead data attribute already had tests, which moved with it. The Blizzard parsers are newly tested as well.
 - No behavior changes. The app does what it does today, with the same markup and the same requests.
 - `npm run typecheck && npm run lint && npm test` and `npm run build` stay clean throughout.
 
@@ -90,7 +90,7 @@ Use `git mv` so history follows each file. Tests: no new ones. `typecheck` catch
 
 Now that each component owns a directory, the parts move in beside it.
 
-**`add-character-bar/`** — `SearchResults.tsx` takes the listbox, including the result avatar and its faction badge. `use-character-search.ts` takes the term, region, debounce, manual fallback, realm fetch, and the outside-click and Escape handling. `field-classes.ts` takes the input, select and label class strings that `character-settings/` currently duplicates; being shared, it lands in `shared/`.
+**`add-character-bar/`** — `SearchResults.tsx` takes the listbox, including the result avatar and its faction badge. `use-character-search.ts` takes the term, region, debounce, manual fallback, realm fetch, and the outside-click and Escape handling. `field-classes.ts` takes the label class, the only string `character-settings/` actually duplicated — the selects differ in height and padding, and unifying them would change the page; being shared, it lands in `shared/`.
 
 **`character-card/`** — `crest-line.ts` takes `crestLine`, whose four branches have no test today, with `crest-line.test.ts` covering crests missing, no crests, none affordable, and one versus several upgrades ready.
 
