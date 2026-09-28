@@ -1,22 +1,6 @@
 import type { Quality } from '@/core/types';
-
-const QUALITY_STYLES: Record<Quality, { ring: string; text: string; bg: string; border: string }> = {
-  POOR: { ring: '#9d9d9d', text: '#b5b5b5', bg: '#1c1b1a', border: '#3d3b38' },
-  COMMON: { ring: '#ffffff', text: '#f2f2f2', bg: '#1f1e1c', border: '#4a4744' },
-  UNCOMMON: { ring: '#1eff00', text: '#6cf36c', bg: '#17200f', border: '#2f5a1f' },
-  RARE: { ring: '#0070dd', text: '#5eaaff', bg: '#111b28', border: '#1f4670' },
-  EPIC: { ring: '#a335ee', text: '#c58cf5', bg: '#1e1628', border: '#4f2c70' },
-  LEGENDARY: { ring: '#ff8000', text: '#ffa64d', bg: '#2a1c0e', border: '#704014' },
-  ARTIFACT: { ring: '#e6cc80', text: '#e6cc80', bg: '#262116', border: '#6b5d33' },
-  HEIRLOOM: { ring: '#00ccff', text: '#5cdcff', bg: '#10222a', border: '#1d5566' },
-};
-
-export function wowheadData(itemId: number, bonusIds: number[], itemLevel: number | null): string {
-  const parts = [`item=${itemId}`];
-  if (bonusIds.length > 0) parts.push(`bonus=${bonusIds.join(':')}`);
-  if (itemLevel) parts.push(`ilvl=${itemLevel}`);
-  return parts.join('&');
-}
+import { QUALITY_STYLES } from './quality-styles';
+import { wowheadData } from './wowhead';
 
 interface ItemCardProps {
   itemId: number;
@@ -48,13 +32,5 @@ export function ItemCard({ itemId, name, quality, iconUrl, bonusIds, itemLevel, 
         {detail && <span className="truncate font-mono text-[13px] text-muted">{detail}</span>}
       </span>
     </a>
-  );
-}
-
-export function EmptySlotCard() {
-  return (
-    <div className="flex min-h-[62px] items-center rounded-lg border border-dashed border-line-strong px-4 text-[15px] text-muted">
-      Empty slot
-    </div>
   );
 }
