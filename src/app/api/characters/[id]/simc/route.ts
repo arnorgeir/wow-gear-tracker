@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getCharacter } from '@/core/db/queries';
+import { getCharacter } from '@/core/db/queries/characters';
 import { importSimc } from '@/core/simc/import-simc';
 import { ensureTracks } from '@/core/sync/reference-sync';
 import { getServices } from '@/server/services';

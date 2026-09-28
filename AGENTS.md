@@ -40,11 +40,11 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
   - Clients (`blizzard`, `method`, `raiderio`, `raidbots`) fetch and parse external data, and never touch the database.
   - Logic (`gear`, `simc/parse`) is pure functions, with no network or database access.
   - Sync (`sync`, `characters`, `simc/import-simc`) combines clients and the database, and receives both as parameters.
-- **`src/server` has three files with distinct jobs:**
+- **`src/server` has three parts with distinct jobs:**
   - `services.ts` builds the one `Services` bundle and caches it on `globalThis`, so hot reloads reuse a single database connection and token cache. Reach it with `getServices()`, and never open a database or construct a client inside a page or route handler.
-  - `views.ts` turns rows into `*View` types shaped for rendering. Pages receive view types, never database rows.
+  - `views/` turns rows into `*View` types shaped for rendering, one loader per page, with the types in `views/types.ts`. Pages receive view types, never database rows.
   - `route-helpers.ts` parses request input and maps errors to status codes.
-- **Pages and route handlers stay thin.** They call `src/server/views.ts` or a core function and render the result.
+- **Pages and route handlers stay thin.** They call a loader in `src/server/views/` or a core function and render the result.
 - **Plain functions and TypeScript types.** No class hierarchies, dependency injection containers, or interfaces with one implementation. `BisSource` is the one intentional interface.
 - **`now` and `fetchFn` travel on `Services`,** so tests can inject them. Core code never calls `Date.now()` or global `fetch` directly.
 - **Logic functions take only the data they need,** never a database client or a whole character row.
@@ -52,9 +52,9 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 ## Splitting code
 
 - **Split by job, not by line count.** A file does one job. When it starts doing two, split it along that seam instead of waiting for it to grow.
-- **Every component lives in its own directory,** named in kebab-case and holding a PascalCase `.tsx` file plus everything that belongs to it: sub-components, its own hook, its helpers and their tests. `item-card/ItemCard.tsx`, never `ItemCard.tsx` at the root. A one-line badge gets a directory too — the rule has no threshold to argue about. A component that only its parent renders is a file inside the parent's directory; once anything else imports it, it moves out to a directory of its own. The existing components still sit flat at the root of `src/components` and move in one sweep — see `docs/superpowers/specs/2026-09-28-component-and-module-split-design.md`. Until that lands, follow this rule for new components and leave the flat ones alone rather than moving them piecemeal.
+- **Every component lives in its own directory,** named in kebab-case and holding a PascalCase `.tsx` file plus everything that belongs to it: sub-components, its own hook, its helpers and their tests. `item-card/ItemCard.tsx`, never `ItemCard.tsx` at the root. A one-line badge gets a directory too — the rule has no threshold to argue about. A component that only its parent renders is a file inside the parent's directory; once anything else imports it, it moves out to a directory of its own.
 - **Shared pieces sit outside the component directories.** `src/components/shared/` holds helpers several components use, and `src/components/hooks/` holds hooks several components use. A helper or hook used by one component belongs inside that component's directory.
-- **Components are markup and wiring; the rules live beside them.** Anything with branching worth a test goes in a plain `.ts` next to the component, like `row-tone.ts` and `class-colors.ts`, and gets unit tests. `.tsx` files hold JSX.
+- **Components are markup and wiring; the rules live beside them.** Anything with branching worth a test goes in a plain `.ts` in the component's directory, like `character-card/crest-line.ts`, or in `shared/` when several components use it, like `shared/row-tone.ts`, and gets unit tests. `.tsx` files hold JSX.
 - **Hooks are for client state and effects only:** debounced input, an outside-click listener, a fetch-then-refresh cycle. A hook is never the home for logic that could be a pure function — that belongs in `src/core`, where it tests without React.
 - **Modules split the same way.** A module in `src/core` or `src/server` doing two jobs becomes a directory of focused modules. Names and signatures stay stable so callers keep working; import paths may change, and a barrel that re-exports everything is not worth adding to keep them identical.
 
@@ -69,7 +69,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 
 ## Database rules
 
-- **Every write goes through `withWriteLock`** in `src/core/db/queries.ts`. libsql's SQLite driver runs synchronously on the main thread: a write that waits on another connection's lock blocks the event loop, so the lock holder can never finish.
+- **Every write goes through `withWriteLock`** in `src/core/db/queries/write-lock.ts`. libsql's SQLite driver runs synchronously on the main thread: a write that waits on another connection's lock blocks the event loop, so the lock holder can never finish.
 - **Change the schema in `src/core/db/schema.ts`,** then run `npm run db:generate -- --name <name>`. Never edit a migration that's already committed.
 - **Cached Raidbots data is versioned.** When `upgrade_tracks` or `bonus_qualities` gain columns, bump the version in `TRACKS_META_KEY` in `src/core/sync/reference-sync.ts`, so installs refetch instead of trusting old rows for a day.
 - **In-memory test databases have one connection.** Don't run database reads in parallel with a write in the same code path. Run them in sequence.

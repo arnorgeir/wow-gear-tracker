@@ -1,21 +1,8 @@
-import { createLimiter, fetchJson, HttpError, REQUEST_TIMEOUT_MS, type FetchFn, type SleepFn } from '../http';
-import { SLOT_TYPES, type Faction, type GearItem, type Quality, type Region, type SlotType } from '../types';
-
-export interface CharacterRef { region: Region; realmSlug: string; name: string }
-export interface CharacterProfile {
-  name: string;
-  realmId: number;
-  realmSlug: string;
-  realmName: string;
-  className: string;
-  specName: string;
-  raceName: string;
-  faction: Faction | null;
-}
-export interface Realm { id: number; name: string; slug: string }
-export interface PlayableClass { id: number; name: string; specs: string[] }
-
-export interface ItemDetails { quality: Quality | null; isTier: boolean }
+import { createLimiter, fetchJson, HttpError, type FetchFn, type SleepFn } from '../http';
+import type { GearItem, Quality, Region } from '../types';
+import { parseEquipment, parseProfile, type RawEquipment, type RawProfile } from './parse';
+import { createTokenSource } from './token';
+import type { CharacterProfile, CharacterRef, ItemDetails, PlayableClass, Realm } from './types';
 
 export interface BlizzardClient {
   getProfile(ref: CharacterRef): Promise<CharacterProfile>;
@@ -36,28 +23,6 @@ interface Options {
   sleep?: SleepFn;
 }
 
-interface RawEquipment {
-  equipped_items?: {
-    slot: { type: string };
-    item: { id: number };
-    name: string;
-    level?: { value: number };
-    quality?: { type: string };
-    bonus_list?: number[];
-    set?: unknown;
-  }[];
-}
-
-interface RawProfile {
-  name: string;
-  realm: { id: number; name: string; slug: string };
-  character_class: { name: string };
-  active_spec?: { name: string };
-  race?: { name: string };
-  faction?: { type: string };
-}
-
-const GEAR_SLOTS = new Set<string>(SLOT_TYPES);
 type Namespace = 'profile' | 'static' | 'dynamic';
 
 export function createBlizzardClient(options: Options): BlizzardClient {
@@ -66,36 +31,18 @@ export function createBlizzardClient(options: Options): BlizzardClient {
   const limit = createLimiter(4);
   const realmCache = new Map<Region, Promise<Realm[]>>();
   const classCache = new Map<Region, Promise<PlayableClass[]>>();
-  let token: { value: string; expiresAt: number } | null = null;
-
-  async function getToken(): Promise<string> {
-    if (token && token.expiresAt > now() + 60_000) return token.value;
-    const url = 'https://oauth.battle.net/token';
-    const res = await fetchFn(url, {
-      method: 'POST',
-      headers: {
-        Authorization: 'Basic ' + Buffer.from(`${options.clientId}:${options.clientSecret}`).toString('base64'),
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: 'grant_type=client_credentials',
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    });
-    if (!res.ok) throw new HttpError(res.status, url, await res.text());
-    const data = (await res.json()) as { access_token: string; expires_in: number };
-    token = { value: data.access_token, expiresAt: now() + data.expires_in * 1000 };
-    return token.value;
-  }
+  const token = createTokenSource({ clientId: options.clientId, clientSecret: options.clientSecret, fetchFn, now });
 
   async function api<T>(region: Region, path: string, namespace: Namespace): Promise<T> {
     const separator = path.includes('?') ? '&' : '?';
     const url = `https://${region}.api.blizzard.com${path}${separator}namespace=${namespace}-${region}&locale=en_GB`;
-    const call = async () => fetchJson<T>(fetchFn, url, { headers: { Authorization: `Bearer ${await getToken()}` } }, options.sleep);
+    const call = async () => fetchJson<T>(fetchFn, url, { headers: { Authorization: `Bearer ${await token.get()}` } }, options.sleep);
     return limit(async () => {
       try {
         return await call();
       } catch (err) {
         if (err instanceof HttpError && err.status === 401) {
-          token = null;
+          token.invalidate();
           return call();
         }
         throw err;
@@ -118,32 +65,11 @@ export function createBlizzardClient(options: Options): BlizzardClient {
 
   return {
     async getProfile(ref) {
-      const raw = await api<RawProfile>(ref.region, characterPath(ref), 'profile');
-      return {
-        name: raw.name,
-        realmId: raw.realm.id,
-        realmSlug: raw.realm.slug,
-        realmName: raw.realm.name,
-        className: raw.character_class.name,
-        specName: raw.active_spec?.name ?? '',
-        raceName: raw.race?.name ?? '',
-        faction: raw.faction?.type === 'HORDE' || raw.faction?.type === 'ALLIANCE' ? raw.faction.type : null,
-      };
+      return parseProfile(await api<RawProfile>(ref.region, characterPath(ref), 'profile'));
     },
 
     async getEquipment(ref) {
-      const raw = await api<RawEquipment>(ref.region, `${characterPath(ref)}/equipment`, 'profile');
-      return (raw.equipped_items ?? [])
-        .filter((item) => GEAR_SLOTS.has(item.slot.type))
-        .map((item) => ({
-          slot: item.slot.type as SlotType,
-          itemId: item.item.id,
-          name: item.name,
-          itemLevel: item.level?.value ?? null,
-          quality: (item.quality?.type ?? 'COMMON') as Quality,
-          bonusIds: item.bonus_list ?? [],
-          isTier: Boolean(item.set),
-        }));
+      return parseEquipment(await api<RawEquipment>(ref.region, `${characterPath(ref)}/equipment`, 'profile'));
     },
 
     getCharacterMedia(ref) {

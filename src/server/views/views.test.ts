@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
-import { getCharacterCards, getCharacterPage } from './views';
-import type { Services } from './services';
-import { gearToSnapshotItems, insertCharacter, saveSnapshotIfChanged, updateCharacter } from '@/core/db/queries';
+import { getCharacterCards } from './character-cards';
+import { getCharacterPage } from './character-page';
+import type { Services } from '../services';
+import { gearToSnapshotItems, saveSnapshotIfChanged } from '@/core/db/queries/snapshots';
+import { insertCharacter, updateCharacter } from '@/core/db/queries/characters';
 import type { BisLists, GearItem, Track } from '@/core/types';
 import type { BlizzardClient } from '@/core/blizzard/client';
 

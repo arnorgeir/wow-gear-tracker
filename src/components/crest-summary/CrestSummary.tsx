@@ -1,5 +1,5 @@
 import { formatAge } from '@/core/format';
-import type { CrestView } from '@/server/views';
+import type { CrestView } from '@/server/views/types';
 
 export function CrestSummary({ crests, now }: { crests: CrestView | null; now: number }) {
   if (!crests) return <p className="text-sm text-muted">Crests unknown. Paste SimC to see them.</p>;

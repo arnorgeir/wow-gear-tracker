@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getCharacter } from '@/core/db/queries';
+import { getCharacter } from '@/core/db/queries/characters';
 import { getServices } from '@/server/services';
 import { errorResponse, parseId } from '@/server/route-helpers';
 

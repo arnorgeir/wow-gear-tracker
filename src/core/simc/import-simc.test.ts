@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { importSimc } from './import-simc';
-import { getLatestSnapshot, insertCharacter } from '../db/queries';
+import { getLatestSnapshot } from '../db/queries/snapshots';
+import { insertCharacter } from '../db/queries/characters';
 import { UserError } from '../errors';
 import type { BlizzardClient } from '../blizzard/client';
 

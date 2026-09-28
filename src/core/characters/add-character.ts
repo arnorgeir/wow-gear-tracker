@@ -1,6 +1,6 @@
 import type { BlizzardClient } from '../blizzard/client';
 import type { Db } from '../db/client';
-import { insertCharacter } from '../db/queries';
+import { insertCharacter } from '../db/queries/characters';
 import { UserError } from '../errors';
 import { HttpError } from '../http';
 import type { CharacterSyncer } from '../sync/character-sync';

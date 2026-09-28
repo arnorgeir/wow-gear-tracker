@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { createCharacterSyncer, isStale } from './character-sync';
-import { gearToSnapshotItems, getCharacter, getLatestSnapshot, insertCharacter, saveSnapshotIfChanged } from '../db/queries';
+import { gearToSnapshotItems, getLatestSnapshot, saveSnapshotIfChanged } from '../db/queries/snapshots';
+import { getCharacter, insertCharacter } from '../db/queries/characters';
 import { HttpError } from '../http';
-import type { BlizzardClient, CharacterProfile } from '../blizzard/client';
+import type { BlizzardClient } from '../blizzard/client';
+import type { CharacterProfile } from '../blizzard/types';
 import type { GearItem } from '../types';
 
 const profile: CharacterProfile = { name: 'Testchar', realmId: 1, realmSlug: 'test-realm', realmName: 'Test Realm', className: 'Druid', specName: 'Feral', raceName: 'Troll', faction: 'HORDE' };

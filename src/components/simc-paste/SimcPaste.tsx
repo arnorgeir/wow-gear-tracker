@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useApiAction } from '@/components/hooks/use-api-action';
-
-interface ImportResponse { changed?: boolean; equipped?: number; bags?: number; vault?: number }
+import { importMessage, type ImportCounts } from './import-message';
 
 export function SimcPaste({ id }: { id: number }) {
   const { busy, error, run } = useApiAction();
@@ -13,16 +12,14 @@ export function SimcPaste({ id }: { id: number }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setImported(null);
-    const result = await run<ImportResponse>(`/api/characters/${id}/simc`, {
+    const result = await run<ImportCounts>(`/api/characters/${id}/simc`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     }, { fallbackError: 'Couldn’t import that SimC text.' });
     if (!result.ok) return;
     setText('');
-    setImported(result.data?.changed
-      ? `Imported ${result.data.equipped} equipped, ${result.data.bags} bag and ${result.data.vault} Great Vault items.`
-      : 'Nothing changed since your last paste.');
+    setImported(importMessage(result.data));
   }
 
   return (

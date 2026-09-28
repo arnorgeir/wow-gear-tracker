@@ -1,18 +1,10 @@
 import Link from 'next/link';
 import { formatAge } from '@/core/format';
-import type { CharacterCardView } from '@/server/views';
-import { CharacterAvatar } from './CharacterAvatar';
-import { classColor } from './class-colors';
-import { RemoveCharacterButton } from './RemoveCharacterButton';
-
-function crestLine(card: CharacterCardView, now: number): { text: string; tone: string } {
-  if (!card.crests) return { text: 'Crests unknown: paste SimC', tone: 'text-muted' };
-  const age = card.snapshot?.source === 'simc' ? '' : ` (pasted ${formatAge(card.crests.pastedAt, now)})`;
-  const balances = (card.crests.balances.map((b) => `${b.name.split(' ')[0]} ${b.quantity}`).join(', ') || 'No crests') + age;
-  if (card.upgradesReady === 0) return { text: `${balances}: no BiS upgrades affordable`, tone: 'text-muted' };
-  const ready = `${card.upgradesReady} BiS ${card.upgradesReady === 1 ? 'upgrade' : 'upgrades'} ready`;
-  return { text: `${balances}: ${ready}`, tone: 'text-upgrade' };
-}
+import type { CharacterCardView } from '@/server/views/types';
+import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
+import { classColor } from '@/components/shared/class-colors';
+import { RemoveCharacterButton } from '@/components/remove-character-button/RemoveCharacterButton';
+import { crestLine } from './crest-line';
 
 export function CharacterCard({ card, now }: { card: CharacterCardView; now: number }) {
   const color = classColor(card.className);
@@ -22,7 +14,7 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
     ? `${card.snapshot.source === 'simc' ? 'SimC, pasted' : 'Blizzard, synced'} ${formatAge(card.sourceAt, now)}`
     : 'Not synced yet';
   const listName = card.priorityList === 'mythicPlus' ? 'Mythic+ BiS' : 'Overall BiS';
-  const crests = crestLine(card, now);
+  const crests = crestLine({ crests: card.crests, gearFromSimc: card.snapshot?.source === 'simc', upgradesReady: card.upgradesReady }, now);
 
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">

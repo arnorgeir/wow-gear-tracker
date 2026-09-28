@@ -1,6 +1,10 @@
-import type { BlizzardClient, ItemDetails } from '../blizzard/client';
+import type { BlizzardClient } from '../blizzard/client';
+import type { ItemDetails } from '../blizzard/types';
 import type { Db } from '../db/client';
-import { getBisLists, getClassIconMap, upsertClassIcons, getBonusQualityMap, getItemDetailsMap, upsertItemDetails, replaceBonusQualities, getItemIcons, getMeta, getTrackMap, replaceBisLists, replaceTracks, setMeta, upsertItemIcons } from '../db/queries';
+import { getBisLists, replaceBisLists } from '../db/queries/bis-lists';
+import { getClassIconMap, upsertClassIcons, getItemDetailsMap, upsertItemDetails, getItemIcons, upsertItemIcons } from '../db/queries/media';
+import { getBonusQualityMap, replaceBonusQualities, getTrackMap, replaceTracks } from '../db/queries/tracks';
+import { getMeta, setMeta } from '../db/queries/meta';
 import { HttpError } from '../http';
 import type { RaidbotsData } from '../raidbots/tracks';
 import type { BisLists, BisSource, Quality, Region, Track } from '../types';

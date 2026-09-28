@@ -1,6 +1,7 @@
 import type { BlizzardClient } from '../blizzard/client';
 import type { Db } from '../db/client';
-import { gearToSnapshotItems, getCharacter, saveSnapshotIfChanged, updateCharacter } from '../db/queries';
+import { gearToSnapshotItems, saveSnapshotIfChanged } from '../db/queries/snapshots';
+import { getCharacter, updateCharacter } from '../db/queries/characters';
 import { HttpError } from '../http';
 
 export const GEAR_TTL_MS = 5 * 60 * 1000;
