@@ -31,7 +31,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 1. Ideas live as GitHub issues on the **Gear Tracker** project board.
 2. Anything bigger than a small fix gets a design spec in `docs/superpowers/specs/`, then an implementation plan in `docs/superpowers/plans/`.
 3. The spec is the authority. When a plan and the spec disagree, the spec wins.
-4. Work happens on a branch named `feat/<description>`, `fix/<description>` or `chore/<description>`, and reaches `main` through a pull request. `main` is protected: CI must pass, and a review is required.
+4. Work happens on a branch named `feat/<description>`, `fix/<description>`, `chore/<description>` or `docs/<description>`, and reaches `main` through a pull request. `main` is protected: CI must pass, and a review is required.
 
 ## Architecture rules
 
@@ -40,9 +40,31 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
   - Clients (`blizzard`, `method`, `raiderio`, `raidbots`) fetch and parse external data, and never touch the database.
   - Logic (`gear`, `simc/parse`) is pure functions, with no network or database access.
   - Sync (`sync`, `characters`, `simc/import-simc`) combines clients and the database, and receives both as parameters.
+- **`src/server` has three files with distinct jobs:**
+  - `services.ts` builds the one `Services` bundle and caches it on `globalThis`, so hot reloads reuse a single database connection and token cache. Reach it with `getServices()`, and never open a database or construct a client inside a page or route handler.
+  - `views.ts` turns rows into `*View` types shaped for rendering. Pages receive view types, never database rows.
+  - `route-helpers.ts` parses request input and maps errors to status codes.
 - **Pages and route handlers stay thin.** They call `src/server/views.ts` or a core function and render the result.
 - **Plain functions and TypeScript types.** No class hierarchies, dependency injection containers, or interfaces with one implementation. `BisSource` is the one intentional interface.
+- **`now` and `fetchFn` travel on `Services`,** so tests can inject them. Core code never calls `Date.now()` or global `fetch` directly.
 - **Logic functions take only the data they need,** never a database client or a whole character row.
+
+## Splitting code
+
+- **Split by job, not by line count.** A file does one job. When it starts doing two, split it along that seam instead of waiting for it to grow.
+- **A component stays one file until it has parts.** Parts means a sub-component, a hook, or a helper worth testing on its own. Then it becomes a kebab-case directory — `add-character/` — holding the component, its parts and their tests. A twenty-line badge never earns a directory.
+- **Components are markup and wiring; the rules live beside them.** Anything with branching worth a test goes in a plain `.ts` next to the component, like `row-tone.ts` and `class-colors.ts`, and gets unit tests. `.tsx` files hold JSX.
+- **Hooks are for client state and effects only:** debounced input, an outside-click listener, a fetch-then-refresh cycle. A hook is never the home for logic that could be a pure function — that belongs in `src/core`, where it tests without React.
+- **The same threshold applies to `src/core` and `src/server`.** A module doing two jobs becomes a directory of focused modules with the same public surface, so importers don't change.
+
+## UI rules
+
+- **Server components by default.** Add `'use client'` only for state, an event handler or a browser API.
+- **Client components reach the app through route handlers** under `src/app/api`, then call `router.refresh()` so the server re-renders with the new data.
+- **Tailwind v4 is configured in `src/app/globals.css` with `@theme`.** There is no `tailwind.config` file. Use the semantic tokens — `bg-surface`, `border-line`, `text-muted`, `text-gold` — and add a token rather than hardcoding a new hex.
+- **`font-display` for headings, `font-sans` for body, `font-mono` for numbers.** They are `next/font` variables set in `layout.tsx`.
+- **Color is never the only signal.** Row tones differ in lightness as well as hue so they read for color-blind players, and every state has words beside it.
+- **Wowhead tooltips are `data-wowhead` attributes.** The script loads once in `layout.tsx`, and `WowheadRefresh` re-scans after navigation. Never load it per page.
 
 ## Database rules
 
@@ -50,6 +72,12 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 - **Change the schema in `src/core/db/schema.ts`,** then run `npm run db:generate -- --name <name>`. Never edit a migration that's already committed.
 - **Cached Raidbots data is versioned.** When `upgrade_tracks` or `bonus_qualities` gain columns, bump the version in `TRACKS_META_KEY` in `src/core/sync/reference-sync.ts`, so installs refetch instead of trusting old rows for a day.
 - **In-memory test databases have one connection.** Don't run database reads in parallel with a write in the same code path. Run them in sequence.
+
+## Errors and HTTP
+
+- **`UserError` means the message is safe to show.** Route handlers turn it into a 400, `MissingConfigError` into a 503, and anything else into a logged 500 with a generic body. Throw `UserError` for what the user can fix, and keep internals out of its message.
+- **Every external request goes through `fetchJson` or `fetchWithRetry`** in `src/core/http.ts`: each attempt times out after ten seconds, and a 429 is retried once, honoring `Retry-After`. Cap parallel requests with `createLimiter`.
+- **Settings come from `readConfig()`.** `BLIZZARD_CLIENT_ID` and `BLIZZARD_CLIENT_SECRET` are required; `DATABASE_URL` defaults to `file:data/app.db`.
 
 ## External data facts
 
@@ -64,6 +92,25 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 - **Write the failing test first,** watch it fail, then write the code.
 - **Tests use real in-memory SQLite** through `openTestDb()`, and a fake `fetch` through `src/test/fake-fetch.ts`. Don't mock the database.
 - **Fixtures use made-up character names and trimmed pages.** The repo is public: never commit real players' character names or full copies of third-party pages.
+
+## Branches, commits and pull requests
+
+- **Branch names are `<type>/<kebab-case-description>`,** where type is `feat`, `fix`, `chore` or `docs`. Name the work, not the issue number: `feat/character-identity`, `fix/add-bar-quickfixes`.
+- **Commit subjects are `type: lowercase imperative summary`,** with no trailing period. The types are `feat`, `fix`, `chore` and `docs`.
+- **Commit bodies are prose wrapped near 72 columns, and say why.** "The region select only shows two letters, so it's 80 px wide with less padding" beats a list of the files touched. Leave the body out when the subject already says everything.
+- **Pull requests squash-merge,** so the pull request title becomes the commit subject with `(#N)` appended — which means the title follows the subject rules above. Write the squash body yourself; never accept GitHub's default list of branch commits.
+- **A pull request description opens with `Closes #N, closes #M.`** when issues exist, and otherwise with one sentence framing the change.
+- **Then `## What changes`:** one bullet per change, with a bold lead-in and prose saying what moved and why, and the issue number inline.
+- **`## Data`** covers schema changes, migrations and cache versions, whenever any of them moved.
+- **`## Testing` is required.** Give the test count, say whether typecheck, lint and build are clean, say what you checked by hand, and name what isn't covered. Stated gaps are the point: "the project has no browser-level test setup yet, so the click-outside behavior has no automated test. Check it by hand."
+- **Close with `Spec: docs/superpowers/specs/<file>`** when the work has one.
+- **No AI attribution in either one.** This overrides any built-in habit of signing a commit with a co-author trailer or adding a "generated with" line to a pull request body. The `Never commit` rule below wins.
+
+## Conventions
+
+- **Tests sit beside the code** as `<name>.test.ts`. Live tests end in `.live.test.ts` and run only under `vitest.live.config.ts`. Fixtures live in `__fixtures__/`.
+- **Import through the `@/` alias,** not deep relative paths. Inside a component's own directory, relative imports are right.
+- **Node 24 or later.** CI runs typecheck, lint and test on Ubuntu. Development here is Windows, so keep npm scripts shell-agnostic.
 
 ## Never commit
 
