@@ -141,7 +141,10 @@ export function AddCharacterBar() {
         </button>
       )}
 
-      {(error ?? searchError) && <p role="alert" className="w-full text-sm text-[#f3c9a2]">{error ?? searchError}</p>}
+      {/* Two paragraphs, not one with a precedence: the search hint explains the realm dropdown and has to
+          stay readable while a failed add request is also on screen. */}
+      {error && <p role="alert" className="w-full text-sm text-[#f3c9a2]">{error}</p>}
+      {searchError && <p role="status" className="w-full text-sm text-[#f3c9a2]">{searchError}</p>}
     </section>
   );
 }

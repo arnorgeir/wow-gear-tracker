@@ -6,9 +6,10 @@ export function RemoveCharacterButton({ id, name, redirectTo }: { id: number; na
   const { busy, run } = useApiAction();
   async function remove() {
     if (!window.confirm(`Remove ${name} from the tracker?`)) return;
+    // No message is rendered here — the button is an icon with nowhere to put one — so a failed
+    // delete refreshes instead, and the character staying in the list is the feedback.
     await run(`/api/characters/${id}`, { method: 'DELETE' }, {
-      after: redirectTo ? { push: redirectTo } : 'refresh',
-      fallbackError: `Couldn’t remove ${name}.`,
+      after: redirectTo ? { push: redirectTo } : 'refresh-always',
     });
   }
   return (
