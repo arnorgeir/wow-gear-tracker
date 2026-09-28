@@ -1,4 +1,5 @@
-import type { BlizzardClient, ItemDetails } from '../blizzard/client';
+import type { BlizzardClient } from '../blizzard/client';
+import type { ItemDetails } from '../blizzard/types';
 import type { Db } from '../db/client';
 import { getBisLists, replaceBisLists } from '../db/queries/bis-lists';
 import { getClassIconMap, upsertClassIcons, getItemDetailsMap, upsertItemDetails, getItemIcons, upsertItemIcons } from '../db/queries/media';

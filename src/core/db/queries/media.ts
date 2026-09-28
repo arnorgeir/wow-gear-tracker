@@ -1,5 +1,5 @@
 import { inArray } from 'drizzle-orm';
-import type { ItemDetails } from '../../blizzard/client';
+import type { ItemDetails } from '../../blizzard/types';
 import type { Db } from '../client';
 import { items, itemDetails, classMedia } from '../schema';
 import { withWriteLock } from './write-lock';

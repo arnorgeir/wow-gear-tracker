@@ -4,7 +4,8 @@ import { addCharacter } from './add-character';
 import { getCharacter } from '../db/queries/characters';
 import { HttpError } from '../http';
 import { UserError } from '../errors';
-import type { BlizzardClient, CharacterRef } from '../blizzard/client';
+import type { BlizzardClient } from '../blizzard/client';
+import type { CharacterRef } from '../blizzard/types';
 import type { CharacterSyncer } from '../sync/character-sync';
 
 function deps(profileImpl?: (ref: CharacterRef) => Promise<never>) {
