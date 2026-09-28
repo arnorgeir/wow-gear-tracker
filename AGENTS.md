@@ -52,10 +52,11 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 ## Splitting code
 
 - **Split by job, not by line count.** A file does one job. When it starts doing two, split it along that seam instead of waiting for it to grow.
-- **A component stays one file until it has parts.** Parts means a sub-component, a hook, or a helper worth testing on its own. Then it becomes a kebab-case directory — `add-character/` — holding the component, its parts and their tests. A twenty-line badge never earns a directory.
+- **Every component lives in its own directory,** named in kebab-case and holding a PascalCase `.tsx` file plus everything that belongs to it: sub-components, its own hook, its helpers and their tests. `item-card/ItemCard.tsx`, never `ItemCard.tsx` at the root. A one-line badge gets a directory too — the rule has no threshold to argue about. A component that only its parent renders is a file inside the parent's directory; once anything else imports it, it moves out to a directory of its own.
+- **Shared pieces sit outside the component directories.** `src/components/shared/` holds helpers several components use, and `src/components/hooks/` holds hooks several components use. A helper or hook used by one component belongs inside that component's directory.
 - **Components are markup and wiring; the rules live beside them.** Anything with branching worth a test goes in a plain `.ts` next to the component, like `row-tone.ts` and `class-colors.ts`, and gets unit tests. `.tsx` files hold JSX.
 - **Hooks are for client state and effects only:** debounced input, an outside-click listener, a fetch-then-refresh cycle. A hook is never the home for logic that could be a pure function — that belongs in `src/core`, where it tests without React.
-- **The same threshold applies to `src/core` and `src/server`.** A module doing two jobs becomes a directory of focused modules with the same public surface, so importers don't change.
+- **Modules split the same way.** A module in `src/core` or `src/server` doing two jobs becomes a directory of focused modules. Names and signatures stay stable so callers keep working; import paths may change, and a barrel that re-exports everything is not worth adding to keep them identical.
 
 ## UI rules
 
