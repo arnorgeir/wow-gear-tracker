@@ -55,7 +55,11 @@ New: `src/components/hooks/use-api-action.ts` — owns `busy`, the request, the 
 
 Tests: `use-api-action.test.ts` covers the success path, a failed response carrying a `UserError` message, a network rejection, and that `refresh` is called once on success and not on failure. The four components have no automated tests today and get none here; the risk is stated in the PR description and checked by hand on the dev server.
 
-## PR 2: every component into a directory
+## PR 2: the structural sweep
+
+Everything mechanical lands together, as three commits in this order. They stay separate commits so a reviewer can read the moves apart from the extractions, and so a later bisect lands on one of the three rather than on the whole sweep. The pull request squash-merges as usual, so the description carries the same three headings.
+
+### Commit 1: every component into a directory
 
 A pure move. Fifteen components, fifteen directories, no logic touched — which is what makes a diff this wide safe to review quickly.
 
@@ -81,7 +85,7 @@ Also: `class-colors.ts` and `row-tone.ts` move to `shared/` with their tests, an
 
 Use `git mv` so history follows each file. Tests: no new ones. `typecheck` catches every broken import and `build` catches a broken page, which is the whole safety argument for keeping this PR free of logic changes.
 
-## PR 3: extractions inside the directories
+### Commit 2: extractions inside the directories
 
 Now that each component owns a directory, the parts move in beside it.
 
@@ -95,9 +99,9 @@ Now that each component owns a directory, the parts move in beside it.
 
 **`character-page/`** — the sections lifted out of the 171-line page: `CharacterHeader.tsx`, `ListTabs.tsx`, `GearTable.tsx`, `BisTarget.tsx` and `VaultSection.tsx`, as files in one directory. Each is used only by the page, and `BisTarget` only by `GearTable`, so by decision 1 they are files rather than directories of their own. This directory is a grouping for one route's sections rather than a component directory, since the parent component is the route file itself — the only place in the tree where that is true, and worth naming so it does not read as a mistake. The page becomes composition, matching the thin-pages rule.
 
-Tests: three new pure-function test files, written before the extraction and watched to fail, plus the hook's. The sub-component moves are covered by `typecheck` and `build` as in PR 2.
+Tests: three new pure-function test files, written before the extraction and watched to fail, plus the hook's. The sub-component moves are covered by `typecheck` and `build`, as in the commit before.
 
-## PR 4: backend modules
+### Commit 3: backend modules
 
 `src/core/db/queries.ts` (250 lines) becomes `src/core/db/queries/`:
 
@@ -121,10 +125,14 @@ Tests: `parse.test.ts` is new and covers the profile mapping directly, including
 
 **The untested components in PR 1.** Four components change how they track state, with nothing automated asserting their behavior. Mitigated by keeping PR 1 small and separate, by testing the hook directly, and by a hand check of each of the five interactions on the dev server, listed in the PR description.
 
-**Import churn, twice.** PR 2 rewrites every component import in the repo, and PR 4 rewrites the backend ones. `typecheck` catches every broken path, which is why both PRs are free of logic changes.
+**Import churn.** PR 2 rewrites every component import in the repo and every backend one. `typecheck` catches each broken path, which is why the commits that move files carry no logic changes.
 
-**Review width.** PR 2 is the widest and the least interesting: fifteen renames and their import updates. The table above lets a reviewer confirm placement without reading each file, and `git mv` keeps `git log --follow` working.
+**Review width.** PR 2 is wide, and its first commit is the widest and least interesting part: fifteen renames and their import updates. Two things keep it readable — the commit boundaries, so the moves can be read apart from the extractions, and the tables above, which let a reviewer confirm placement without opening each file. `git mv` keeps `git log --follow` working.
+
+The reason this is a risk worth naming: mechanical hunks are the ones a reviewer's eye slides over, and the extraction commit is where a real mistake would hide. Reviewing PR 2 commit by commit rather than through the combined diff is the mitigation.
 
 ## Sequence
 
-PR 1, then PR 2, then PR 3, then PR 4, each merged before the next starts, so a regression has a small diff to bisect. Branches: `chore/use-api-action`, `chore/component-directories`, `chore/component-extractions`, `chore/split-backend-modules`.
+PR 1, merged, then PR 2. Branches: `chore/use-api-action`, then `chore/split-components-and-modules`.
+
+PR 1 goes alone because it is the only behavior change in the work, and it lands on four components that have no automated tests. Everything in PR 2 is mechanical, so it carries no such risk and does not need the same isolation — splitting it further would buy review rounds rather than safety, since no one else is working in this repo and nothing is waiting on it.
