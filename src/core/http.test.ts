@@ -1,6 +1,23 @@
-import { describe, expect, it } from 'vitest';
-import { createLimiter, fetchJson, HttpError } from './http';
+import { describe, expect, it, vi } from 'vitest';
+import { createLimiter, fetchJson, HttpError, isHttpError } from './http';
 import { fakeFetch, json, on } from '@/test/fake-fetch';
+
+describe('isHttpError', () => {
+  it('recognizes an HttpError from another copy of the module, where instanceof fails', async () => {
+    vi.resetModules();
+    const { HttpError: OtherHttpError } = await import('./http');
+    const err = new OtherHttpError(404, 'https://example.test', 'Not Found');
+    expect(err instanceof HttpError).toBe(false);
+    expect(isHttpError(err)).toBe(true);
+    expect(isHttpError(err) && err.status).toBe(404);
+  });
+
+  it('rejects other errors, even one that only borrows the name', () => {
+    expect(isHttpError(Object.assign(new Error('x'), { name: 'HttpError', status: 404 }))).toBe(false);
+    expect(isHttpError(new Error('x'))).toBe(false);
+    expect(isHttpError(undefined)).toBe(false);
+  });
+});
 
 describe('fetchJson', () => {
   it('returns parsed JSON', async () => {

@@ -1,9 +1,17 @@
+import { brand, hasBrand } from './errors';
+
+const MISSING_CONFIG_ERROR = Symbol.for('wow-gear-tracker.MissingConfigError');
+
 export class MissingConfigError extends Error {
   constructor(public readonly missing: string[]) {
     super(`Missing settings in .env: ${missing.join(', ')}`);
     this.name = 'MissingConfigError';
+    brand(this, MISSING_CONFIG_ERROR);
   }
 }
+
+/** Whether `err` is a MissingConfigError from any copy of this module; see `src/core/errors.ts`. */
+export const isMissingConfigError = (err: unknown): err is MissingConfigError => hasBrand(err, MISSING_CONFIG_ERROR);
 
 export interface AppConfig {
   blizzardClientId: string;

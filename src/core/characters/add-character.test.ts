@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { addCharacter } from './add-character';
 import { getCharacter } from '../db/queries/characters';
@@ -48,6 +48,17 @@ describe('addCharacter', () => {
     const d = deps();
     await expect(addCharacter({ db, blizzard: d.blizzard, syncer: d.syncer, now: () => 5 }, { region: 'eu', name: 'x', realmId: 1 }))
       .rejects.toThrow(UserError);
+  });
+
+  // The Blizzard client can come from another server bundle's copy of the http module, whose
+  // HttpError is a different class. This is the production failure behind issue #33.
+  it('explains a 404 even when the HttpError comes from another copy of the http module', async () => {
+    vi.resetModules();
+    const { HttpError: OtherHttpError } = await import('../http');
+    const db = await openTestDb();
+    const d = deps(async () => { throw new OtherHttpError(404, 'u', ''); });
+    await expect(addCharacter({ db, blizzard: d.blizzard, syncer: d.syncer, now: () => 5 }, { region: 'eu', name: 'Nobody', realmSlug: 'azjol-nerub' }))
+      .rejects.toThrow('Blizzard can’t find Nobody on that realm.');
   });
 
   it('explains when Blizzard can’t find the character', async () => {

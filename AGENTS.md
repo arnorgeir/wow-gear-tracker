@@ -77,6 +77,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 ## Errors and HTTP
 
 - **`UserError` means the message is safe to show.** Route handlers turn it into a 400, `MissingConfigError` into a 503, and anything else into a logged 500 with a generic body. Throw `UserError` for what the user can fix, and keep internals out of its message.
+- **Check our errors with `isUserError`, `isHttpError` and `isMissingConfigError`, never `instanceof`.** Next gives each server bundle its own copy of a module, and the services cache hands objects from one bundle to another, so `instanceof` fails depending on which page happened to load first. The guards read a `Symbol.for` brand that every copy shares.
 - **Every external request goes through `fetchJson` or `fetchWithRetry`** in `src/core/http.ts`: each attempt times out after ten seconds, and a 429 is retried once, honoring `Retry-After`. Cap parallel requests with `createLimiter`.
 - **Settings come from `readConfig()`.** `BLIZZARD_CLIENT_ID` and `BLIZZARD_CLIENT_SECRET` are required; `DATABASE_URL` defaults to `file:data/app.db`.
 

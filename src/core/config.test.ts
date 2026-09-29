@@ -1,5 +1,20 @@
-import { describe, expect, it } from 'vitest';
-import { MissingConfigError, readConfig } from './config';
+import { describe, expect, it, vi } from 'vitest';
+import { isMissingConfigError, MissingConfigError, readConfig } from './config';
+
+describe('isMissingConfigError', () => {
+  it('recognizes a MissingConfigError from another copy of the module, where instanceof fails', async () => {
+    vi.resetModules();
+    const { MissingConfigError: OtherMissingConfigError } = await import('./config');
+    const err = new OtherMissingConfigError(['BLIZZARD_CLIENT_ID']);
+    expect(err instanceof MissingConfigError).toBe(false);
+    expect(isMissingConfigError(err)).toBe(true);
+  });
+
+  it('rejects other errors, even one that only borrows the name', () => {
+    expect(isMissingConfigError(Object.assign(new Error('x'), { name: 'MissingConfigError', missing: [] }))).toBe(false);
+    expect(isMissingConfigError(new Error('x'))).toBe(false);
+  });
+});
 
 describe('readConfig', () => {
   it('reads credentials and defaults the database URL', () => {

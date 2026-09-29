@@ -2,7 +2,7 @@ import { AddCharacterBar } from '@/components/add-character-bar/AddCharacterBar'
 import { CharacterCard } from '@/components/character-card/CharacterCard';
 import { SetupNotice } from '@/components/setup-notice/SetupNotice';
 import { StaleSync } from '@/components/stale-sync/StaleSync';
-import { MissingConfigError } from '@/core/config';
+import { isMissingConfigError } from '@/core/config';
 import { isStale } from '@/core/sync/character-sync';
 import { getServices, type Services } from '@/server/services';
 import { getCharacterCards } from '@/server/views/character-cards';
@@ -21,7 +21,7 @@ export default async function CharactersPage() {
   try {
     services = await getServices();
   } catch (err) {
-    if (err instanceof MissingConfigError) return <SetupNotice missing={err.missing} />;
+    if (isMissingConfigError(err)) return <SetupNotice missing={err.missing} />;
     throw err;
   }
   const cards = await getCharacterCards(services);
