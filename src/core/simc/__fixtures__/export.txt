@@ -1,9 +1,9 @@
-# Testbear - Guardian - 2026-09-26 12:00 - EU/Tarren Mill
+# Birkibjörn - Guardian - 2026-09-26 12:00 - EU/Tarren Mill
 # SimC Addon 12.1.0-01
 # WoW 12.1.0.68914, TOC 120100
 # Requires SimulationCraft 1201-01 or newer
 
-druid="Testbear"
+druid="Birkibjörn"
 level=90
 race=night_elf
 region=eu

@@ -43,7 +43,7 @@ async function services(bisLists: BisLists = lists): Promise<Services> {
 }
 
 async function seed(s: Services, withGear = true) {
-  const { id } = await insertCharacter(s.db, { region: 'eu', realmId: 1, realmSlug: 'test-realm', realmName: 'Test Realm', name: 'Testbear', className: 'Druid', specName: 'Guardian' }, 1);
+  const { id } = await insertCharacter(s.db, { region: 'eu', realmId: 1, realmSlug: 'test-realm', realmName: 'Test Realm', name: 'Birkibjörn', className: 'Druid', specName: 'Guardian' }, 1);
   if (withGear) await saveSnapshotIfChanged(s.db, id, 'blizzard', gearToSnapshotItems(gear), 500);
   return id;
 }
@@ -89,7 +89,7 @@ describe('getCharacterCards', () => {
     const s = await services();
     await seed(s);
     const [card] = await getCharacterCards(s);
-    expect(card).toMatchObject({ name: 'Testbear', total: 2, bisError: null, snapshot: { source: 'blizzard', createdAt: 500 } });
+    expect(card).toMatchObject({ name: 'Birkibjörn', total: 2, bisError: null, snapshot: { source: 'blizzard', createdAt: 500 } });
     expect(card!.counts).toMatchObject({ done: 1, belowMyth: 1, missing: 0 });
   });
 });

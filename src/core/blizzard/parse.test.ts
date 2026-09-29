@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseEquipment, parseProfile, type RawEquipment, type RawProfile } from './parse';
 
 const profile: RawProfile = {
-  name: 'Testbear',
+  name: 'Birkibjörn',
   realm: { id: 1303, name: 'Tarren Mill', slug: 'tarren-mill' },
   character_class: { name: 'Druid' },
   active_spec: { name: 'Guardian' },
@@ -13,7 +13,7 @@ const profile: RawProfile = {
 describe('parseProfile', () => {
   it('maps a full profile', () => {
     expect(parseProfile(profile)).toEqual({
-      name: 'Testbear', realmId: 1303, realmSlug: 'tarren-mill', realmName: 'Tarren Mill',
+      name: 'Birkibjörn', realmId: 1303, realmSlug: 'tarren-mill', realmName: 'Tarren Mill',
       className: 'Druid', specName: 'Guardian', raceName: 'Troll', faction: 'HORDE',
     });
   });

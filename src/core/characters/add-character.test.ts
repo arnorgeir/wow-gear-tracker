@@ -15,7 +15,7 @@ function deps(profileImpl?: (ref: CharacterRef) => Promise<never>) {
     getRealms: async () => [{ id: 503, name: 'Azjol-Nerub', slug: 'azjol-nerub' }],
     getProfile: profileImpl ?? (async (ref: CharacterRef) => {
       asked.push(ref);
-      return { name: 'Testbear', realmId: 503, realmSlug: 'azjol-nerub', realmName: 'Azjol-Nerub', className: 'Druid', specName: 'Guardian' };
+      return { name: 'Birkibjörn', realmId: 503, realmSlug: 'azjol-nerub', realmName: 'Azjol-Nerub', className: 'Druid', specName: 'Guardian' };
     }),
   } as unknown as BlizzardClient;
   const syncer: CharacterSyncer = { sync: async (id) => { synced.push(id); return 'updated'; } };
@@ -26,10 +26,10 @@ describe('addCharacter', () => {
   it('resolves the realm ID to Blizzard’s slug, saves the character and syncs it', async () => {
     const db = await openTestDb();
     const d = deps();
-    const result = await addCharacter({ db, blizzard: d.blizzard, syncer: d.syncer, now: () => 5 }, { region: 'eu', name: 'testbear', realmId: 503 });
+    const result = await addCharacter({ db, blizzard: d.blizzard, syncer: d.syncer, now: () => 5 }, { region: 'eu', name: 'birkibjörn', realmId: 503 });
     expect(result.created).toBe(true);
-    expect(d.asked[0]).toEqual({ region: 'eu', realmSlug: 'azjol-nerub', name: 'testbear' });
-    expect(await getCharacter(db, result.id)).toMatchObject({ name: 'Testbear', realmSlug: 'azjol-nerub', specName: 'Guardian' });
+    expect(d.asked[0]).toEqual({ region: 'eu', realmSlug: 'azjol-nerub', name: 'birkibjörn' });
+    expect(await getCharacter(db, result.id)).toMatchObject({ name: 'Birkibjörn', realmSlug: 'azjol-nerub', specName: 'Guardian' });
     expect(d.synced).toEqual([result.id]);
   });
 
@@ -37,8 +37,8 @@ describe('addCharacter', () => {
     const db = await openTestDb();
     const d = deps();
     const context = { db, blizzard: d.blizzard, syncer: d.syncer, now: () => 5 };
-    const first = await addCharacter(context, { region: 'eu', name: 'Testbear', realmSlug: 'azjol-nerub' });
-    const second = await addCharacter(context, { region: 'eu', name: 'TESTBEAR', realmSlug: 'azjol-nerub' });
+    const first = await addCharacter(context, { region: 'eu', name: 'Birkibjörn', realmSlug: 'azjol-nerub' });
+    const second = await addCharacter(context, { region: 'eu', name: 'BIRKIBJÖRN', realmSlug: 'azjol-nerub' });
     expect(second).toEqual({ id: first.id, created: false });
     expect(d.synced).toHaveLength(1);
   });
