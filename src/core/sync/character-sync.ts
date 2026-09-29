@@ -2,7 +2,7 @@ import type { BlizzardClient } from '../blizzard/client';
 import type { Db } from '../db/client';
 import { gearToSnapshotItems, saveSnapshotIfChanged } from '../db/queries/snapshots';
 import { getCharacter, updateCharacter } from '../db/queries/characters';
-import { HttpError } from '../http';
+import { isHttpError } from '../http';
 
 export const GEAR_TTL_MS = 5 * 60 * 1000;
 
@@ -38,14 +38,14 @@ export function createCharacterSyncer({ db, blizzard, now = Date.now, ttlMs = GE
     try {
       [profile, gear] = await Promise.all([blizzard.getProfile(ref), blizzard.getEquipment(ref)]);
     } catch (err) {
-      if (err instanceof HttpError && err.status === 404) {
+      if (isHttpError(err) && err.status === 404) {
         await updateCharacter(db, characterId, { status: 'notFound', lastSyncedAt: time, lastSyncError: 'Blizzard can’t find this character' });
         return 'notFound';
       }
       // HttpError is a Blizzard response; fetch throws TypeError (or a TimeoutError) when Blizzard can't be reached.
       const isNetwork = err instanceof TypeError || (err instanceof Error && err.name === 'TimeoutError');
-      if (!(err instanceof HttpError) && !isNetwork) throw err;
-      const reason = err instanceof HttpError ? `Blizzard returned ${err.status}` : 'Blizzard couldn’t be reached';
+      if (!isHttpError(err) && !isNetwork) throw err;
+      const reason = isHttpError(err) ? `Blizzard returned ${err.status}` : 'Blizzard couldn’t be reached';
       await updateCharacter(db, characterId, { lastSyncError: `${reason}. Showing the last saved gear.` });
       return 'error';
     }

@@ -2,7 +2,7 @@ import type { BlizzardClient } from '../blizzard/client';
 import type { Db } from '../db/client';
 import { insertCharacter } from '../db/queries/characters';
 import { UserError } from '../errors';
-import { HttpError } from '../http';
+import { isHttpError } from '../http';
 import type { CharacterSyncer } from '../sync/character-sync';
 import type { Region } from '../types';
 
@@ -36,7 +36,7 @@ export async function addCharacter({ db, blizzard, syncer, now }: Deps, input: A
   try {
     profile = await blizzard.getProfile({ region: input.region, realmSlug, name });
   } catch (err) {
-    if (err instanceof HttpError && err.status === 404) throw new UserError(`Blizzard can’t find ${name} on that realm.`);
+    if (isHttpError(err) && err.status === 404) throw new UserError(`Blizzard can’t find ${name} on that realm.`);
     throw err;
   }
 

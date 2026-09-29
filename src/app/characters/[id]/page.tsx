@@ -10,7 +10,7 @@ import { CrestSummary } from '@/components/crest-summary/CrestSummary';
 import { SetupNotice } from '@/components/setup-notice/SetupNotice';
 import { SimcPaste } from '@/components/simc-paste/SimcPaste';
 import { StaleSync } from '@/components/stale-sync/StaleSync';
-import { MissingConfigError } from '@/core/config';
+import { isMissingConfigError } from '@/core/config';
 import { isStale } from '@/core/sync/character-sync';
 import { LIST_TYPES, type ListType } from '@/core/types';
 import { getServices, type Services } from '@/server/services';
@@ -26,7 +26,7 @@ export default async function CharacterPage({ params, searchParams }: Props) {
   try {
     services = await getServices();
   } catch (err) {
-    if (err instanceof MissingConfigError) return <SetupNotice missing={err.missing} />;
+    if (isMissingConfigError(err)) return <SetupNotice missing={err.missing} />;
     throw err;
   }
   const listType = (LIST_TYPES as readonly string[]).includes(list ?? '') ? (list as ListType) : undefined;

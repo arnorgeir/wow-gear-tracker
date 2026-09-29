@@ -5,7 +5,7 @@ import { getBisLists, replaceBisLists } from '../db/queries/bis-lists';
 import { getClassIconMap, upsertClassIcons, getItemDetailsMap, upsertItemDetails, getItemIcons, upsertItemIcons } from '../db/queries/media';
 import { getBonusQualityMap, replaceBonusQualities, getTrackMap, replaceTracks } from '../db/queries/tracks';
 import { getMeta, setMeta } from '../db/queries/meta';
-import { HttpError } from '../http';
+import { isHttpError } from '../http';
 import type { RaidbotsData } from '../raidbots/tracks';
 import type { BisLists, BisSource, Quality, Region, Track } from '../types';
 
@@ -39,7 +39,7 @@ export async function ensureBisLists(deps: { db: Db; source: BisSource; now: num
     await replaceBisLists(db, specSlug, lists, now);
     return { lists, fetchedAt: now, error: null };
   } catch (err) {
-    const error = err instanceof HttpError && err.status === 404 && !cached
+    const error = isHttpError(err) && err.status === 404 && !cached
       ? `${source.name} has no gearing page for "${specSlug}"`
       : 'BiS list couldn’t be updated';
     return { lists: cached?.lists ?? null, fetchedAt: cached?.fetchedAt ?? null, error };

@@ -1,4 +1,4 @@
-import { createLimiter, fetchJson, HttpError, type FetchFn, type SleepFn } from '../http';
+import { createLimiter, fetchJson, isHttpError, type FetchFn, type SleepFn } from '../http';
 import type { GearItem, Quality, Region } from '../types';
 import { parseEquipment, parseProfile, type RawEquipment, type RawProfile } from './parse';
 import { createTokenSource } from './token';
@@ -41,7 +41,7 @@ export function createBlizzardClient(options: Options): BlizzardClient {
       try {
         return await call();
       } catch (err) {
-        if (err instanceof HttpError && err.status === 401) {
+        if (isHttpError(err) && err.status === 401) {
           token.invalidate();
           return call();
         }
@@ -58,7 +58,7 @@ export function createBlizzardClient(options: Options): BlizzardClient {
       const media = await api<{ assets?: { key: string; value: string }[] }>(region, path, namespace);
       return media.assets?.find((asset) => asset.key === key)?.value ?? null;
     } catch (err) {
-      if (err instanceof HttpError && err.status === 404) return null;
+      if (isHttpError(err) && err.status === 404) return null;
       throw err;
     }
   }
@@ -85,7 +85,7 @@ export function createBlizzardClient(options: Options): BlizzardClient {
         const media = await api<{ assets?: { key: string; value: string }[] }>(region, `/data/wow/media/item/${itemId}`, 'static');
         return media.assets?.find((asset) => asset.key === 'icon')?.value ?? null;
       } catch (err) {
-        if (err instanceof HttpError && err.status === 404) return null;
+        if (isHttpError(err) && err.status === 404) return null;
         throw err;
       }
     },
@@ -95,7 +95,7 @@ export function createBlizzardClient(options: Options): BlizzardClient {
         const item = await api<{ quality?: { type: string }; preview_item?: { set?: unknown } }>(region, `/data/wow/item/${itemId}`, 'static');
         return { quality: (item.quality?.type as Quality | undefined) ?? null, isTier: Boolean(item.preview_item?.set) };
       } catch (err) {
-        if (err instanceof HttpError && err.status === 404) return null;
+        if (isHttpError(err) && err.status === 404) return null;
         throw err;
       }
     },

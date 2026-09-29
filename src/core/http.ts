@@ -1,3 +1,5 @@
+import { brand, hasBrand } from './errors';
+
 export type FetchFn = typeof fetch;
 export type SleepFn = (ms: number) => Promise<void>;
 
@@ -6,12 +8,18 @@ const defaultSleep: SleepFn = (ms) => new Promise((resolve) => setTimeout(resolv
 /** Longest wait for any one external request, so a stalled service can't hang a page. */
 export const REQUEST_TIMEOUT_MS = 10_000;
 
+const HTTP_ERROR = Symbol.for('wow-gear-tracker.HttpError');
+
 export class HttpError extends Error {
   constructor(public readonly status: number, public readonly url: string, body: string) {
     super(`HTTP ${status} for ${url}: ${body.slice(0, 200)}`);
     this.name = 'HttpError';
+    brand(this, HTTP_ERROR);
   }
 }
+
+/** Whether `err` is an HttpError from any copy of this module; see `src/core/errors.ts`. */
+export const isHttpError = (err: unknown): err is HttpError => hasBrand(err, HTTP_ERROR);
 
 const withTimeout = (init: RequestInit | undefined, timeoutMs: number): RequestInit =>
   ({ ...init, signal: init?.signal ?? AbortSignal.timeout(timeoutMs) });
