@@ -12,8 +12,8 @@ const lists: BisLists = {
   overall: [],
   raid: [],
   mythicPlus: [
-    { slotLabel: 'Head', slots: ['HEAD'], itemId: 10, name: 'Tier Catalyst Helm', bonusIds: [], isTier: true, isCatalyst: true, source: 'Dungeon A' },
-    { slotLabel: 'Neck', slots: ['NECK'], itemId: 20, name: 'Best Neck', bonusIds: [1], isTier: false, isCatalyst: false, source: 'Dungeon B' },
+    { kind: 'item', slotLabel: 'Head', slots: ['HEAD'], itemId: 10, name: 'Tier Catalyst Helm', bonusIds: [], isTier: true, isCatalyst: true, source: 'Dungeon A' },
+    { kind: 'item', slotLabel: 'Neck', slots: ['NECK'], itemId: 20, name: 'Best Neck', bonusIds: [1], isTier: false, isCatalyst: false, source: 'Dungeon B' },
   ],
 };
 const tracks: Track[] = [
@@ -97,7 +97,7 @@ describe('getCharacterCards', () => {
 describe('SimC data', () => {
   const withBelt: BisLists = {
     ...lists,
-    mythicPlus: [...lists.mythicPlus, { slotLabel: 'Belt', slots: ['WAIST'], itemId: 30, name: 'Best Belt', bonusIds: [], isTier: false, isCatalyst: false, source: 'Dungeon C' }],
+    mythicPlus: [...lists.mythicPlus, { kind: 'item', slotLabel: 'Belt', slots: ['WAIST'], itemId: 30, name: 'Best Belt', bonusIds: [], isTier: false, isCatalyst: false, source: 'Dungeon C' }],
   };
   const pasted = [
     ...gearToSnapshotItems(gear),
@@ -145,6 +145,22 @@ describe('SimC data', () => {
     const page = await getCharacterPage(s, id);
     expect(page).toMatchObject({ crests: null, vaultChoices: [], vaultChoicesAt: null });
     expect(page!.rows.every((r) => r.upgrade === null)).toBe(true);
+  });
+});
+
+describe('any rows on the character page', () => {
+  it('shows an any card, and counts a vault choice at its item level as BiS', async () => {
+    const anyLists: BisLists = { overall: [], raid: [], mythicPlus: [{ kind: 'any', slotLabel: 'Shoulders', slots: ['SHOULDER'], minItemLevel: 334, source: '' }] };
+    const s = await services(anyLists);
+    const id = await seed(s, false);
+    await saveSnapshotIfChanged(s.db, id, 'simc', [
+      { location: 'equipped', slot: 'SHOULDER', itemId: 70, name: 'Worn Mantle', itemLevel: 321, quality: 'EPIC', bonusIds: [], isTier: false },
+      { location: 'vault', slot: 'SHOULDER', itemId: 71, name: 'Vault Mantle', itemLevel: 334, quality: 'EPIC', bonusIds: [], isTier: false },
+      { location: 'vault', slot: 'SHOULDER', itemId: 72, name: 'Low Mantle', itemLevel: 320, quality: 'EPIC', bonusIds: [], isTier: false },
+    ], 500);
+    const page = await getCharacterPage(s, id);
+    expect(page!.rows[0]).toMatchObject({ state: 'missing', bis: { kind: 'any', minItemLevel: 334, source: '' } });
+    expect(page!.vaultChoices.map((c) => [c.itemId, c.isBis])).toEqual([[71, true], [72, false]]);
   });
 });
 

@@ -14,7 +14,7 @@ const item = (slot: SlotType, itemId: number, bonusIds: number[] = [], isTier = 
   ({ slot, itemId, name: `Item ${itemId}`, itemLevel: 300, quality: 'EPIC', bonusIds, isTier });
 
 const row = (slots: SlotType[], itemId: number, isTier = false): BisRow =>
-  ({ slotLabel: slots[0]!, slots, itemId, name: `BiS ${itemId}`, bonusIds: [], isTier, isCatalyst: isTier, source: 'Somewhere' });
+  ({ kind: 'item', slotLabel: slots[0]!, slots, itemId, name: `BiS ${itemId}`, bonusIds: [], isTier, isCatalyst: isTier, source: 'Somewhere' });
 
 describe('evaluateGear', () => {
   it('matches normal rows by item ID', () => {
@@ -83,5 +83,30 @@ describe('countStates', () => {
   it('counts every state, including zeros', () => {
     const rows = evaluateGear({ equipped: [item('HEAD', 1, [1])], bisRows: [row(['HEAD'], 1), row(['NECK'], 2)], tracks });
     expect(countStates(rows)).toEqual({ done: 1, mythUpgradable: 0, belowMyth: 0, inBags: 0, missing: 1 });
+  });
+});
+
+const anyRow = (slots: SlotType[], minItemLevel: number): BisRow => ({ kind: 'any', slotLabel: slots[0]!, slots, minItemLevel, source: '' });
+
+describe('any rows', () => {
+  it('is done when the slot holds an item at or above the item level', () => {
+    const [at, below] = evaluateGear({ equipped: [item('SHOULDER', 5), item('FEET', 6)], bisRows: [anyRow(['SHOULDER'], 300), anyRow(['FEET'], 301)], tracks });
+    expect(at).toMatchObject({ matched: true, state: 'done' });
+    expect(below).toMatchObject({ matched: false, state: 'missing' });
+  });
+
+  it('never reports a track state, even on a Myth item below max', () => {
+    const [row] = evaluateGear({ equipped: [item('SHOULDER', 5, [2])], bisRows: [anyRow(['SHOULDER'], 300)], tracks });
+    expect(row!.state).toBe('done');
+  });
+
+  it('is missing when the item has no item level, and when the slot is empty', () => {
+    const [noLevel, empty] = evaluateGear({
+      equipped: [{ ...item('SHOULDER', 5), itemLevel: null }],
+      bisRows: [anyRow(['SHOULDER'], 1), anyRow(['FEET'], 1)],
+      tracks,
+    });
+    expect(noLevel!.state).toBe('missing');
+    expect(empty).toMatchObject({ state: 'missing', equipped: null });
   });
 });

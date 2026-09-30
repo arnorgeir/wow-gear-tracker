@@ -11,12 +11,16 @@ export interface ItemView {
   trackLabel: string | null;
 }
 
+export type BisView =
+  | (ItemView & { kind: 'item'; isTier: boolean; isCatalyst: boolean; source: string })
+  | { kind: 'any'; minItemLevel: number; source: string };
+
 export interface GearRowView {
   slotLabel: string;
   slot: SlotType;
   state: ItemState;
   equipped: ItemView | null;
-  bis: ItemView & { isTier: boolean; isCatalyst: boolean; source: string };
+  bis: BisView;
   upgrade: UpgradeOption | null;
 }
 

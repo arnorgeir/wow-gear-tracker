@@ -35,7 +35,7 @@ export async function getCharacterPage(services: Services, id: number, listType?
   const gearRows = evaluate(list);
   const vaultItems = gear.simc?.items.filter((i) => i.location === 'vault') ?? [];
 
-  const iconIds = [...gear.equipped.map((g) => g.itemId), ...gearRows.map((r) => r.row.itemId), ...vaultItems.map((i) => i.itemId)];
+  const iconIds = [...gear.equipped.map((g) => g.itemId), ...gearRows.flatMap((r) => (r.row.kind === 'item' ? [r.row.itemId] : [])), ...vaultItems.map((i) => i.itemId)];
   const icons = await ensureItemIcons({ db, blizzard, now: time }, character.region, iconIds);
 
   const rows: GearRowView[] = gearRows.map((r) => ({
@@ -43,18 +43,22 @@ export async function getCharacterPage(services: Services, id: number, listType?
     slot: r.slot,
     state: r.state,
     equipped: r.equipped && itemView(r.equipped, icons, r.track),
-    bis: {
-      ...itemView({ itemId: r.row.itemId, name: r.row.name, itemLevel: null, quality: 'EPIC', bonusIds: r.row.bonusIds }, icons, null),
-      isTier: r.row.isTier,
-      isCatalyst: r.row.isCatalyst,
-      source: r.row.source,
-    },
+    bis: r.row.kind === 'item'
+      ? {
+          kind: 'item' as const,
+          ...itemView({ itemId: r.row.itemId, name: r.row.name, itemLevel: null, quality: 'EPIC', bonusIds: r.row.bonusIds }, icons, null),
+          isTier: r.row.isTier,
+          isCatalyst: r.row.isCatalyst,
+          source: r.row.source,
+        }
+      : { kind: 'any' as const, minItemLevel: r.row.minItemLevel, source: r.row.source },
     upgrade: upgradeFor(r, costs, gear.balances),
   }));
 
   const listRows = bis.lists?.[list] ?? [];
-  const isBis = (item: SnapshotItemInput) =>
-    listRows.some((r) => r.itemId === item.itemId || (r.isTier && item.isTier && r.slots.includes(item.slot as SlotType)));
+  const isBis = (item: SnapshotItemInput) => listRows.some((r) => r.kind === 'any'
+    ? r.slots.includes(item.slot as SlotType) && (item.itemLevel ?? 0) >= r.minItemLevel
+    : r.itemId === item.itemId || (r.isTier && item.isTier && r.slots.includes(item.slot as SlotType)));
   const vaultChoices = vaultItems.map((item) => ({ ...itemView(item, icons, decodeTrack(item.bonusIds, tracks)), isBis: isBis(item) }));
 
   const counts = Object.fromEntries(LIST_TYPES.map((l) => {

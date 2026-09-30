@@ -5,9 +5,9 @@ import { replaceBisLists, getBisLists } from './bis-lists';
 
 describe('BiS lists', () => {
   const lists: BisLists = {
-    overall: [{ slotLabel: 'Head', slots: ['HEAD'], itemId: 5, name: 'Helm', bonusIds: [], isTier: true, isCatalyst: true, source: 'Boss' }],
+    overall: [{ kind: 'item', slotLabel: 'Head', slots: ['HEAD'], itemId: 5, name: 'Helm', bonusIds: [], isTier: true, isCatalyst: true, source: 'Boss' }],
     raid: [],
-    mythicPlus: [{ slotLabel: 'Ring', slots: ['FINGER_1', 'FINGER_2'], itemId: 6, name: 'Ring', bonusIds: [1, 2], isTier: false, isCatalyst: false, source: 'Dungeon' }],
+    mythicPlus: [{ kind: 'item', slotLabel: 'Ring', slots: ['FINGER_1', 'FINGER_2'], itemId: 6, name: 'Ring', bonusIds: [1, 2], isTier: false, isCatalyst: false, source: 'Dungeon' }],
   };
 
   it('replaces and reads lists in order', async () => {
@@ -16,5 +16,21 @@ describe('BiS lists', () => {
     await replaceBisLists(db, 'guardian-druid', lists, 50);
     await replaceBisLists(db, 'guardian-druid', lists, 60);
     expect(await getBisLists(db, 'guardian-druid')).toEqual({ lists, fetchedAt: 60 });
+  });
+});
+
+describe('any rows', () => {
+  it('stores and reads back an any row beside an item row', async () => {
+    const db = await openTestDb();
+    const lists: BisLists = {
+      overall: [
+        { kind: 'item', slotLabel: 'Head', slots: ['HEAD'], itemId: 271875, name: 'Gaze of the Coiled Watcher', bonusIds: [], isTier: true, isCatalyst: true, source: 'Ula’tek' },
+        { kind: 'any', slotLabel: 'Shoulders', slots: ['SHOULDER'], minItemLevel: 334, source: '' },
+      ],
+      raid: [],
+      mythicPlus: [],
+    };
+    await replaceBisLists(db, 'feral-druid', lists, 1);
+    expect((await getBisLists(db, 'feral-druid'))!.lists.overall).toEqual(lists.overall);
   });
 });

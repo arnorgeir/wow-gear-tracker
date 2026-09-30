@@ -64,7 +64,10 @@ export const bisItems = sqliteTable('bis_items', {
   position: integer('position').notNull(),
   slotLabel: text('slot_label').notNull(),
   slots: text('slots', { mode: 'json' }).$type<SlotType[]>().notNull(),
-  itemId: integer('item_id').notNull(),
+  /** Null for an "Any" row, which names no item. */
+  itemId: integer('item_id'),
+  /** Set only for an "Any" row: the item level any item in the slot must reach. */
+  minItemLevel: integer('min_item_level'),
   name: text('name').notNull(),
   bonusIds: text('bonus_ids', { mode: 'json' }).$type<number[]>().notNull(),
   isTier: integer('is_tier', { mode: 'boolean' }).notNull(),

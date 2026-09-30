@@ -35,16 +35,24 @@ function parseTable(html: string, tableId: string): BisRow[] {
     const cells = [...rowHtml!.matchAll(/<td>([\s\S]*?)<\/td>/g)].map((m) => m[1]!);
     if (cells.length < 3) continue;
     const link = cells[1]!.match(/href="[^"]*?item=(\d+)[^"?]*(?:\?bonus=([\d:]+))?"/);
-    if (!link) continue;
-    const slotLabel = decodeHtml(cells[0]!);
     const itemText = decodeHtml(cells[1]!);
+    // Some rows name no item, only an item level: "Any 334" means any item for the slot at that level.
+    const anyLevel = link ? null : itemText.match(/^Any (\d+)$/);
+    if (!link && !anyLevel) continue;
+    const slotLabel = decodeHtml(cells[0]!);
     const sourceText = decodeHtml(cells[2]!);
+    const slots = SLOT_MAP[slotLabel] ?? [];
+    if (anyLevel) {
+      rows.push({ kind: 'any', slotLabel, slots, minItemLevel: Number(anyLevel[1]), source: sourceText === '-' ? '' : sourceText });
+      continue;
+    }
     rows.push({
+      kind: 'item',
       slotLabel,
-      slots: SLOT_MAP[slotLabel] ?? [],
-      itemId: Number(link[1]),
+      slots,
+      itemId: Number(link![1]),
       name: itemText.replace(/\s*\(Tier Set\)\s*$/i, ''),
-      bonusIds: link[2] ? link[2].split(':').map(Number) : [],
+      bonusIds: link![2] ? link![2].split(':').map(Number) : [],
       isTier: /\(Tier Set\)/i.test(itemText),
       isCatalyst: /\(Catalyst\)/i.test(sourceText),
       source: sourceText.replace(/\s*\(Catalyst\)\s*$/i, ''),

@@ -26,16 +26,10 @@ export interface GearItem {
   isTier: boolean;
 }
 
-export interface BisRow {
-  slotLabel: string;
-  slots: SlotType[];
-  itemId: number;
-  name: string;
-  bonusIds: number[];
-  isTier: boolean;
-  isCatalyst: boolean;
-  source: string;
-}
+interface BisRowBase { slotLabel: string; slots: SlotType[]; source: string }
+export interface BisItemRow extends BisRowBase { kind: 'item'; itemId: number; name: string; bonusIds: number[]; isTier: boolean; isCatalyst: boolean }
+export interface BisAnyRow extends BisRowBase { kind: 'any'; minItemLevel: number }
+export type BisRow = BisItemRow | BisAnyRow;
 
 export type BisLists = Record<ListType, BisRow[]>;
 
