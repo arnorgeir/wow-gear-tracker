@@ -34,7 +34,7 @@ export default async function CharactersPage() {
         <h1 className="font-display text-4xl font-bold tracking-wide">Characters</h1>
         <p className="text-[17px] text-muted">BiS progress against Method&rsquo;s lists</p>
       </div>
-      <AddCharacterBar />
+      <AddCharacterBar trackedCharacters={cards.map((c) => ({ region: c.region, realmId: c.realmId, name: c.name }))} />
       <div className="flex flex-wrap gap-6 text-sm text-muted" aria-label="Legend">
         {LEGEND.map(([swatch, label]) => (
           <span key={label} className="flex items-center gap-2"><span className={`size-3 rounded-sm ${swatch}`} />{label}</span>

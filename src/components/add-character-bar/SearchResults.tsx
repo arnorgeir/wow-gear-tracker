@@ -6,11 +6,12 @@ import type { SearchResult } from './use-character-search';
 interface Props {
   results: SearchResult[];
   busy: boolean;
+  isTracked: (result: SearchResult) => boolean;
   onPick: (result: SearchResult) => void;
   onManual: () => void;
 }
 
-export function SearchResults({ results, busy, onPick, onManual }: Props) {
+export function SearchResults({ results, busy, isTracked, onPick, onManual }: Props) {
   return (
     <ul role="listbox" aria-label="Matching characters"
       className="absolute top-full z-10 mt-2 flex w-full flex-col gap-0.5 rounded-xl border border-line-strong bg-surface-2 p-1.5 shadow-2xl">
@@ -24,7 +25,10 @@ export function SearchResults({ results, busy, onPick, onManual }: Props) {
                 : <CharacterAvatar name={r.name} className={r.className} avatarUrl={null} classIconUrl={null} size={40} />}
               {r.faction && <span className="absolute -bottom-1.5 -right-1.5"><FactionBadge faction={r.faction} /></span>}
             </span>
-            <span className="grow text-[17px]"><strong className="font-semibold">{r.name}</strong><span className="text-muted"> - {r.realmName}</span></span>
+            <span className="grow text-[17px]">
+              <strong className="font-semibold">{r.name}</strong><span className="text-muted"> - {r.realmName}</span>
+              {isTracked(r) && <span className="ml-2 text-xs font-semibold text-muted">Added</span>}
+            </span>
             <span className="flex flex-col items-end">
               <span className="text-sm font-semibold" style={{ color: classColor(r.className) }}>{r.className}</span>
               {r.faction && <span className="text-xs font-semibold" style={{ color: FACTION_TEXT[r.faction].color }}>{FACTION_TEXT[r.faction].label}</span>}

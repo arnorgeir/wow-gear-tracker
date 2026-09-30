@@ -33,6 +33,7 @@ export interface CharacterSummary {
   id: number;
   name: string;
   realmName: string;
+  realmId: number;
   region: Region;
   className: string;
   activeSpec: string;
