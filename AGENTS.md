@@ -74,6 +74,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 - **Every write goes through `withWriteLock`** in `src/core/db/queries/write-lock.ts`. libsql's SQLite driver runs synchronously on the main thread: a write that waits on another connection's lock blocks the event loop, so the lock holder can never finish.
 - **Change the schema in `src/core/db/schema.ts`,** then run `npm run db:generate -- --name <name>`. Never edit a migration that's already committed.
 - **Cached Raidbots data is versioned.** When `upgrade_tracks` or `bonus_qualities` gain columns, bump the version in `TRACKS_META_KEY` in `src/core/sync/reference-sync.ts`, so installs refetch instead of trusting old rows for a day.
+- **Cached season loot is versioned the same way.** When `season_dungeons` or `dungeon_loot` gain columns, bump the version in `SEASON_META_KEY` in `src/core/sync/season-sync.ts`.
 - **In-memory test databases have one connection.** Don't run database reads in parallel with a write in the same code path. Run them in sequence.
 
 ## Errors and HTTP
@@ -90,6 +91,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 - **Method.gg has no API.** The parser reads its gearing page HTML. Some specs only have an Overall table, and some rows name no item ("Any 334").
 - **Raidbots `bonuses.json` decodes bonus IDs** into upgrade tracks like "Myth 3/6", upgrade costs, and item quality. Upgrade costs are keyed by track `group`, never by track name, because names repeat across seasons.
 - **Item quality comes from the equipped item,** or from bonus IDs for SimC items. Blizzard's item catalog only has base quality.
+- **Season loot joins by map ID.** Raider.IO gives each season dungeon a challenge mode ID only. Blizzard's keystone dungeon names its map, and the Encounter Journal instance with that map holds the loot. The two halves of a split dungeon, such as Tazavesh, share one journal instance, and the API doesn't say which boss belongs to which half.
 
 ## Testing rules
 
