@@ -5,6 +5,9 @@ import { getCharacterPage } from './character-page';
 import type { Services } from '../services';
 import { gearToSnapshotItems, saveSnapshotIfChanged } from '@/core/db/queries/snapshots';
 import { insertCharacter, updateCharacter } from '@/core/db/queries/characters';
+import { replaceSeason } from '@/core/db/queries/season';
+import { setMeta } from '@/core/db/queries/meta';
+import { SEASON_META_KEY } from '@/core/sync/season-sync';
 import type { BisLists, GearItem, Track } from '@/core/types';
 import type { BlizzardClient } from '@/core/blizzard/client';
 
@@ -161,6 +164,54 @@ describe('any rows on the character page', () => {
     const page = await getCharacterPage(s, id);
     expect(page!.rows[0]).toMatchObject({ state: 'missing', bis: { kind: 'any', minItemLevel: 334, source: '' } });
     expect(page!.vaultChoices.map((c) => [c.itemId, c.isBis])).toEqual([[71, true], [72, false]]);
+  });
+});
+
+describe('dungeon priority', () => {
+  const needs: BisLists = {
+    overall: [],
+    raid: [],
+    mythicPlus: [{ kind: 'item', slotLabel: 'Cloak', slots: ['BACK'], itemId: 30, name: 'Cloak of the Hollow', bonusIds: [], isTier: false, isCatalyst: false, source: 'Alpha Hollow' }],
+  };
+
+  async function withSeason(s: Services) {
+    await replaceSeason(s.db, {
+      slug: 'season-test-2',
+      dungeons: [
+        { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11 },
+        { challengeModeId: 502, name: 'Beta Spire', shortName: 'BS', journalInstanceId: 902, mapId: 22 },
+      ],
+      loot: [{ challengeModeId: 501, encounterId: 1, encounterName: 'Hollow King', itemId: 30, itemName: 'Cloak of the Hollow', inventoryType: 'CLOAK', armorType: 'cloth' }],
+    });
+    await setMeta(s.db, SEASON_META_KEY, 'season-test-2', 1000);
+  }
+
+  it('ranks the season for the priority list, with credited items and the rest listed apart', async () => {
+    const s = await services(needs);
+    const id = await seed(s);
+    await withSeason(s);
+    const page = await getCharacterPage(s, id);
+    expect(page!.priority).toMatchObject({ listType: 'mythicPlus', fellBack: false, season: 'ready', needsSync: false, approximate: false, nothingFrom: ['Beta Spire'] });
+    expect(page!.priority.dungeons).toEqual([{
+      challengeModeId: 501, name: 'Alpha Hollow', score: 3, split: false,
+      credits: [{ kind: 'item', slotLabel: 'Cloak', weight: 3, item: expect.objectContaining({ itemId: 30, iconUrl: 'https://i/30.jpg' }) }],
+    }]);
+  });
+
+  it('asks for a sync and says loading before any season is stored', async () => {
+    const s = await services(needs);
+    const id = await seed(s);
+    const page = await getCharacterPage(s, id);
+    expect(page!.priority).toMatchObject({ season: 'loading', needsSync: true, dungeons: [], nothingFrom: [] });
+  });
+
+  it('falls back to Overall when the spec has no Mythic+ list', async () => {
+    const s = await services({ overall: needs.mythicPlus, raid: [], mythicPlus: [] });
+    const id = await seed(s);
+    await withSeason(s);
+    const page = await getCharacterPage(s, id);
+    expect(page!.priority).toMatchObject({ listType: 'overall', fellBack: true });
+    expect(page!.priority.dungeons.map((d) => d.name)).toEqual(['Alpha Hollow']);
   });
 });
 
