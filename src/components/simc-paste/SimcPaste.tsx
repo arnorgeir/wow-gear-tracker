@@ -24,7 +24,7 @@ export function SimcPaste({ id }: { id: number }) {
 
   return (
     <details className="rounded-2xl border border-line bg-surface p-5">
-      <summary className="cursor-pointer font-semibold">Update from SimC</summary>
+      <summary className="font-semibold">Update from SimC</summary>
       <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
         <p className="text-sm text-muted">
           In game, type <code className="font-mono text-ink">/simc</code>, copy all the text, and paste it here. It updates your gear, bags,
