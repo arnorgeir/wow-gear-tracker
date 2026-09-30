@@ -54,3 +54,7 @@ export interface Track {
 
 export type ItemState = 'missing' | 'inBags' | 'belowMyth' | 'mythUpgradable' | 'done';
 export const ITEM_STATES: readonly ItemState[] = ['done', 'mythUpgradable', 'belowMyth', 'inBags', 'missing'];
+
+export interface LootItem { itemId: number; inventoryType: string | null; armorType: ArmorType | null }
+/** One season dungeon and what it drops. `split` marks half of a dungeon credited with the whole instance's loot. */
+export interface SeasonLoot { challengeModeId: number; name: string; split: boolean; loot: LootItem[] }
