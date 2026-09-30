@@ -46,8 +46,8 @@ describe('rankDungeons', () => {
   it('weights a ring by the weaker of the two rings not already BiS', () => {
     const bothMissing = character([named(['FINGER_1', 'FINGER_2'], 60), named(['FINGER_1', 'FINGER_2'], 61)], [gear('FINGER_1', 70, 1), gear('FINGER_2', 71, 3)]);
     expect(rankDungeons([bothMissing], [dungeon(501, 'Alpha Hollow', [loot(60)])])[0]!.score).toBe(2);
-    const oneMatched = character([named(['FINGER_1', 'FINGER_2'], 60), named(['FINGER_1', 'FINGER_2'], 61)], [gear('FINGER_1', 60, 1), gear('FINGER_2', 71, 3)]);
-    expect(rankDungeons([oneMatched], [dungeon(501, 'Alpha Hollow', [loot(61)])])[0]!.score).toBe(2);
+    const oneMatched = character([named(['FINGER_1', 'FINGER_2'], 60), named(['FINGER_1', 'FINGER_2'], 61)], [gear('FINGER_1', 60, 4), gear('FINGER_2', 71, 2)]);
+    expect(rankDungeons([oneMatched], [dungeon(501, 'Alpha Hollow', [loot(61)])])[0]!.score).toBe(1);
   });
 
   it('credits a tier row to slot drops in the armor type, with +2 below four tier pieces', () => {
