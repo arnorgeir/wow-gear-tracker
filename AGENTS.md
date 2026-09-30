@@ -26,6 +26,8 @@ A local Next.js app that compares World of Warcraft characters' gear to Method.g
 
 Before you call work done, run `npm run typecheck && npm run lint && npm test`. Run `npm run build` too when you changed pages or components.
 
+**Don't run `npm run build` while `npm run dev` is serving the same folder.** Both write to `.next`, and a build part-way through a dev session wedges the dev server: every page that needs a fresh compile answers 500 with `Jest worker encountered 2 child process exceptions` until you restart it. Stop dev before building, or check a build with `npx next start -p 3001` and restart dev afterwards. A separate git worktree has its own `.next`, so building there is safe.
+
 ## How work flows
 
 1. Ideas live as GitHub issues on the **Gear Tracker** project board.
