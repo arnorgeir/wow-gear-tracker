@@ -3,6 +3,7 @@ import { openTestDb } from '@/test/db';
 import { replaceTracks, getTrackMap, replaceBonusQualities, getBonusQualityMap } from './tracks';
 import { getMeta, setMeta } from './meta';
 import { upsertItemIcons, getItemIcons, upsertItemDetails, getItemDetailsMap, upsertClassIcons, getClassIconMap } from './media';
+import type { ItemInfo } from '../../blizzard/types';
 
 describe('tracks, meta and icons', () => {
   it('stores class icons by class name', async () => {
@@ -45,5 +46,15 @@ describe('tracks, meta and icons', () => {
     const icons = await getItemIcons(db, [1, 2, 3]);
     expect(new Map([...icons.entries()].sort())).toEqual(new Map([[1, 'https://i/1.jpg'], [2, null]]));
     expect((await getItemIcons(db, [])).size).toBe(0);
+  });
+});
+
+describe('item details cache', () => {
+  it('stores only quality and tier, even when handed slot info', async () => {
+    const db = await openTestDb();
+    // A typed variable, not a fresh literal: this is what the loader passes, and TypeScript allows the extra fields.
+    const info: ItemInfo & { itemId: number } = { itemId: 100, quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather' };
+    await upsertItemDetails(db, [info], 1);
+    expect((await getItemDetailsMap(db, [100])).get(100)).toEqual({ quality: 'EPIC', isTier: false });
   });
 });

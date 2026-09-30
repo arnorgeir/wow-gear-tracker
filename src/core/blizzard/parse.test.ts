@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { parseEquipment, parseProfile, type RawEquipment, type RawProfile } from './parse';
+import {
+  parseEquipment, parseProfile, parseItemInfo, parseKeystoneDungeon,
+  parseJournalInstance, parseJournalEncounter, parseJournalInstanceIndex,
+  type RawEquipment, type RawProfile,
+} from './parse';
 
 const profile: RawProfile = {
   name: 'Birkibjörn',
@@ -56,5 +60,39 @@ describe('parseEquipment', () => {
 
   it('returns nothing when no items are equipped', () => {
     expect(parseEquipment({})).toEqual([]);
+  });
+});
+
+describe('parseItemInfo', () => {
+  it('reads slot and armor type for armor', () => {
+    expect(parseItemInfo({ quality: { type: 'EPIC' }, inventory_type: { type: 'ROBE' }, item_class: { id: 4 }, item_subclass: { id: 2 } }))
+      .toEqual({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather' });
+  });
+
+  it('gives no armor type to weapons and to armor without a known subclass', () => {
+    expect(parseItemInfo({ inventory_type: { type: 'WEAPON' }, item_class: { id: 2 }, item_subclass: { id: 15 } }).armorType).toBeNull();
+    expect(parseItemInfo({ inventory_type: { type: 'FINGER' }, item_class: { id: 4 }, item_subclass: { id: 0 } }).armorType).toBeNull();
+  });
+
+  it('fills nulls when Blizzard omits fields', () => {
+    expect(parseItemInfo({})).toEqual({ quality: null, isTier: false, inventoryType: null, armorType: null });
+  });
+});
+
+describe('journal parsers', () => {
+  it('maps a keystone dungeon to its map', () => {
+    expect(parseKeystoneDungeon({ name: 'Alpha Hollow', map: { id: 11, name: 'Alpha Hollow' } })).toEqual({ name: 'Alpha Hollow', mapId: 11, mapName: 'Alpha Hollow' });
+  });
+
+  it('maps a journal instance to its map and encounters', () => {
+    expect(parseJournalInstance({ id: 901, name: 'Alpha Hollow', map: { id: 11 }, encounters: [{ id: 1 }, { id: 2 }] }))
+      .toEqual({ id: 901, name: 'Alpha Hollow', mapId: 11, encounterIds: [1, 2] });
+    expect(parseJournalInstance({ id: 902, name: 'No Map' })).toEqual({ id: 902, name: 'No Map', mapId: null, encounterIds: [] });
+  });
+
+  it('maps an encounter to its items, and the index to ids and names', () => {
+    expect(parseJournalEncounter({ id: 1, name: 'Hollow King', items: [{ item: { id: 100, name: 'Hollow Robe' } }] }))
+      .toEqual({ id: 1, name: 'Hollow King', items: [{ itemId: 100, name: 'Hollow Robe' }] });
+    expect(parseJournalInstanceIndex({ instances: [{ id: 901, name: 'Alpha Hollow' }] })).toEqual([{ id: 901, name: 'Alpha Hollow' }]);
   });
 });

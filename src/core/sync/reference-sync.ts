@@ -98,7 +98,7 @@ export async function ensureItemDetails(
   const fetched = await Promise.all(unknown.map(async (itemId) => {
     try {
       const details = await blizzard.getItemDetails(region, itemId);
-      return { itemId, ...(details ?? { quality: null, isTier: false }) };
+      return { itemId, quality: details?.quality ?? null, isTier: details?.isTier ?? false };
     } catch {
       return null;
     }

@@ -112,9 +112,29 @@ describe('Blizzard client', () => {
       on('/data/wow/item/222', () => json({ quality: { type: 'RARE' }, preview_item: {} })),
       on('/data/wow/item/999', () => new Response('', { status: 404 })),
     ]);
-    expect(await api.getItemDetails('eu', 111)).toEqual({ quality: 'EPIC', isTier: true });
-    expect(await api.getItemDetails('eu', 222)).toEqual({ quality: 'RARE', isTier: false });
+    expect(await api.getItemDetails('eu', 111)).toEqual({ quality: 'EPIC', isTier: true, inventoryType: null, armorType: null });
+    expect(await api.getItemDetails('eu', 222)).toEqual({ quality: 'RARE', isTier: false, inventoryType: null, armorType: null });
     expect(await api.getItemDetails('eu', 999)).toBeNull();
+  });
+
+  it('reads keystone dungeons from the dynamic namespace and journal data from the static one', async () => {
+    const { api, calls } = client([
+      on('/mythic-keystone/dungeon/501', () => json({ name: 'Alpha Hollow', map: { id: 11, name: 'Alpha Hollow' } })),
+      on('/journal-encounter/1', () => json({ id: 1, name: 'Hollow King', items: [{ item: { id: 100, name: 'Hollow Robe' } }] })),
+    ]);
+    expect(await api.getKeystoneDungeon('eu', 501)).toEqual({ name: 'Alpha Hollow', mapId: 11, mapName: 'Alpha Hollow' });
+    expect((await api.getJournalEncounter('eu', 1)).items).toEqual([{ itemId: 100, name: 'Hollow Robe' }]);
+    expect(calls.find((c) => c.url.includes('/mythic-keystone/'))!.url).toContain('namespace=dynamic-eu');
+    expect(calls.find((c) => c.url.includes('/journal-encounter/'))!.url).toContain('namespace=static-eu');
+  });
+
+  it('returns slot info with item details, and null for a missing item', async () => {
+    const { api } = client([
+      on('/data/wow/item/100', () => json({ quality: { type: 'EPIC' }, inventory_type: { type: 'ROBE' }, item_class: { id: 4 }, item_subclass: { id: 2 } })),
+      on('/data/wow/item/404', () => new Response('nope', { status: 404 })),
+    ]);
+    expect(await api.getItemDetails('eu', 100)).toEqual({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather' });
+    expect(await api.getItemDetails('eu', 404)).toBeNull();
   });
 
   it('treats a missing race and an unknown faction as empty', async () => {

@@ -22,6 +22,10 @@ function fakeBlizzard(overrides: Partial<BlizzardClient> = {}) {
     getClassIconUrl: async () => null,
     getRealms: async () => [],
     getClasses: async () => [],
+    getKeystoneDungeon: async () => { throw new Error('not used in these tests'); },
+    getJournalInstances: async () => [],
+    getJournalInstance: async () => { throw new Error('not used in these tests'); },
+    getJournalEncounter: async () => { throw new Error('not used in these tests'); },
     ...overrides,
   };
   return { client, calls };
