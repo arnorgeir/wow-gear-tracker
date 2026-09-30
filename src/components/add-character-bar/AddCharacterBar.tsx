@@ -1,24 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { LABEL_CLASS } from '@/components/shared/field-classes';
 import { REGIONS, type Region } from '@/core/types';
 import { SearchResults } from './SearchResults';
+import { buildTrackedLookup, isTracked, type TrackedCharacter } from './tracked';
 import { useCharacterSearch } from './use-character-search';
 
 const inputClass = 'h-12 rounded-xl border border-line-strong bg-surface-2 px-4 text-[17px] text-ink focus:border-gold focus:outline-none';
 // Narrower padding and width: the region select only ever shows two letters.
 const regionClass = `${inputClass.replace('px-4', 'px-3')} w-20`;
 
-export function AddCharacterBar() {
+interface Props {
+  trackedCharacters: TrackedCharacter[];
+}
+
+export function AddCharacterBar({ trackedCharacters }: Props) {
   const router = useRouter();
   const {
     region, setRegion, term, setTerm, manual, setManual, realms, searchError, setOpen, searchRef, visibleResults, clear,
   } = useCharacterSearch();
   const [realmSlug, setRealmSlug] = useState('');
   const { busy, error, run } = useApiAction();
+  const trackedLookup = useMemo(() => buildTrackedLookup(trackedCharacters), [trackedCharacters]);
 
   async function add(body: Record<string, unknown>) {
     const result = await run<{ id?: number }>('/api/characters', {
@@ -47,6 +53,7 @@ export function AddCharacterBar() {
           placeholder="Search by name" className={inputClass} />
         {visibleResults.length > 0 && (
           <SearchResults results={visibleResults} busy={busy}
+            isTracked={(r) => isTracked(trackedLookup, region, r)}
             onPick={(r) => add({ name: r.name, realmId: r.blizzardRealmId })} onManual={() => setManual(true)} />
         )}
       </div>

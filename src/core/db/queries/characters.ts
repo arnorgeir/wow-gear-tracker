@@ -2,6 +2,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import type { Db } from '../client';
 import { characters } from '../schema';
 import { type Region } from '../../types';
+import { nameKeyOf } from '../../characters/name-key';
 import { withWriteLock } from './write-lock';
 
 export type CharacterRow = typeof characters.$inferSelect;
@@ -15,8 +16,6 @@ export interface NewCharacter {
   className: string;
   specName: string;
 }
-
-const nameKeyOf = (name: string) => name.toLocaleLowerCase('en');
 
 export function insertCharacter(db: Db, input: NewCharacter, now: number): Promise<{ id: number; created: boolean }> {
   return withWriteLock(db, async () => {

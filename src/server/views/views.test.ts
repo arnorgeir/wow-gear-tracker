@@ -89,7 +89,7 @@ describe('getCharacterCards', () => {
     const s = await services();
     await seed(s);
     const [card] = await getCharacterCards(s);
-    expect(card).toMatchObject({ name: 'Birkibjörn', total: 2, bisError: null, snapshot: { source: 'blizzard', createdAt: 500 } });
+    expect(card).toMatchObject({ name: 'Birkibjörn', realmId: 1, total: 2, bisError: null, snapshot: { source: 'blizzard', createdAt: 500 } });
     expect(card!.counts).toMatchObject({ done: 1, belowMyth: 1, missing: 0 });
   });
 });

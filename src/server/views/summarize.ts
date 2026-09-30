@@ -33,7 +33,7 @@ export async function loadGear(db: Db, characterId: number): Promise<GearContext
 export function summarize(c: CharacterRow, snapshot: Snapshot | null, classIcons: ReadonlyMap<string, string | null> = new Map()): CharacterSummary {
   const spec = c.specOverride || c.specName;
   return {
-    id: c.id, name: c.name, realmName: c.realmName, region: c.region, className: c.className,
+    id: c.id, name: c.name, realmName: c.realmName, realmId: c.realmId, region: c.region, className: c.className,
     activeSpec: c.specName, spec, specSlug: methodSpecSlug(spec, c.className),
     status: c.status, lastSyncedAt: c.lastSyncedAt, lastSyncError: c.lastSyncError, priorityList: c.priorityList,
     snapshot: snapshot && { source: snapshot.source, createdAt: snapshot.createdAt },
