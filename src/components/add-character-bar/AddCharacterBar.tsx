@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { LABEL_CLASS } from '@/components/shared/field-classes';
@@ -23,18 +23,25 @@ export function AddCharacterBar({ trackedCharacters }: Props) {
     region, setRegion, term, setTerm, manual, setManual, realms, searchError, setOpen, searchRef, visibleResults, clear,
   } = useCharacterSearch();
   const [realmSlug, setRealmSlug] = useState('');
+  const [addingName, setAddingName] = useState<string | null>(null);
   const { busy, error, run } = useApiAction();
+  // router.push() alone leaves `busy` clearing before the destination page has actually
+  // rendered; wrapping it in a transition keeps a pending state until that render lands too.
+  const [navigating, startTransition] = useTransition();
+  const pending = busy || navigating;
   const trackedLookup = useMemo(() => buildTrackedLookup(trackedCharacters), [trackedCharacters]);
 
-  async function add(body: Record<string, unknown>) {
+  async function add(name: string, body: Record<string, unknown>) {
+    setAddingName(name);
     const result = await run<{ id?: number }>('/api/characters', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ region, ...body }),
     }, { fallbackError: 'Couldn’t add that character.', after: 'none' });
-    if (!result.ok || !result.data?.id) return;
+    const id = result.ok ? result.data?.id : undefined;
+    if (!id) { setAddingName(null); return; }
     clear();
-    router.push(`/characters/${result.data.id}`);
+    startTransition(() => router.push(`/characters/${id}`));
   }
 
   return (
@@ -52,9 +59,9 @@ export function AddCharacterBar({ trackedCharacters }: Props) {
           onChange={(e) => { setTerm(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
           placeholder="Search by name" className={inputClass} />
         {visibleResults.length > 0 && (
-          <SearchResults results={visibleResults} busy={busy}
+          <SearchResults results={visibleResults} busy={pending}
             isTracked={(r) => isTracked(trackedLookup, region, r)}
-            onPick={(r) => add({ name: r.name, realmId: r.blizzardRealmId })} onManual={() => setManual(true)} />
+            onPick={(r) => add(r.name, { name: r.name, realmId: r.blizzardRealmId })} onManual={() => setManual(true)} />
         )}
       </div>
 
@@ -69,14 +76,16 @@ export function AddCharacterBar({ trackedCharacters }: Props) {
       )}
 
       {manual && (
-        <button type="button" disabled={busy || !realmSlug || !term.trim()} onClick={() => add({ name: term.trim(), realmSlug })}
+        <button type="button" disabled={pending || !realmSlug || !term.trim()} onClick={() => add(term.trim(), { name: term.trim(), realmSlug })}
           className="h-12 rounded-xl border border-line-strong bg-raised px-5 font-semibold disabled:opacity-50">
           Add character
         </button>
       )}
 
-      {/* Two paragraphs, not one with a precedence: the search hint explains the realm dropdown and has to
-          stay readable while a failed add request is also on screen. */}
+      {/* Three paragraphs, not one with a precedence: the search hint explains the realm dropdown, a failed
+          add request needs its own line, and the "Adding…" status has to keep showing through the
+          navigation that follows a successful add, well after `busy` itself has cleared. */}
+      {pending && addingName && <p role="status" className="w-full text-sm text-muted">Adding {addingName}…</p>}
       {error && <p role="alert" className="w-full text-sm text-[#f3c9a2]">{error}</p>}
       {searchError && <p role="status" className="w-full text-sm text-[#f3c9a2]">{searchError}</p>}
     </section>
