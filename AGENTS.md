@@ -40,7 +40,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 - **`src/core` is plain TypeScript.** It never imports `next`, `react`, or anything from `src/app`, `src/components` or `src/server`. This keeps the option to move logic into a separate service later.
 - **`src/core` has three kinds of modules:**
   - Clients (`blizzard`, `method`, `raiderio`, `raidbots`) fetch and parse external data, and never touch the database.
-  - Logic (`gear`, `simc/parse`) is pure functions, with no network or database access.
+  - Logic (`gear`, `priority`, `simc/parse`) is pure functions, with no network or database access.
   - Sync (`sync`, `characters`, `simc/import-simc`) combines clients and the database, and receives both as parameters.
 - **`src/server` has three parts with distinct jobs:**
   - `services.ts` builds the one `Services` bundle and caches it on `globalThis`, so hot reloads reuse a single database connection and token cache. Reach it with `getServices()`, and never open a database or construct a client inside a page or route handler.
