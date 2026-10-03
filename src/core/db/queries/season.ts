@@ -30,12 +30,10 @@ export async function replaceSeason(db: Db, data: SeasonData): Promise<void> {
 export async function getSeasonLoot(db: Db): Promise<SeasonLoot[]> {
   const dungeons = await db.select().from(seasonDungeons).orderBy(asc(seasonDungeons.name));
   const loot = await db.select().from(dungeonLoot).orderBy(asc(dungeonLoot.encounterId), asc(dungeonLoot.itemId));
-  const perInstance = new Map<number, number>();
-  for (const d of dungeons) perInstance.set(d.journalInstanceId, (perInstance.get(d.journalInstanceId) ?? 0) + 1);
   return dungeons.map((d) => ({
     challengeModeId: d.challengeModeId,
     name: d.name,
-    split: (perInstance.get(d.journalInstanceId) ?? 0) > 1,
+    split: dungeons.some((x) => x !== d && x.journalInstanceId === d.journalInstanceId),
     loot: loot.filter((l) => l.challengeModeId === d.challengeModeId)
       .map((l) => ({ itemId: l.itemId, inventoryType: l.inventoryType, armorType: l.armorType })),
   }));
