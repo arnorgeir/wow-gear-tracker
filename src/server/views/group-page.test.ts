@@ -107,6 +107,13 @@ describe('getGroupPage', () => {
     ]);
     expect(rest.map((d) => [d.name, d.split])).toEqual([['Gambit of Beta', true], ['Streets of Beta', true]]);
     expect(priority.ranking!.nothingFrom).toEqual(['Delta Deep']);
+    // Artwork follows the challenge mode, not the season's name order or the ranking order.
+    const art: Record<number, [string, string | null]> = {
+      501: ['AH', 'https://cdn.raiderio.net/images/dungeons/alpha-hollow.jpg'],
+      502: ['SB', null],
+      503: ['GB', 'https://cdn.raiderio.net/images/dungeons/gambit.jpg'],
+    };
+    for (const d of priority.ranking!.dungeons) expect([d.shortName, d.imageUrl]).toEqual(art[d.challengeModeId]);
   });
 
   it('says the ranking is unavailable when no member is eligible, and names why', async () => {

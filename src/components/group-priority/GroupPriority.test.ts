@@ -12,8 +12,8 @@ const credits = { key: 'eu.argent-dawn.birkibjörn', name: 'Birkibjörn', classN
 describe('GroupPriority', () => {
   it('ranks dungeons with each member’s needs, and marks only split ones', () => {
     const html = render({ ...base, ranking: { nothingFrom: ['Delta Deep'], dungeons: [
-      { challengeModeId: 501, name: 'Alpha Hollow', score: 5, split: false, members: [{ ...credits, credits: [{ kind: 'tier', slotLabel: 'Chest', weight: 5 }] }] },
-      { challengeModeId: 502, name: 'Streets of Beta', score: 3, split: true, members: [{ ...credits, credits: [{ kind: 'any', slotLabel: 'Boots', weight: 3, minItemLevel: 334 }] }] },
+      { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: null, score: 5, split: false, members: [{ ...credits, credits: [{ kind: 'tier', slotLabel: 'Chest', weight: 5 }] }] },
+      { challengeModeId: 502, name: 'Streets of Beta', shortName: 'STRT', imageUrl: null, score: 3, split: true, members: [{ ...credits, credits: [{ kind: 'any', slotLabel: 'Boots', weight: 3, minItemLevel: 334 }] }] },
     ] } });
     expect(html).toContain('Alpha Hollow');
     expect(html).toContain('Tier via catalyst');
