@@ -17,8 +17,10 @@ interface Realm { id: number; name: string; slug: string }
  * The name search: a debounced lookup while typing, a result list that closes on an outside click or
  * Escape, and a fallback to picking the realm by hand when search is unavailable.
  */
-export function useCharacterSearch() {
-  const [region, setRegion] = useState<Region>('eu');
+export function useCharacterSearch(lockedRegion: Region | null = null) {
+  const [chosenRegion, setRegion] = useState<Region>('eu');
+  // A group locks the region to its members'; the user's own choice applies only when nothing locks it.
+  const region = lockedRegion ?? chosenRegion;
   const [term, setTerm] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [manual, setManual] = useState(false);
