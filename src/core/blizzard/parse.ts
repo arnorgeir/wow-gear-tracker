@@ -88,5 +88,8 @@ export const parseJournalInstance = (raw: RawJournalInstance): JournalInstance =
   ({ id: raw.id, name: raw.name, mapId: raw.map?.id ?? null, encounterIds: (raw.encounters ?? []).map((e) => e.id) });
 
 export interface RawJournalEncounter { id: number; name: string; items?: { item: { id: number; name: string } }[] }
-export const parseJournalEncounter = (raw: RawJournalEncounter): JournalEncounter =>
-  ({ id: raw.id, name: raw.name, items: (raw.items ?? []).map((i) => ({ itemId: i.item.id, name: i.item.name })) });
+// The journal sometimes names an item twice for one encounter; the loot table keys on (dungeon, encounter, item).
+export const parseJournalEncounter = (raw: RawJournalEncounter): JournalEncounter => {
+  const items = new Map((raw.items ?? []).map((i) => [i.item.id, { itemId: i.item.id, name: i.item.name }]));
+  return { id: raw.id, name: raw.name, items: [...items.values()] };
+};

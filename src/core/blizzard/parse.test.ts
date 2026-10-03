@@ -95,4 +95,10 @@ describe('journal parsers', () => {
       .toEqual({ id: 1, name: 'Hollow King', items: [{ itemId: 100, name: 'Hollow Robe' }] });
     expect(parseJournalInstanceIndex({ instances: [{ id: 901, name: 'Alpha Hollow' }] })).toEqual([{ id: 901, name: 'Alpha Hollow' }]);
   });
+
+  it('lists an item once when the journal names it twice for one encounter', () => {
+    const robe = { item: { id: 100, name: 'Hollow Robe' } };
+    expect(parseJournalEncounter({ id: 1, name: 'Hollow King', items: [robe, { item: { id: 101, name: 'Hollow Ring' } }, robe] }).items)
+      .toEqual([{ itemId: 100, name: 'Hollow Robe' }, { itemId: 101, name: 'Hollow Ring' }]);
+  });
 });
