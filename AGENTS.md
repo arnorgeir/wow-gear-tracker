@@ -34,6 +34,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 2. Anything bigger than a small fix gets a design spec in `docs/superpowers/specs/`, then an implementation plan in `docs/superpowers/plans/`.
 3. The spec is the authority. When a plan and the spec disagree, the spec wins.
 4. Work happens on a branch named `feat/<description>`, `fix/<description>`, `chore/<description>` or `docs/<description>`, and reaches `main` through a pull request. `main` is protected: CI must pass, and a review is required.
+5. `docs/workflow.md` says who does each step, on which model, and how work passes between steps.
 
 ## Architecture rules
 
