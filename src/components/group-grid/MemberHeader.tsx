@@ -8,7 +8,7 @@ import type { GroupMemberView } from '@/server/views/types';
 
 const LIST_LABEL = (m: GroupMemberView) => (m.fellBack ? 'Overall, Method has no Mythic+ list' : m.listType === 'overall' ? 'Overall' : 'Mythic+');
 
-export function MemberHeader({ member, keys, now }: { member: GroupMemberView; keys: string[]; now: number }) {
+export function MemberHeader({ member, now }: { member: GroupMemberView; now: number }) {
   const c = member.character;
   return (
     <div className="flex flex-col gap-2 p-3">
@@ -19,13 +19,13 @@ export function MemberHeader({ member, keys, now }: { member: GroupMemberView; k
       {member.state === 'untracked' && (
         <>
           <span className="text-sm text-muted">Not tracked · {member.realmSlug}</span>
-          <TrackButton memberKey={member.key} name={member.name} keys={keys} />
+          <TrackButton memberKey={member.key} name={member.name} />
         </>
       )}
       {member.state === 'notFound' && (
         <>
           <span role="alert" className="text-sm text-[#f3c9a2]">Blizzard can&rsquo;t find this character</span>
-          <RemoveFromGroupButton memberKey={member.key} name={member.name} keys={keys} variant="text" />
+          <RemoveFromGroupButton memberKey={member.key} name={member.name} variant="text" />
         </>
       )}
       {c && member.state !== 'notFound' && (

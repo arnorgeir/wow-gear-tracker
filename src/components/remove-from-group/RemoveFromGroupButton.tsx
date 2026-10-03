@@ -1,12 +1,11 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { groupHref, removeMember } from '@/core/characters/member-key';
+import { useGroupEdits } from '@/components/group-edits/GroupEditsProvider';
 
 /** Membership is the URL, so removing a member is a navigation, not a request. */
-export function RemoveFromGroupButton({ memberKey, name, keys, variant = 'icon' }: { memberKey: string; name: string; keys: string[]; variant?: 'icon' | 'text' }) {
-  const router = useRouter();
-  const remove = () => router.replace(groupHref(removeMember(keys, memberKey)));
+export function RemoveFromGroupButton({ memberKey, name, variant = 'icon' }: { memberKey: string; name: string; variant?: 'icon' | 'text' }) {
+  const { remove: removeMember } = useGroupEdits();
+  const remove = () => removeMember(memberKey);
   if (variant === 'text') {
     return <button type="button" onClick={remove} className="h-11 rounded-xl border border-line-strong bg-raised px-4 font-semibold">Remove from group</button>;
   }

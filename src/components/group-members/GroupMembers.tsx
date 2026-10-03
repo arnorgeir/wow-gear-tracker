@@ -1,29 +1,27 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { AddCharacterBar } from '@/components/add-character-bar/AddCharacterBar';
 import type { TrackedCharacter } from '@/components/add-character-bar/tracked';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
+import { useGroupEdits } from '@/components/group-edits/GroupEditsProvider';
 import { RemoveFromGroupButton } from '@/components/remove-from-group/RemoveFromGroupButton';
 import { LABEL_CLASS } from '@/components/shared/field-classes';
-import { addMember, groupHref, MAX_GROUP_SIZE } from '@/core/characters/member-key';
+import { MAX_GROUP_SIZE } from '@/core/characters/member-key';
 import type { Region } from '@/core/types';
 import type { GroupMemberView } from '@/server/views/types';
 
 interface Props {
   members: GroupMemberView[];
-  keys: string[];
   region: Region | null;
   available: { key: string; label: string }[];
   tracked: TrackedCharacter[];
 }
 
-export function GroupMembers({ members, keys, region, available, tracked }: Props) {
-  const router = useRouter();
+export function GroupMembers({ members, region, available, tracked }: Props) {
   const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const add = (key: string) => startTransition(() => router.replace(groupHref(addMember(keys, key))));
+  // Every edit goes through the shared membership, never through the keys this render was given.
+  const { keys, pending, add } = useGroupEdits();
 
   return (
     <div className="flex flex-col gap-3">
@@ -33,7 +31,7 @@ export function GroupMembers({ members, keys, region, available, tracked }: Prop
             {m.character && <CharacterAvatar name={m.character.name} className={m.character.className} avatarUrl={m.character.avatarUrl} classIconUrl={m.character.classIconUrl} size={32} />}
             <span className="font-semibold">{m.name}</span>
             {m.character && <span className="text-sm text-muted">{m.character.spec}</span>}
-            <RemoveFromGroupButton memberKey={m.key} name={m.name} keys={keys} />
+            <RemoveFromGroupButton memberKey={m.key} name={m.name} />
           </span>
         ))}
         {keys.length < MAX_GROUP_SIZE

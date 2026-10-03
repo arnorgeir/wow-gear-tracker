@@ -3,9 +3,9 @@ import { cellNote } from './cell-note';
 import { GroupCell } from './GroupCell';
 import { MemberHeader } from './MemberHeader';
 
-interface Props { members: GroupMemberView[]; grid: GroupGridRow[]; keys: string[]; tracksKnown: boolean; now: number }
+interface Props { members: GroupMemberView[]; grid: GroupGridRow[]; tracksKnown: boolean; now: number }
 
-export function GroupGrid({ members, grid, keys, tracksKnown, now }: Props) {
+export function GroupGrid({ members, grid, tracksKnown, now }: Props) {
   const columns = { gridTemplateColumns: `110px repeat(${members.length}, minmax(220px, 1fr))` };
   const notes = members.map((m) => cellNote(m.state, m.hasRows));
   // A member without rows still gets a cell in every row, so the column reads as a column.
@@ -14,7 +14,7 @@ export function GroupGrid({ members, grid, keys, tracksKnown, now }: Props) {
     <section aria-label="Gear by slot" className="overflow-x-auto rounded-2xl border border-line bg-surface">
       <div className="grid min-w-fit" style={columns}>
         <span className="sticky left-0 border-b border-line bg-surface p-3 text-[13px] font-semibold uppercase tracking-wider text-muted">Slot</span>
-        {members.map((m) => <div key={m.key} className="border-b border-line"><MemberHeader member={m} keys={keys} now={now} /></div>)}
+        {members.map((m) => <div key={m.key} className="border-b border-line"><MemberHeader member={m} now={now} /></div>)}
         {rows.map((row) => (
           <div key={row.slot} className="contents">
             <span className="sticky left-0 bg-surface p-3 font-semibold text-muted">{row.label}</span>

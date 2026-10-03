@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { GroupEditsProvider } from '@/components/group-edits/GroupEditsProvider';
 import { GroupGrid } from '@/components/group-grid/GroupGrid';
 import { GroupMembers } from '@/components/group-members/GroupMembers';
 import { GroupPriority } from '@/components/group-priority/GroupPriority';
@@ -36,25 +37,27 @@ export default async function GroupPage({ searchParams }: Props) {
 
   return (
     <main className="mx-auto flex max-w-[1440px] flex-col gap-8 px-4 py-12 sm:px-16">
-      <div className="flex flex-col gap-4">
-        <h1 className="font-display text-4xl font-bold tracking-wide">Group</h1>
-        <GroupMembers members={view.members} keys={view.keys} region={view.region} available={view.available} tracked={view.tracked} />
-        {view.dropped.map((d) => (
-          <p key={`${d.region}-${d.name}`} className="text-sm text-muted">{d.name} ({d.region.toUpperCase()}) dropped: group members must share a region.</p>
-        ))}
-      </div>
-      {view.members.length === 0 ? (
-        <p className="text-muted">Pick up to five characters to compare their gear and rank dungeons for the group.</p>
-      ) : (
-        <>
-          <StateLegend />
-          <GroupGrid members={view.members} grid={view.grid} keys={view.keys} tracksKnown={view.tracksKnown} now={now} />
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
-            <GroupPriority priority={view.priority} />
-            <GroupVault vault={view.vault} now={now} />
-          </div>
-        </>
-      )}
+      <GroupEditsProvider keys={view.keys}>
+        <div className="flex flex-col gap-4">
+          <h1 className="font-display text-4xl font-bold tracking-wide">Group</h1>
+          <GroupMembers members={view.members} region={view.region} available={view.available} tracked={view.tracked} />
+          {view.dropped.map((d) => (
+            <p key={`${d.region}-${d.name}`} className="text-sm text-muted">{d.name} ({d.region.toUpperCase()}) dropped: group members must share a region.</p>
+          ))}
+        </div>
+        {view.members.length === 0 ? (
+          <p className="text-muted">Pick up to five characters to compare their gear and rank dungeons for the group.</p>
+        ) : (
+          <>
+            <StateLegend />
+            <GroupGrid members={view.members} grid={view.grid} tracksKnown={view.tracksKnown} now={now} />
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
+              <GroupPriority priority={view.priority} />
+              <GroupVault vault={view.vault} now={now} />
+            </div>
+          </>
+        )}
+      </GroupEditsProvider>
       <RememberGroup keys={view.keys} />
       <StaleSync ids={view.staleIds} />
       {view.region && <SeasonSync region={view.region} needed={view.needsSeasonSync} />}

@@ -5,7 +5,7 @@ import { RemoveFromGroupButton } from '@/components/remove-from-group/RemoveFrom
 import { parseMemberKey } from '@/core/characters/member-key';
 
 /** Tracks a member named in the link but not on this install. Nothing is fetched until it's pressed. */
-export function TrackButton({ memberKey, name, keys }: { memberKey: string; name: string; keys: string[] }) {
+export function TrackButton({ memberKey, name }: { memberKey: string; name: string }) {
   const { busy, error, run } = useApiAction();
   const key = parseMemberKey(memberKey);
   if (!key) return null;
@@ -22,7 +22,7 @@ export function TrackButton({ memberKey, name, keys }: { memberKey: string; name
       {error && (
         <>
           <p role="alert" className="text-sm text-[#f3c9a2]">{error}</p>
-          <RemoveFromGroupButton memberKey={memberKey} name={name} keys={keys} variant="text" />
+          <RemoveFromGroupButton memberKey={memberKey} name={name} variant="text" />
         </>
       )}
     </div>

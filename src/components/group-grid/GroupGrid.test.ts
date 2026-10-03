@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { CharacterSummary, GroupGridRow, GroupMemberView } from '@/server/views/types';
+import { GroupEditsProvider } from '@/components/group-edits/GroupEditsProvider';
 import { GroupGrid } from './GroupGrid';
 
 // Client children need the App Router context, which a static render doesn't have. vi.mock is hoisted above the imports.
@@ -17,7 +18,7 @@ const member = (over: Partial<GroupMemberView>): GroupMemberView => ({
   syncError: null, bisError: null, hasRows: true, listType: 'mythicPlus', fellBack: false, crests: null, ...over,
 });
 const render = (members: GroupMemberView[], grid: GroupGridRow[]) =>
-  renderToStaticMarkup(createElement(GroupGrid, { members, grid, keys: members.map((m) => m.key), tracksKnown: true, now: 0 })).replace(/<link[^>]*\/>/g, '');
+  renderToStaticMarkup(createElement(GroupEditsProvider, { keys: members.map((m) => m.key) }, createElement(GroupGrid, { members, grid, tracksKnown: true, now: 0 }))).replace(/<link[^>]*\/>/g, '');
 
 describe('GroupGrid', () => {
   it('shows each member state in words', () => {
