@@ -3,9 +3,9 @@ import { openTestDb } from '@/test/db';
 import { fakeFetch, json, on } from '@/test/fake-fetch';
 import type { BlizzardClient } from '../blizzard/client';
 import { DAY_MS } from './reference-sync';
-
-
-import { readSeason, syncSeason } from './season-sync';
+import { getMeta, setMeta } from '../db/queries/meta';
+import { replaceSeason } from '../db/queries/season';
+import { readSeason, SEASON_META_KEY, syncSeason } from './season-sync';
 
 const T = Date.parse('2026-09-30T12:00:00Z');
 
@@ -126,6 +126,83 @@ describe('syncSeason', () => {
     const state = await readSeason(d.db, later);
     expect(state.status).toBe('stale');
     expect(state.dungeons.map((x) => x.name)).toEqual(['Alpha Hollow', 'Beta Gambit', 'Streets of Beta']);
+  });
+
+  it('refreshes artwork on the daily check without reloading loot', async () => {
+    const { blizzard, calls } = fakeBlizzard();
+    const d = await deps(blizzard);
+    await syncSeason(d);
+    const NEW = 'https://cdn.raiderio.net/images/dungeons/alpha-hollow-v2.jpg';
+    // 501 changes, 502's field turns invalid, 503 stays without any.
+    const changed = raiderIo({ 501: NEW, 502: 'http://cdn.raiderio.net/streets.jpg' });
+    const later = T + DAY_MS + 1;
+    expect(await syncSeason({ ...d, fetchFn: changed.fn, now: later })).toBe('current');
+    const state = await readSeason(d.db, later);
+    expect(state.dungeons.map((x) => [x.challengeModeId, x.imageUrl])).toEqual([[501, NEW], [503, null], [502, null]]);
+    expect(state.dungeons[0]!.loot).toHaveLength(2);
+    expect(calls.index).toBe(1);
+    expect([...calls.encounters].sort()).toEqual([1, 2, 3]);
+  });
+
+  it('keeps a stored dungeon’s artwork when the response leaves that dungeon out, and adds no rows', async () => {
+    const { blizzard } = fakeBlizzard();
+    const d = await deps(blizzard);
+    await syncSeason(d);
+    const fewer = fakeFetch([on('static-data', () => json({ seasons: [{
+      slug: 'season-test-2', name: 'Test Season 2', is_main_season: true, starts: { eu: '2026-08-19T04:00:00Z' },
+      dungeons: [{ challenge_mode_id: 777, name: 'Lost Vault', short_name: 'LV', background_image_url: ART[501] }],
+    }] }))]);
+    const later = T + DAY_MS + 1;
+    expect(await syncSeason({ ...d, fetchFn: fewer.fn, now: later })).toBe('current');
+    const state = await readSeason(d.db, later);
+    expect(state.dungeons.map((x) => [x.challengeModeId, x.imageUrl])).toEqual([[501, ART[501]], [503, null], [502, ART[502]]]);
+  });
+
+  it('keeps artwork and loot when Raider.IO fails on the daily check', async () => {
+    const { blizzard } = fakeBlizzard();
+    const d = await deps(blizzard);
+    await syncSeason(d);
+    const down = fakeFetch([on('static-data', () => new Response('down', { status: 503 }))]);
+    const later = T + DAY_MS + 1;
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await syncSeason({ ...d, fetchFn: down.fn, now: later })).toBe('failed');
+    logged.mockRestore();
+    const state = await readSeason(d.db, later);
+    expect(state.status).toBe('stale');
+    expect(state.dungeons[0]).toMatchObject({ challengeModeId: 501, imageUrl: ART[501] });
+    expect(state.dungeons[0]!.loot).toHaveLength(2);
+  });
+
+  it('reloads a season stored under the v1 key even though its slug is unchanged', async () => {
+    const { blizzard, calls } = fakeBlizzard();
+    const d = await deps(blizzard);
+    await replaceSeason(d.db, { slug: 'season-test-2', dungeons: [
+      { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11, imageUrl: null },
+    ], loot: [] });
+    await setMeta(d.db, 'season.v1', 'season-test-2', T - 1000);
+    expect(SEASON_META_KEY).toBe('season.v2');
+    expect(await syncSeason(d)).toBe('loaded');
+    expect(calls.index).toBe(1);
+    expect((await getMeta(d.db, SEASON_META_KEY))?.value).toBe('season-test-2');
+    expect((await readSeason(d.db, T)).dungeons.find((x) => x.challengeModeId === 501)!.imageUrl).toBe(ART[501]);
+  });
+
+  it('keeps v1 loot readable with null artwork when the v2 reload fails, and backs off', async () => {
+    const bad = fakeBlizzard({ getJournalInstances: async () => { throw new Error('Blizzard is down'); } });
+    const d = await deps(bad.blizzard);
+    await replaceSeason(d.db, { slug: 'season-test-2', dungeons: [
+      { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11, imageUrl: null },
+    ], loot: [{ challengeModeId: 501, encounterId: 1, encounterName: 'Hollow King', itemId: 100, itemName: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather' }] });
+    await setMeta(d.db, 'season.v1', 'season-test-2', T - 1000);
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await syncSeason(d)).toBe('failed');
+    logged.mockRestore();
+    const state = await readSeason(d.db, T);
+    expect(state).toMatchObject({ status: 'stale', needsSync: false });
+    expect(state.dungeons[0]).toMatchObject({ challengeModeId: 501, imageUrl: null });
+    expect(state.dungeons[0]!.loot).toHaveLength(1);
+    expect(await syncSeason({ ...d, now: T + 60_000 })).toBe('skipped');
+    expect(await getMeta(d.db, SEASON_META_KEY)).toBeNull();
   });
 });
 
