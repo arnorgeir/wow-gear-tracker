@@ -2,19 +2,13 @@ import { AddCharacterBar } from '@/components/add-character-bar/AddCharacterBar'
 import { CharacterCard } from '@/components/character-card/CharacterCard';
 import { SetupNotice } from '@/components/setup-notice/SetupNotice';
 import { StaleSync } from '@/components/stale-sync/StaleSync';
+import { StateLegend } from '@/components/state-legend/StateLegend';
 import { isMissingConfigError } from '@/core/config';
 import { isStale } from '@/core/sync/character-sync';
 import { getServices, type Services } from '@/server/services';
 import { getCharacterCards } from '@/server/views/character-cards';
 
 export const dynamic = 'force-dynamic';
-
-const LEGEND = [
-  ['bg-gold', 'Done: Myth max'],
-  ['bg-crest', 'Upgrade with crests'],
-  ['bg-vault', 'Great Vault target'],
-  ['bg-line', 'Missing'],
-] as const;
 
 export default async function CharactersPage() {
   let services: Services;
@@ -35,11 +29,7 @@ export default async function CharactersPage() {
         <p className="text-[17px] text-muted">BiS progress against Method&rsquo;s lists</p>
       </div>
       <AddCharacterBar trackedCharacters={cards.map((c) => ({ region: c.region, realmId: c.realmId, name: c.name }))} />
-      <div className="flex flex-wrap gap-6 text-sm text-muted" aria-label="Legend">
-        {LEGEND.map(([swatch, label]) => (
-          <span key={label} className="flex items-center gap-2"><span className={`size-3 rounded-sm ${swatch}`} />{label}</span>
-        ))}
-      </div>
+      <StateLegend />
       {cards.length === 0 ? (
         <p className="text-muted">No characters yet. Search for one above.</p>
       ) : (

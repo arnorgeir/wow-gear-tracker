@@ -29,10 +29,19 @@ export interface BisResult {
   error: string | null;
 }
 
+export const BIS_RETRY_MS = 60 * 60 * 1000;
+// One entry per spec: the value is the error message, so a skipped retry can repeat it.
+const bisFailedKey = (specSlug: string) => `bis.${specSlug}.failed`;
+
+/** Refreshes a spec's BiS lists daily. On failure keeps what it has, and retries that spec at most hourly. */
 export async function ensureBisLists(deps: { db: Db; source: BisSource; now: number }, specSlug: string): Promise<BisResult> {
   const { db, source, now } = deps;
   const cached = await getBisLists(db, specSlug);
   if (cached && now - cached.fetchedAt < DAY_MS) return { lists: cached.lists, fetchedAt: cached.fetchedAt, error: null };
+  const failed = await getMeta(db, bisFailedKey(specSlug));
+  if (failed && now - failed.updatedAt < BIS_RETRY_MS) {
+    return { lists: cached?.lists ?? null, fetchedAt: cached?.fetchedAt ?? null, error: failed.value };
+  }
   try {
     const lists = await source.fetchLists(specSlug);
     if (lists.overall.length + lists.raid.length + lists.mythicPlus.length === 0) throw new Error('No BiS tables found');
@@ -42,6 +51,7 @@ export async function ensureBisLists(deps: { db: Db; source: BisSource; now: num
     const error = isHttpError(err) && err.status === 404 && !cached
       ? `${source.name} has no gearing page for "${specSlug}"`
       : 'BiS list couldn’t be updated';
+    await setMeta(db, bisFailedKey(specSlug), error, now);
     return { lists: cached?.lists ?? null, fetchedAt: cached?.fetchedAt ?? null, error };
   }
 }

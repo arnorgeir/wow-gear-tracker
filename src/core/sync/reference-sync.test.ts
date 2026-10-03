@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { setMeta } from '../db/queries/meta';
-import { DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons } from './reference-sync';
+import { BIS_RETRY_MS, DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons } from './reference-sync';
 import { HttpError } from '../http';
 import type { BisLists, BisSource, Track } from '../types';
 import type { BlizzardClient } from '../blizzard/client';
@@ -43,6 +43,38 @@ describe('ensureBisLists', () => {
     expect(await ensureBisLists({ db, source: missing.s, now: 1 }, 'nope-nope')).toEqual({
       lists: null, fetchedAt: null, error: 'Fake has no gearing page for "nope-nope"',
     });
+  });
+
+  it('after a failure with a cache, serves the cache and the error for an hour without asking again', async () => {
+    const db = await openTestDb();
+    await ensureBisLists({ db, source: source(async () => lists).s, now: 1000 }, 'guardian-druid');
+    const down = source(async () => { throw new Error('down'); });
+    const expired = 1000 + DAY_MS;
+    const failed = { lists, fetchedAt: 1000, error: 'BiS list couldn’t be updated' };
+    expect(await ensureBisLists({ db, source: down.s, now: expired }, 'guardian-druid')).toEqual(failed);
+    expect(await ensureBisLists({ db, source: down.s, now: expired + BIS_RETRY_MS - 1 }, 'guardian-druid')).toEqual(failed);
+    expect(down.calls()).toBe(1);
+    await ensureBisLists({ db, source: down.s, now: expired + BIS_RETRY_MS }, 'guardian-druid');
+    expect(down.calls()).toBe(2);
+  });
+
+  it('keeps a cold-cache 404 message during the backoff, and recovers after it', async () => {
+    const db = await openTestDb();
+    const missing = source(async () => { throw new HttpError(404, 'u', ''); });
+    const noPage = { lists: null, fetchedAt: null, error: 'Fake has no gearing page for "nope-nope"' };
+    expect(await ensureBisLists({ db, source: missing.s, now: 1 }, 'nope-nope')).toEqual(noPage);
+    expect(await ensureBisLists({ db, source: missing.s, now: 2 }, 'nope-nope')).toEqual(noPage);
+    expect(missing.calls()).toBe(1);
+    const back = source(async () => lists);
+    expect(await ensureBisLists({ db, source: back.s, now: 1 + BIS_RETRY_MS }, 'nope-nope')).toEqual({ lists, fetchedAt: 1 + BIS_RETRY_MS, error: null });
+  });
+
+  it('backs off per spec, so one failing spec does not stop another', async () => {
+    const db = await openTestDb();
+    await ensureBisLists({ db, source: source(async () => { throw new Error('down'); }).s, now: 1 }, 'guardian-druid');
+    const other = source(async () => lists);
+    expect((await ensureBisLists({ db, source: other.s, now: 2 }, 'feral-druid')).error).toBeNull();
+    expect(other.calls()).toBe(1);
   });
 });
 

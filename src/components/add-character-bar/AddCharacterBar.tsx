@@ -15,13 +15,17 @@ const regionClass = `${inputClass.replace('px-4', 'px-3')} w-20`;
 
 interface Props {
   trackedCharacters: TrackedCharacter[];
+  /** Set by the group page: search only this region, and keep the select fixed on it. */
+  lockedRegion?: Region | null;
+  /** Set by the group page: what to do with the added character instead of opening its page. */
+  onAdded?: (added: { id: number; key: string }) => void;
 }
 
-export function AddCharacterBar({ trackedCharacters }: Props) {
+export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdded }: Props) {
   const router = useRouter();
   const {
     region, setRegion, term, setTerm, manual, setManual, realms, searchError, setOpen, searchRef, visibleResults, clear,
-  } = useCharacterSearch();
+  } = useCharacterSearch(lockedRegion);
   const [realmSlug, setRealmSlug] = useState('');
   const [addingName, setAddingName] = useState<string | null>(null);
   const { busy, error, run } = useApiAction();
@@ -33,7 +37,7 @@ export function AddCharacterBar({ trackedCharacters }: Props) {
 
   async function add(name: string, body: Record<string, unknown>) {
     setAddingName(name);
-    const result = await run<{ id?: number }>('/api/characters', {
+    const result = await run<{ id?: number; key?: string }>('/api/characters', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ region, ...body }),
@@ -41,14 +45,15 @@ export function AddCharacterBar({ trackedCharacters }: Props) {
     const id = result.ok ? result.data?.id : undefined;
     if (!id) { setAddingName(null); return; }
     clear();
-    startTransition(() => router.push(`/characters/${id}`));
+    const key = result.data?.key;
+    startTransition(() => (onAdded && key ? onAdded({ id, key }) : router.push(`/characters/${id}`)));
   }
 
   return (
     <section aria-label="Add a character" className="relative flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-surface p-5">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="region" className={LABEL_CLASS}>Region</label>
-        <select id="region" value={region} onChange={(e) => setRegion(e.target.value as Region)} className={regionClass}>
+        <select id="region" value={region} disabled={lockedRegion !== null} onChange={(e) => setRegion(e.target.value as Region)} className={regionClass}>
           {REGIONS.map((r) => <option key={r} value={r}>{r.toUpperCase()}</option>)}
         </select>
       </div>

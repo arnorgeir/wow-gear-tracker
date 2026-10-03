@@ -5,6 +5,7 @@ import { UserError } from '../errors';
 import { isHttpError } from '../http';
 import type { CharacterSyncer } from '../sync/character-sync';
 import type { Region } from '../types';
+import { formatMemberKey, memberKeyOf } from './member-key';
 
 export interface AddCharacterInput {
   region: Region;
@@ -20,7 +21,7 @@ interface Deps {
   now: () => number;
 }
 
-export async function addCharacter({ db, blizzard, syncer, now }: Deps, input: AddCharacterInput): Promise<{ id: number; created: boolean }> {
+export async function addCharacter({ db, blizzard, syncer, now }: Deps, input: AddCharacterInput): Promise<{ id: number; created: boolean; key: string }> {
   const name = input.name.trim();
   if (!name) throw new UserError('Enter a character name.');
 
@@ -50,5 +51,6 @@ export async function addCharacter({ db, blizzard, syncer, now }: Deps, input: A
     specName: profile.specName,
   }, now());
   if (result.created) await syncer.sync(result.id, { force: true });
-  return result;
+  // The slug and name come from Blizzard's profile, the same values the stored row holds.
+  return { ...result, key: formatMemberKey(memberKeyOf({ region: input.region, realmSlug: profile.realmSlug, name: profile.name })) };
 }
