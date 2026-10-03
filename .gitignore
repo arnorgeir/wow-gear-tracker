@@ -6,3 +6,6 @@ data/
 .next/
 next-env.d.ts
 *.tsbuildinfo
+
+# Review handoff notes: local only, findings land in commits and pull requests
+docs/reviews/

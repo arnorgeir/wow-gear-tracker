@@ -104,7 +104,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 - **Branch names are `<type>/<kebab-case-description>`,** where type is `feat`, `fix`, `chore` or `docs`. Name the work, not the issue number: `feat/character-identity`, `fix/add-bar-quickfixes`.
 - **Commit subjects are `type: lowercase imperative summary`,** with no trailing period. The types are `feat`, `fix`, `chore` and `docs`.
 - **Commit bodies are prose wrapped near 72 columns, and say why.** "The region select only shows two letters, so it's 80 px wide with less padding" beats a list of the files touched. Leave the body out when the subject already says everything.
-- **Pull requests squash-merge,** so the pull request title becomes the commit subject with `(#N)` appended — which means the title follows the subject rules above. Write the squash body yourself; never accept GitHub's default list of branch commits.
+- **Pull requests merge with a merge commit, never a squash.** Every branch commit lands on `main` as written, so each one has to stand on its own under the rules above, and a bisect can stop on any of them. Tidy the branch history before asking for review. The pull request title still follows the subject rules.
 - **A pull request description opens with `Closes #N, closes #M.`** when issues exist, and otherwise with one sentence framing the change.
 - **Then `## What changes`:** one bullet per change, with a bold lead-in and prose saying what moved and why, and the issue number inline.
 - **`## Data`** covers schema changes, migrations and cache versions, whenever any of them moved.
