@@ -1,6 +1,6 @@
 # Plan 3b: group page
 
-Status: awaiting approval
+Status: approved (2026-10-03)
 Date: 2026-10-03
 Issue: #44
 Parent specs: `docs/superpowers/specs/2026-09-26-gear-tracker-design.md`, `docs/superpowers/specs/2026-09-30-plan-3a-dungeon-priority-design.md`
