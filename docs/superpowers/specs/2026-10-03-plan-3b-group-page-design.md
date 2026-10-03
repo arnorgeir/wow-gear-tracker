@@ -35,12 +35,14 @@ The URL is the source of truth: `/group?chars=eu.argent-dawn.birkibjorn,eu.argen
 - **A member key** is `<region>.<realm slug>.<name key>`, where the name key comes from `nameKeyOf`. Realm slugs use letters, digits and hyphens, and character names only letters, so `.` is a safe separator. The browser shows `ö` as typed and percent-encodes it on the wire.
 - **Why not database IDs:** an ID means nothing on another install, and a deleted character leaves nothing to search with. An identity key survives both. It also means a group page can be opened from a hand-typed URL.
 - **Lookup:** a new query in `src/core/db/queries/characters.ts` finds tracked characters by `(region, realmSlug, nameKey)`. Slugs are unique within a region.
-- **Parsing** lives in a plain module and is unit tested. Keys that don't parse are dropped, duplicates are dropped, and only the first five are kept. Name matching is case-insensitive through `nameKeyOf`, so `Birkibjörn` and `birkibjörn` are the same member.
+- **Parsing** lives in a plain module and is unit tested. Keys that don't parse are dropped, and duplicates are dropped. Name matching is case-insensitive through `nameKeyOf`, so `Birkibjörn` and `birkibjörn` are the same member. The five-member cap applies after the region rule (decision 3), so keys from another region never take a valid member's place.
+- **One builder for keys:** `memberKeyOf({ region, realmSlug, name })` in the same module is the only place a key is made. Realm slugs always come from a stored character row, which got its slug from Blizzard's profile. A key is never built from a realm display name or a Raider.IO slug.
 
 ### 2. Remembering the last group
 
 - **A `group` cookie** holds the same comma-separated key list as the URL.
-- **A client component**, `remember-group/RememberGroup.tsx`, writes it with `document.cookie` (`path=/`, a one-year `max-age`, `SameSite=Lax`) whenever the rendered member list changes. This covers membership edits and opening a link.
+- **A client component**, `remember-group/RememberGroup.tsx`, writes it with `document.cookie` (`path=/`, a one-year `max-age`, `SameSite=Lax`) whenever the rendered member list changes. This covers membership edits and opening a link. The value is `encodeURIComponent` of the comma-joined keys, so `ö` survives.
+- **Reading** uses the async `cookies()` from `next/headers`. The value goes through `decodeURIComponent`; a value that fails to decode counts as no cookie. Keys never contain `%`, so a value Next already decoded comes through a second decode unchanged. The decoded string then goes through the same key parser as the URL, so a tampered cookie can only yield valid keys or none.
 - **`/group` without a `chars` parameter** reads the cookie with `cookies()` and, when it holds keys, redirects to `/group?chars=…`. Without a cookie it renders the empty group.
 - **`/group?chars=` (present but empty)** renders the empty group and does not redirect. Removing the last member lands here, and the cookie becomes empty, so the nav link doesn't bounce back to the old group.
 - The choice between redirecting and rendering is a plain function of the parameter and the cookie, in `group-page-params.ts` under `src/server/views/`, with unit tests.
@@ -62,6 +64,9 @@ There is no group route handler. Membership is the URL.
 - **Remove:** each member chip has a remove button. The client builds the new key list and calls `router.replace('/group?chars=…')`.
 - **Add from tracked characters:** a `<select>` of tracked characters in the group's region that aren't in the group, labelled "Name – Realm (Spec)". Picking one adds it straight away.
 - **Add by search:** the existing character search. Picking a result calls the existing `POST /api/characters`, which tracks the character or returns the one already tracked, then adds its key to the URL. The page stays on the group, unlike the Characters page, which navigates to the new character.
+  - A search result holds a Blizzard realm ID and a realm display name, but no slug, so the client can't build the key itself. **The route's response gains `key`**, built with `memberKeyOf` from the stored character row, for a new character and an already tracked one alike: `{ id, created, key }`. `addCharacter` returns the stored row's region, realm slug and name for this.
+  - The Characters page keeps using `id` and its behavior doesn't change.
+  - Adding a key the group already has changes nothing.
 - **The cap:** the "Add character" control shows only while the group has fewer than five members. At five it is replaced by a muted "Group is full (5)".
 - **Key arithmetic** (add, ignore a duplicate, respect the cap, remove, serialize) is a plain module, `group-members/member-keys.ts`, with unit tests.
 
@@ -81,13 +86,29 @@ There is no group route handler. Membership is the URL.
 | `notFound` | Dimmed cells, "Blizzard can't find this character", and **Remove from group** |
 | No BiS list for the spec (Method answered 404 or is down, nothing cached) | Cells reading "No BiS list", and the BiS error in the header |
 
-Dimming always comes with words beside it, never opacity alone. Members without evaluated rows (not tracked, no gear, no BiS list) are left out of the ranking, and the priority section says who was left out.
+Dimming always comes with words beside it, never opacity alone.
+
+`StaleSync` gets only members with status `ok`, as on the Characters page, so a `notFound` member isn't retried on every load. Its Refresh and Remove buttons are the way forward.
+
+### 5a. Who the ranking covers
+
+A member is **eligible** for the ranking when it is tracked, has gear, and has a BiS list to evaluate. Others are **excluded**, each with its reason: not tracked, no gear yet, or no BiS list. The season's status (loading, failed, stale, ready) is separate from eligibility, and the section shows both.
+
+| Situation | Priority section shows |
+|---|---|
+| Season loading or failed | The season message, as on the character page. No ranking |
+| Season ready, no eligible member | "Dungeon priority needs at least one member with gear and a BiS list." and each excluded member with its reason. `rankDungeons` isn't called, and nothing claims the group needs nothing |
+| Some members eligible, some excluded | The ranking, under "Covers Birkibjörn and Hrafnhildur. Left out: Sólrún (no gear yet)." |
+| All eligible, a dungeon scores | The ranking |
+| Eligible members, every dungeon scores zero | "No season dungeon drops anything the group still needs." |
 
 ### 6. A failure backoff for `ensureBisLists`
 
 Every page refreshes Method's BiS lists during the render when they are a day old. Unlike `ensureTracks`, `ensureBisLists` has no backoff: while Method is down, every page load waits for the request to fail, up to ten seconds. A group page with five specs makes this worse.
 
-- **On failure** it records `bis.<spec slug>.failedAt` in `meta`, and skips refetching that spec for one hour, serving the cached list with its error. This matches `ensureTracks`.
+- **On failure** it records `bis.<spec slug>.failed` in `meta`, with the error message as the value and the time as `updatedAt`. For one hour it skips refetching that spec and returns what a failed fetch returns now: the cached list and its fetch time when there is a cache, and `lists: null` when there isn't, with the stored message in both cases. A cold-cache 404 therefore keeps saying "Method has no gearing page for …" during the hour, not a generic message.
+- **After the hour** it fetches again. Success replaces the list and the failure entry stops mattering, because a fresh cache is checked first.
+- This matches `ensureTracks`, which also retries at most hourly.
 - **Cold cache cost** stays: the first load of the day may wait a second or two for Method. That is acceptable for a local app. The full move off the render path gets its own issue, to be done before hosting (#8).
 
 ### 7. The loader
@@ -95,19 +116,19 @@ Every page refreshes Method's BiS lists during the render when they are a day ol
 `src/server/views/group-page.ts` exports `getGroupPage(services, keys): GroupPageView`. The page passes it the parsed keys and renders the result.
 
 1. `ensureTracks` once, and `listCharacters` once for both the members and the dropdown.
-2. Resolve each key to a tracked character, or mark it untracked. Apply the region rule.
+2. Apply the region rule, then the five-member cap. Resolve each key to a tracked character, or mark it untracked.
 3. For each tracked member, in sequence for database work: load gear, ensure BiS lists (fetches deduped by spec slug, as `getCharacterCards` does), choose the priority list with the Overall fallback, and evaluate the rows. Each member uses its own priority list setting, as on the character page.
-4. `readSeason`, then `rankDungeons` over the members that have rows.
+4. `readSeason`, then, when at least one member is eligible (decision 5a), `rankDungeons` over the eligible members.
 5. `ensureItemIcons` once, for every item ID across the members, their BiS rows, vault choices and credits.
-6. Align the grid: rows in canonical slot order, keyed by slot label and occurrence (Ring 1, Ring 2, Trinket 1, Trinket 2). A member with no row for a slot, such as an Off Hand under a two-hander, gets an empty cell.
+6. Align the grid by **evaluated slot**: one grid row per `SlotType`, in `SLOT_TYPES` order, keyed by each `GearRow.slot`. Method's labels are not keys, because specs name the same slot differently (`Weapon`, `Main Hand`, `Main-Hand`; `Gloves`, `Hands`), and the first Ring row can evaluate to `FINGER_2` when `evaluateGear` assigns exact matches first. Each grid row's label comes from one fixed map: Head, Neck, Shoulders, Cloak, Chest, Wrist, Gloves, Belt, Legs, Boots, Ring 1, Ring 2, Trinket 1, Trinket 2, Main Hand, Off Hand. A cell holds that member's equipped item and BiS target for that slot together. A member with no row for a slot, such as an Off Hand under a two-hander, gets an empty cell, and no other row moves. A slot that no member has a row for is left out.
 
 **`GroupPageView`** carries:
 
 - `region`, or null for an empty group.
 - `members`: each member's key, state from decision 5, summary when tracked, crests, the list used and whether it fell back, and the BiS error.
 - `grid`: rows of `{ slotLabel, cells }`, where a cell is a `GearRowView` or null.
-- `priority`: the season status, the approximate flag, ranked dungeons with credits grouped per member (avatar, name, credits), the dungeons nobody needs anything from, and the members left out.
-- `vault`: each member's vault choices with their BiS flag, and the paste time.
+- `priority`: the season status, the approximate flag, the eligible members, the excluded members with their reasons, ranked dungeons, and the dungeons nobody needs anything from. Each ranked dungeon carries `challengeModeId`, name, score, the `split` flag from `rankDungeons`, and credits grouped per member (avatar, name, credits). `ranking` is null when no member is eligible, so the view can't confuse "unavailable" with "nothing needed".
+- `vault`: per member, the paste time (null without a paste) and the vault choices with their BiS flag. This keeps `VaultSection`'s three states apart: no paste, a paste with no choices, and a paste with choices.
 - `dropped`: keys removed by the region rule, for the note.
 - `available`: tracked characters in the group's region that aren't members, for the dropdown.
 - `staleIds`: member IDs for `StaleSync`.
@@ -132,8 +153,8 @@ Top to bottom, inside the same `max-w-[1440px]` frame as the other pages:
 - **`group-members/GroupMembers.tsx`** (client). Chips with avatar, name, spec and a remove button labelled "Remove <name> from group". The add control opens a panel with the tracked dropdown above the search. It shows "Adding <name>…" while busy and an error line on failure, as `AddCharacterBar` does.
 - **`group-grid/GroupGrid.tsx`** (server). A CSS grid of a 110 px slot column plus `repeat(n, minmax(220px, 1fr))`. The wrapper scrolls sideways when the members don't fit, and the slot column is sticky on the left with the surface background. Each member's header cell holds the avatar, the name linking to `/characters/{id}`, the list used ("Mythic+", or "Overall, Method has no Mythic+ list"), the crest summary or "Crests unknown" with a link to paste SimC on the character page, and the flags and buttons from decision 5.
 - **`group-grid/GroupCell.tsx`**, rendered only by the grid. The equipped `ItemCard` with track and item level, the `StateBadge`, the `UpgradeBadge` when an upgrade is affordable, and a "Need:" line when the BiS item isn't equipped: the BiS item's name, "tier via catalyst", or "any item, level 334+". The background comes from the existing `rowTone`, so states differ in lightness as well as hue. An empty cell is a muted "—".
-- **`group-priority/GroupPriority.tsx`** (server). The same season states as `DungeonPriority`. Each dungeon shows its rank, name and score, then one line per member: avatar, name, and the credited items as Wowhead links, with tier and "Any" credits as text and the weight in a `title`. Dungeons nobody needs anything from collapse into one muted line, "Nothing anyone needs from: …". The section names members using the Overall fallback and members left out of the ranking.
-- **`group-vault/GroupVault.tsx`** (server). Per member: the name, then the vault choices tagged BiS or Not BiS as `VaultSection` does, or "No SimC paste yet."
+- **`group-priority/GroupPriority.tsx`** (server). The season states as `DungeonPriority` shows them, and the eligibility states from decision 5a. Each dungeon shows its rank, name and score, then one line per member: avatar, name, and the credited items as Wowhead links, with tier and "Any" credits as text and the weight in a `title`. A split dungeon shows "Split dungeon: loot shown for the whole instance." beside its credits, as `DungeonPriority` does, because a credited item may drop in the other half. Dungeons nobody needs anything from collapse into one muted line, "Nothing anyone needs from: …". The section names members using the Overall fallback.
+- **`group-vault/GroupVault.tsx`** (server). Per member: the name, then one of three states, as `VaultSection` has them: "No SimC paste yet.", "No item choices in the vault in the last paste.", or the choices tagged BiS or Not BiS. With a paste, the age shows beside the name ("from SimC pasted 3 days ago"), so old choices read as old.
 - **`remember-group/RememberGroup.tsx`** (client), from decision 2.
 - **`main-nav/MainNav.tsx`** (client). The header nav gains a "Group" link to `/group`. `usePathname` sets `aria-current="page"` and the active style on the current link.
 
@@ -143,19 +164,25 @@ Top to bottom, inside the same `max-w-[1440px]` frame as the other pages:
 - `SearchResults.tsx` moves from `add-character-bar/` to its own `search-results/` directory.
 - The season status messages in `DungeonPriority` (loading, failed, stale, approximate) move to a helper in `components/shared/`, so both priority sections say the same words.
 
-`StaleSync` and `SeasonSync` mount as on the character page. `SeasonSync` gets the group's region.
+`StaleSync` mounts as on the Characters page, with stale `ok` members only. `SeasonSync` mounts only when the group has a region, and gets that region; an empty group has none, and loads no season.
 
 ## Testing
 
 Tests come first, with the existing setup: in-memory SQLite through `openTestDb()`, a fake `fetch`, and made-up fixture names such as Birkibjörn and Hrafnhildur.
 
-- **Member keys:** parsing junk, duplicates, more than five, mixed case and `ö`; adding a duplicate; the cap; removing; serializing.
-- **Page parameters:** no parameter with a cookie redirects, no parameter without a cookie renders empty, an empty parameter never redirects.
-- **`ensureBisLists` backoff:** a failure, then a call within the hour makes no request and returns the cached list with its error; after the hour it fetches again.
+- **Member keys:** parsing junk, duplicates, mixed case and `ö`; `memberKeyOf`; adding a duplicate; the cap; removing; serializing. The region rule before the cap: one EU key, four US keys, then four EU keys keeps five EU members.
+- **Page parameters and cookie:** no parameter with a cookie redirects, no parameter without a cookie renders empty, an empty parameter never redirects. A full round trip: keys with `ö` encoded as the client writes them, decoded and redirected to the same keys. A malformed value counts as no cookie.
+- **`ensureBisLists` backoff:** a failure with a cache, then a call within the hour makes no request and returns the cached list with the stored error. A cold-cache 404, then a call within the hour returns no list and keeps the "no gearing page" message. After the hour it fetches again, and a success returns the new list with no error.
 - **Identity lookup:** finds a tracked character by region, realm slug and folded name.
-- **`getGroupPage`:** rows aligned with two rings, two trinkets and a missing Off Hand; credits grouped per member; the Overall fallback flagged per member; an untracked key; a `notFound` member and a member without gear left out of the ranking and named; the region rule dropping a key; `available` excluding members and other regions; one Method request for two members of the same spec.
+- **Add route:** `POST /api/characters` returns a `key` for a new character and for one already tracked. Cover a multi-word realm (`argent-dawn` with display name "Argent Dawn") and a mixed-case accented name; the key resolves back to the same character through the identity lookup.
+- **`getGroupPage`:**
+  - Alignment: `Weapon` and `Main Hand` lists land in one Main Hand row, and `Gloves` and `Hands` in one Gloves row. A first-listed BiS ring matched in `FINGER_2` lands in Ring 2 with its equipped item, and the same for trinkets. A two-hander's missing Off Hand is an empty cell with every other row in place.
+  - Ranking: credits grouped per member; the Overall fallback flagged per member; both halves of a split dungeon keep `split`; scores match `rankDungeons` for the same members.
+  - Eligibility: all members excluded gives no ranking and names each reason; a partly eligible group names who is covered and who is left out; an eligible group needing nothing gives an empty ranking, not a null one.
+  - Members: an untracked key; a `notFound` member; `staleIds` without the `notFound` member; the region rule dropping a key; `available` excluding members and other regions; one Method request for two members of the same spec.
+  - Vault: no paste, a paste without choices, and a paste with choices stay distinct.
 - **`member.ts` extraction:** the existing character page view tests pass unchanged.
-- **Components:** HTML render tests, like `DungeonPriority.test.ts`, for the cell states, the member states and the priority lines.
+- **Components:** HTML render tests, like `DungeonPriority.test.ts`, for the cell states, the member states, the eligibility messages, the split warning (shown for a split dungeon and not for an ordinary one), and the three vault states.
 
 **Not covered automatically** (no browser tests yet, #35), so checked by hand and listed in the pull request: removing a chip, adding from the dropdown, adding by search, the Track button, the cookie write and the nav redirect, the locked region select, the sticky slot column and sideways scroll, and the five-member cap.
 
