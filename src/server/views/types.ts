@@ -97,3 +97,48 @@ export interface CharacterPageView extends CharacterSummary {
   specs: string[];
   priority: PriorityView;
 }
+
+export type GroupMemberState = 'untracked' | 'notFound' | 'syncing' | 'noGear' | 'ready';
+export interface GroupMemberView {
+  /** The formatted member key, as in the URL. */
+  key: string;
+  /** The character's name, or the key's folded name when it isn't tracked here. */
+  name: string;
+  realmSlug: string;
+  character: CharacterSummary | null;
+  state: GroupMemberState;
+  syncError: string | null;
+  bisError: string | null;
+  /** Ready but without rows: no BiS list to compare against. */
+  hasRows: boolean;
+  listType: 'mythicPlus' | 'overall';
+  fellBack: boolean;
+  crests: CrestView | null;
+}
+export interface GroupGridRow { slot: SlotType; label: string; cells: (GearRowView | null)[] }
+export interface GroupMemberCreditsView { key: string; name: string; className: string; avatarUrl: string | null; classIconUrl: string | null; credits: PriorityCreditView[] }
+export interface GroupDungeonView { challengeModeId: number; name: string; score: number; split: boolean; members: GroupMemberCreditsView[] }
+export interface GroupPriorityView {
+  season: 'loading' | 'failed' | 'ready' | 'stale';
+  approximate: boolean;
+  covered: string[];
+  excluded: { name: string; reason: string }[];
+  fellBack: string[];
+  /** Null when no member is eligible: the ranking is unavailable, which is not the same as nothing needed. */
+  ranking: { dungeons: GroupDungeonView[]; nothingFrom: string[] } | null;
+}
+export interface GroupVaultView { key: string; name: string; pastedAt: number | null; choices: VaultChoiceView[] }
+export interface GroupPageView {
+  region: Region | null;
+  keys: string[];
+  members: GroupMemberView[];
+  grid: GroupGridRow[];
+  tracksKnown: boolean;
+  priority: GroupPriorityView;
+  needsSeasonSync: boolean;
+  vault: GroupVaultView[];
+  dropped: { name: string; region: Region }[];
+  available: { key: string; label: string }[];
+  tracked: { region: Region; realmId: number; name: string }[];
+  staleIds: number[];
+}
