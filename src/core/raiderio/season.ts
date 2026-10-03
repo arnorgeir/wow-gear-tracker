@@ -8,13 +8,27 @@ export interface RawSeason {
   name: string;
   is_main_season: boolean;
   starts: Record<string, string | null>;
-  dungeons: { challenge_mode_id: number; name: string; short_name: string }[];
+  dungeons: { challenge_mode_id: number; name: string; short_name: string; background_image_url?: unknown }[];
 }
 
 export interface MainSeason {
   slug: string;
   name: string;
-  dungeons: { challengeModeId: number; name: string; shortName: string }[];
+  dungeons: { challengeModeId: number; name: string; shortName: string; imageUrl: string | null }[];
+}
+
+const ARTWORK_HOST = 'cdn.raiderio.net';
+
+/**
+ * A dungeon's artwork URL as Raider.IO gives it, or null for anything other than an HTTPS URL on
+ * its CDN. A new host falls back to the placeholder until we choose to accept it.
+ */
+export function artworkUrl(value: unknown): string | null {
+  if (typeof value !== 'string' || value === '') return null;
+  let url: URL;
+  try { url = new URL(value); } catch { return null; }
+  if (url.protocol !== 'https:' || url.hostname !== ARTWORK_HOST || url.username || url.password) return null;
+  return value;
 }
 
 const staticDataUrl = (expansionId: number) => `https://raider.io/api/v1/mythic-plus/static-data?expansion_id=${expansionId}`;
@@ -39,7 +53,9 @@ export function pickMainSeason(seasons: RawSeason[], now: number): MainSeason | 
   return {
     slug: best.slug,
     name: best.name,
-    dungeons: best.dungeons.map((d) => ({ challengeModeId: d.challenge_mode_id, name: d.name, shortName: d.short_name })),
+    dungeons: best.dungeons.map((d) => ({
+      challengeModeId: d.challenge_mode_id, name: d.name, shortName: d.short_name, imageUrl: artworkUrl(d.background_image_url),
+    })),
   };
 }
 
