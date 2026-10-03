@@ -1,4 +1,5 @@
 import { ItemCard } from '@/components/item-card/ItemCard';
+import { APPROXIMATE, SEASON_FAILED, SEASON_LOADING, SEASON_STALE, SPLIT_DUNGEON } from '@/components/shared/priority-copy';
 import type { PriorityCreditView, PriorityView } from '@/server/views/types';
 
 const LIST_NAMES = { mythicPlus: 'Mythic+ list', overall: 'Overall list' } as const;
@@ -20,9 +21,9 @@ function Credit({ credit }: { credit: PriorityCreditView }) {
 }
 
 function Ranking({ priority }: { priority: PriorityView }) {
-  if (priority.season === 'loading') return <p role="status" className="text-muted">Loading this season&rsquo;s loot&hellip;</p>;
+  if (priority.season === 'loading') return <p role="status" className="text-muted">{SEASON_LOADING}</p>;
   if (priority.season === 'failed') {
-    return <p role="alert" className="text-[#f3c9a2]">This season&rsquo;s loot couldn&rsquo;t be loaded. It will retry within the hour.</p>;
+    return <p role="alert" className="text-[#f3c9a2]">{SEASON_FAILED}</p>;
   }
   if (priority.dungeons.length === 0) return <p className="text-muted">No season dungeon drops anything you still need.</p>;
   return (
@@ -34,7 +35,7 @@ function Ranking({ priority }: { priority: PriorityView }) {
               <span className="font-semibold">{d.name}</span>
               <span className="font-mono text-gold">{d.score}</span>
             </div>
-            {d.split && <span className="text-xs text-muted">Split dungeon: loot shown for the whole instance.</span>}
+            {d.split && <span className="text-xs text-muted">{SPLIT_DUNGEON}</span>}
             {d.credits.map((credit, i) => <Credit key={i} credit={credit} />)}
           </li>
         ))}
@@ -53,8 +54,8 @@ export function DungeonPriority({ priority, specLabel }: { priority: PriorityVie
         <span className="text-sm text-muted">{LIST_NAMES[priority.listType]}</span>
       </div>
       {priority.fellBack && <p className="text-sm text-muted">Using the Overall list: Method has no Mythic+ list for {specLabel}.</p>}
-      {priority.approximate && <p className="text-sm text-muted">Weights are approximate while upgrade track data is unavailable.</p>}
-      {priority.season === 'stale' && <p className="text-sm text-muted">Showing older loot data: the latest update couldn&rsquo;t be loaded.</p>}
+      {priority.approximate && <p className="text-sm text-muted">{APPROXIMATE}</p>}
+      {priority.season === 'stale' && <p className="text-sm text-muted">{SEASON_STALE}</p>}
       <Ranking priority={priority} />
     </section>
   );

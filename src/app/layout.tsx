@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Script from 'next/script';
 import { Suspense } from 'react';
 import { Barlow, Cinzel, IBM_Plex_Mono } from 'next/font/google';
+import { MainNav } from '@/components/main-nav/MainNav';
 import { WowheadRefresh } from '@/components/wowhead-refresh/WowheadRefresh';
 import './globals.css';
 
@@ -24,9 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </svg>
               Gear Tracker
             </Link>
-            <nav aria-label="Main" className="flex gap-2">
-              <Link href="/" className="rounded-lg bg-raised px-4 py-2.5 text-[15px] font-semibold text-ink no-underline">Characters</Link>
-            </nav>
+            <MainNav />
           </div>
         </header>
         {children}
