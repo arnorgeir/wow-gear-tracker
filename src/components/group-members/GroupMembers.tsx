@@ -27,7 +27,7 @@ export function GroupMembers({ members, region, available, tracked }: Props) {
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
         {members.map((m) => (
-          <span key={m.key} className="flex h-12 items-center gap-2 rounded-full border border-line bg-surface-2 pl-1.5">
+          <span key={m.key} className="flex h-12 items-center gap-2 rounded-full border border-line bg-surface-2 pl-1.5 pr-0.5">
             {m.character && <CharacterAvatar name={m.character.name} className={m.character.className} avatarUrl={m.character.avatarUrl} classIconUrl={m.character.classIconUrl} size={32} />}
             <span className="font-semibold">{m.name}</span>
             {m.character && <span className="text-sm text-muted">{m.character.spec}</span>}
