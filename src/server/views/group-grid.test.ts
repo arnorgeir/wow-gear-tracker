@@ -39,10 +39,15 @@ describe('alignGrid', () => {
 describe('memberState', () => {
   it('tells untracked, not found, syncing, no gear and ready apart', () => {
     expect(memberState(null, false)).toBe('untracked');
-    expect(memberState({ status: 'notFound', lastSyncedAt: 5 }, true)).toBe('notFound');
-    expect(memberState({ status: 'ok', lastSyncedAt: null }, false)).toBe('syncing');
-    expect(memberState({ status: 'ok', lastSyncedAt: 5 }, false)).toBe('noGear');
-    expect(memberState({ status: 'ok', lastSyncedAt: 5 }, true)).toBe('ready');
+    expect(memberState({ status: 'notFound', lastSyncedAt: 5, lastSyncError: null }, true)).toBe('notFound');
+    expect(memberState({ status: 'ok', lastSyncedAt: null, lastSyncError: null }, false)).toBe('syncing');
+    expect(memberState({ status: 'ok', lastSyncedAt: 5, lastSyncError: null }, false)).toBe('noGear');
+    expect(memberState({ status: 'ok', lastSyncedAt: 5, lastSyncError: null }, true)).toBe('ready');
+  });
+
+  it('does not call a first sync that failed "syncing", since nothing is running and it never clears', () => {
+    expect(memberState({ status: 'ok', lastSyncedAt: null, lastSyncError: 'Blizzard returned 503. Showing the last saved gear.' }, false)).toBe('noGear');
+    expect(memberState({ status: 'ok', lastSyncedAt: null, lastSyncError: 'Blizzard returned 503' }, true)).toBe('ready');
   });
 });
 

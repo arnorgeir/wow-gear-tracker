@@ -19,11 +19,12 @@ export function alignGrid(columns: (GearRowView[] | null)[]): GroupGridRow[] {
     .filter((row) => row.cells.some((c) => c !== null));
 }
 
-export function memberState(character: { status: 'ok' | 'notFound'; lastSyncedAt: number | null } | null, hasGear: boolean): GroupMemberState {
+export function memberState(character: { status: 'ok' | 'notFound'; lastSyncedAt: number | null; lastSyncError: string | null } | null, hasGear: boolean): GroupMemberState {
   if (!character) return 'untracked';
   if (character.status === 'notFound') return 'notFound';
   if (hasGear) return 'ready';
-  return character.lastSyncedAt === null ? 'syncing' : 'noGear';
+  // A first sync that failed leaves lastSyncedAt empty, but nothing is running: say so, or it reads 'syncing' forever.
+  return character.lastSyncedAt === null && !character.lastSyncError ? 'syncing' : 'noGear';
 }
 
 export const EXCLUSION_REASONS = {
