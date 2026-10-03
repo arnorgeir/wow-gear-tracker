@@ -57,4 +57,4 @@ export const ITEM_STATES: readonly ItemState[] = ['done', 'mythUpgradable', 'bel
 
 export interface LootItem { itemId: number; inventoryType: string | null; armorType: ArmorType | null }
 /** One season dungeon and what it drops. `split` marks half of a dungeon credited with the whole instance's loot. */
-export interface SeasonLoot { challengeModeId: number; name: string; split: boolean; loot: LootItem[] }
+export interface SeasonLoot { challengeModeId: number; name: string; shortName: string; imageUrl: string | null; split: boolean; loot: LootItem[] }

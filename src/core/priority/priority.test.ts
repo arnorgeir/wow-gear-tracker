@@ -13,7 +13,8 @@ const named = (slots: SlotType[], itemId: number, isTier = false): BisRow =>
   ({ kind: 'item', slotLabel: slots[0]!, slots, itemId, name: `BiS ${itemId}`, bonusIds: [], isTier, isCatalyst: isTier, source: '' });
 const anyRow = (slots: SlotType[], minItemLevel: number): BisRow => ({ kind: 'any', slotLabel: slots[0]!, slots, minItemLevel, source: '' });
 const loot = (itemId: number, inventoryType: string | null = null, armorType: ArmorType | null = null): LootItem => ({ itemId, inventoryType, armorType });
-const dungeon = (challengeModeId: number, name: string, items: LootItem[], split = false): SeasonLoot => ({ challengeModeId, name, split, loot: items });
+const dungeon = (challengeModeId: number, name: string, items: LootItem[], split = false): SeasonLoot =>
+  ({ challengeModeId, name, shortName: '', imageUrl: null, split, loot: items });
 
 const character = (rows: BisRow[], equipped: GearItem[], className = 'Druid', id = 1, name = 'Birkibjörn'): PriorityCharacter =>
   ({ id, name, className, rows: evaluateGear({ equipped, bisRows: rows, tracks }), equipped, tracks });

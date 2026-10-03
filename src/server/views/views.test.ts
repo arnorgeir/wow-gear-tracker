@@ -178,8 +178,8 @@ describe('dungeon priority', () => {
     await replaceSeason(s.db, {
       slug: 'season-test-2',
       dungeons: [
-        { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11 },
-        { challengeModeId: 502, name: 'Beta Spire', shortName: 'BS', journalInstanceId: 902, mapId: 22 },
+        { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11, imageUrl: null },
+        { challengeModeId: 502, name: 'Beta Spire', shortName: 'BS', journalInstanceId: 902, mapId: 22, imageUrl: null },
       ],
       loot: [{ challengeModeId: 501, encounterId: 1, encounterName: 'Hollow King', itemId: 30, itemName: 'Cloak of the Hollow', inventoryType: 'CLOAK', armorType: 'cloth' }],
     });

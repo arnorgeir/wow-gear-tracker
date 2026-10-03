@@ -44,7 +44,7 @@ export async function loadSeasonLoot(blizzard: BlizzardClient, region: Region, s
       if (loaded.mapId === keystone.mapId) { instance = loaded; break; }
     }
     if (!instance) throw new Error(`No Encounter Journal instance has the map of ${d.name}`);
-    dungeons.push({ challengeModeId: d.challengeModeId, name: d.name, shortName: d.shortName, journalInstanceId: instance.id, mapId: keystone.mapId, encounterIds: instance.encounterIds });
+    dungeons.push({ challengeModeId: d.challengeModeId, name: d.name, shortName: d.shortName, imageUrl: d.imageUrl, journalInstanceId: instance.id, mapId: keystone.mapId, encounterIds: instance.encounterIds });
   }
 
   const encounterIds = [...new Set(dungeons.flatMap((d) => d.encounterIds))];
@@ -65,7 +65,7 @@ export async function loadSeasonLoot(blizzard: BlizzardClient, region: Region, s
     }));
   }));
   const rows: SeasonDungeonRow[] = dungeons.map((d) => ({
-    challengeModeId: d.challengeModeId, name: d.name, shortName: d.shortName, journalInstanceId: d.journalInstanceId, mapId: d.mapId,
+    challengeModeId: d.challengeModeId, name: d.name, shortName: d.shortName, imageUrl: d.imageUrl, journalInstanceId: d.journalInstanceId, mapId: d.mapId,
   }));
   return { slug: season.slug, dungeons: rows, loot };
 }

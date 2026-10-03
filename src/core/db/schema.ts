@@ -123,6 +123,7 @@ export const seasonDungeons = sqliteTable('season_dungeons', {
   seasonSlug: text('season_slug').notNull(),
   name: text('name').notNull(),
   shortName: text('short_name').notNull(),
+  imageUrl: text('image_url'),
   journalInstanceId: integer('journal_instance_id').notNull(),
   mapId: integer('map_id').notNull(),
 });

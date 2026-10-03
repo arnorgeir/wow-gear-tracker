@@ -1,0 +1,1 @@
+ALTER TABLE `season_dungeons` ADD `image_url` text;

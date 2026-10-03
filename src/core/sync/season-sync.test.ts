@@ -3,17 +3,24 @@ import { openTestDb } from '@/test/db';
 import { fakeFetch, json, on } from '@/test/fake-fetch';
 import type { BlizzardClient } from '../blizzard/client';
 import { DAY_MS } from './reference-sync';
+
+
 import { readSeason, syncSeason } from './season-sync';
 
 const T = Date.parse('2026-09-30T12:00:00Z');
 
-const raiderIo = () => fakeFetch([
+const ART = {
+  501: 'https://cdn.raiderio.net/images/dungeons/alpha-hollow.jpg',
+  502: 'https://cdn.raiderio.net/images/dungeons/streets.jpg',
+} as Record<number, unknown>;
+
+const raiderIo = (art: Record<number, unknown> = ART) => fakeFetch([
   on('expansion_id=11', () => json({ seasons: [{
     slug: 'season-test-2', name: 'Test Season 2', is_main_season: true, starts: { eu: '2026-08-19T04:00:00Z' },
     dungeons: [
-      { challenge_mode_id: 501, name: 'Alpha Hollow', short_name: 'AH' },
-      { challenge_mode_id: 502, name: 'Streets of Beta', short_name: 'STRT' },
-      { challenge_mode_id: 503, name: 'Beta Gambit', short_name: 'GMBT' },
+      { challenge_mode_id: 501, name: 'Alpha Hollow', short_name: 'AH', background_image_url: art[501] },
+      { challenge_mode_id: 502, name: 'Streets of Beta', short_name: 'STRT', background_image_url: art[502] },
+      { challenge_mode_id: 503, name: 'Beta Gambit', short_name: 'GMBT', background_image_url: art[503] },
     ],
   }] })),
   on('expansion_id=12', () => new Response('bad expansion', { status: 400 })),
@@ -72,6 +79,10 @@ describe('syncSeason', () => {
     expect(state.dungeons[0]!.loot).toEqual([
       { itemId: 100, inventoryType: 'ROBE', armorType: 'leather' },
       { itemId: 101, inventoryType: null, armorType: null },
+    ]);
+    // Split halves share instance 902 but keep their own artwork.
+    expect(state.dungeons.map((x) => [x.challengeModeId, x.shortName, x.imageUrl])).toEqual([
+      [501, 'AH', ART[501]], [503, 'GMBT', null], [502, 'STRT', ART[502]],
     ]);
     // Both Beta halves share instance 902: its encounters and items are fetched once.
     expect([...calls.encounters].sort()).toEqual([1, 2, 3]);

@@ -57,10 +57,10 @@ async function season(s: Services) {
   await replaceSeason(s.db, {
     slug: 'season-test',
     dungeons: [
-      { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11 },
-      { challengeModeId: 502, name: 'Streets of Beta', shortName: 'SB', journalInstanceId: 902, mapId: 22 },
-      { challengeModeId: 503, name: 'Gambit of Beta', shortName: 'GB', journalInstanceId: 902, mapId: 23 },
-      { challengeModeId: 504, name: 'Delta Deep', shortName: 'DD', journalInstanceId: 904, mapId: 44 },
+      { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11, imageUrl: 'https://cdn.raiderio.net/images/dungeons/alpha-hollow.jpg' },
+      { challengeModeId: 502, name: 'Streets of Beta', shortName: 'SB', journalInstanceId: 902, mapId: 22, imageUrl: null },
+      { challengeModeId: 503, name: 'Gambit of Beta', shortName: 'GB', journalInstanceId: 902, mapId: 23, imageUrl: 'https://cdn.raiderio.net/images/dungeons/gambit.jpg' },
+      { challengeModeId: 504, name: 'Delta Deep', shortName: 'DD', journalInstanceId: 904, mapId: 44, imageUrl: null },
     ],
     loot: [
       { challengeModeId: 501, encounterId: 1, encounterName: 'Boss', itemId: 41, itemName: 'Item 41', inventoryType: 'FINGER', armorType: null },
