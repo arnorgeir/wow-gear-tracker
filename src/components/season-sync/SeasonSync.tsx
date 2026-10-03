@@ -10,10 +10,11 @@ export function SeasonSync({ region, needed }: { region: Region; needed: boolean
   useEffect(() => {
     if (!needed) return;
     let cancelled = false;
+    // Refresh after every answer, skips included: another page may have loaded the season meanwhile.
+    // Once per mount: a refresh keeps this component, so the effect only re-runs if `needed` changes.
     fetch(`/api/season/sync?region=${region}`, { method: 'POST' })
-      .then((res) => (res.ok ? (res.json() as Promise<{ result: string }>) : { result: 'failed' }))
-      .catch(() => ({ result: 'failed' }))
-      .then(({ result }) => { if (!cancelled && result !== 'skipped') router.refresh(); });
+      .catch(() => null)
+      .then(() => { if (!cancelled) router.refresh(); });
     return () => { cancelled = true; };
   }, [needed, region, router]);
   return null;

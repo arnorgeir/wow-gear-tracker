@@ -133,4 +133,19 @@ describe('readSeason', () => {
     expect(await readSeason(d.db, T + 60_000)).toEqual({ status: 'failed', needsSync: false, dungeons: [] });
     expect((await readSeason(d.db, T + 2 * 60 * 60 * 1000)).needsSync).toBe(true);
   });
+
+  // The page refreshes after every sync response, so a skip must leave it nothing to ask for again.
+  it('stops asking for a sync whenever a sync would skip', async () => {
+    const loaded = await deps(fakeBlizzard().blizzard);
+    await syncSeason(loaded);
+    expect(await syncSeason({ ...loaded, now: T + 60_000 })).toBe('skipped');
+    expect((await readSeason(loaded.db, T + 60_000)).needsSync).toBe(false);
+
+    const failing = await deps(fakeBlizzard({ getJournalInstances: async () => { throw new Error('Blizzard is down'); } }).blizzard);
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await syncSeason(failing);
+    logged.mockRestore();
+    expect(await syncSeason({ ...failing, now: T + 60_000 })).toBe('skipped');
+    expect((await readSeason(failing.db, T + 60_000)).needsSync).toBe(false);
+  });
 });
