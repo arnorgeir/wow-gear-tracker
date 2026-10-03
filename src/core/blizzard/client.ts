@@ -1,8 +1,16 @@
 import { createLimiter, fetchJson, isHttpError, type FetchFn, type SleepFn } from '../http';
-import type { GearItem, Quality, Region } from '../types';
-import { parseEquipment, parseProfile, type RawEquipment, type RawProfile } from './parse';
+import type { GearItem, Region } from '../types';
+import {
+  parseEquipment, parseProfile, parseItemInfo, parseKeystoneDungeon, parseJournalInstance,
+  parseJournalInstanceIndex, parseJournalEncounter,
+  type RawEquipment, type RawProfile, type RawItem, type RawKeystoneDungeon,
+  type RawJournalInstance, type RawJournalInstanceIndex, type RawJournalEncounter,
+} from './parse';
 import { createTokenSource } from './token';
-import type { CharacterProfile, CharacterRef, ItemDetails, PlayableClass, Realm } from './types';
+import type {
+  CharacterProfile, CharacterRef, ItemInfo, JournalEncounter, JournalInstance, JournalInstanceRef,
+  KeystoneDungeon, PlayableClass, Realm,
+} from './types';
 
 export interface BlizzardClient {
   getProfile(ref: CharacterRef): Promise<CharacterProfile>;
@@ -10,9 +18,13 @@ export interface BlizzardClient {
   getCharacterMedia(ref: CharacterRef): Promise<string | null>;
   getClassIconUrl(region: Region, classId: number): Promise<string | null>;
   getItemIconUrl(region: Region, itemId: number): Promise<string | null>;
-  getItemDetails(region: Region, itemId: number): Promise<ItemDetails | null>;
+  getItemDetails(region: Region, itemId: number): Promise<ItemInfo | null>;
   getRealms(region: Region): Promise<Realm[]>;
   getClasses(region: Region): Promise<PlayableClass[]>;
+  getKeystoneDungeon(region: Region, challengeModeId: number): Promise<KeystoneDungeon>;
+  getJournalInstances(region: Region): Promise<JournalInstanceRef[]>;
+  getJournalInstance(region: Region, id: number): Promise<JournalInstance>;
+  getJournalEncounter(region: Region, id: number): Promise<JournalEncounter>;
 }
 
 interface Options {
@@ -92,12 +104,27 @@ export function createBlizzardClient(options: Options): BlizzardClient {
 
     async getItemDetails(region, itemId) {
       try {
-        const item = await api<{ quality?: { type: string }; preview_item?: { set?: unknown } }>(region, `/data/wow/item/${itemId}`, 'static');
-        return { quality: (item.quality?.type as Quality | undefined) ?? null, isTier: Boolean(item.preview_item?.set) };
+        return parseItemInfo(await api<RawItem>(region, `/data/wow/item/${itemId}`, 'static'));
       } catch (err) {
         if (isHttpError(err) && err.status === 404) return null;
         throw err;
       }
+    },
+
+    async getKeystoneDungeon(region, challengeModeId) {
+      return parseKeystoneDungeon(await api<RawKeystoneDungeon>(region, `/data/wow/mythic-keystone/dungeon/${challengeModeId}`, 'dynamic'));
+    },
+
+    async getJournalInstances(region) {
+      return parseJournalInstanceIndex(await api<RawJournalInstanceIndex>(region, '/data/wow/journal-instance/index', 'static'));
+    },
+
+    async getJournalInstance(region, id) {
+      return parseJournalInstance(await api<RawJournalInstance>(region, `/data/wow/journal-instance/${id}`, 'static'));
+    },
+
+    async getJournalEncounter(region, id) {
+      return parseJournalEncounter(await api<RawJournalEncounter>(region, `/data/wow/journal-encounter/${id}`, 'static'));
     },
 
     getRealms(region) {

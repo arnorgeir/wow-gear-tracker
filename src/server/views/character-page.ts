@@ -2,8 +2,11 @@ import { type SnapshotItemInput } from '@/core/db/queries/snapshots';
 import { getCharacter } from '@/core/db/queries/characters';
 import { crestCostsByGroup } from '@/core/gear/crests';
 import { evaluateGear, type GearRow } from '@/core/gear/evaluate';
+import { choosePriorityList } from '@/core/priority/list';
+import { rankDungeons } from '@/core/priority/rank';
 import { decodeTrack } from '@/core/raidbots/tracks';
 import { ensureBisLists, ensureClassIcons, ensureItemIcons, ensureTracks } from '@/core/sync/reference-sync';
+import { readSeason } from '@/core/sync/season-sync';
 import { LIST_TYPES, type ListType, type SlotType } from '@/core/types';
 import type { Services } from '../services';
 import type { GearRowView, CharacterPageView } from './types';
@@ -35,7 +38,16 @@ export async function getCharacterPage(services: Services, id: number, listType?
   const gearRows = evaluate(list);
   const vaultItems = gear.simc?.items.filter((i) => i.location === 'vault') ?? [];
 
-  const iconIds = [...gear.equipped.map((g) => g.itemId), ...gearRows.map((r) => r.row.itemId), ...vaultItems.map((i) => i.itemId)];
+  const season = await readSeason(db, time);
+  const choice = choosePriorityList(bis.lists, character.priorityList);
+  const priorityRows = choice.listType === list ? gearRows : evaluate(choice.listType);
+  const ranks = rankDungeons(
+    [{ id, name: character.name, className: character.className, rows: priorityRows, equipped: gear.equipped, tracks }],
+    season.dungeons,
+  );
+  const creditItemIds = ranks.flatMap((d) => d.characters.flatMap((c) => c.credits.flatMap((cr) => (cr.kind === 'item' ? [cr.itemId] : []))));
+
+  const iconIds = [...gear.equipped.map((g) => g.itemId), ...gearRows.flatMap((r) => (r.row.kind === 'item' ? [r.row.itemId] : [])), ...vaultItems.map((i) => i.itemId), ...creditItemIds];
   const icons = await ensureItemIcons({ db, blizzard, now: time }, character.region, iconIds);
 
   const rows: GearRowView[] = gearRows.map((r) => ({
@@ -43,18 +55,22 @@ export async function getCharacterPage(services: Services, id: number, listType?
     slot: r.slot,
     state: r.state,
     equipped: r.equipped && itemView(r.equipped, icons, r.track),
-    bis: {
-      ...itemView({ itemId: r.row.itemId, name: r.row.name, itemLevel: null, quality: 'EPIC', bonusIds: r.row.bonusIds }, icons, null),
-      isTier: r.row.isTier,
-      isCatalyst: r.row.isCatalyst,
-      source: r.row.source,
-    },
+    bis: r.row.kind === 'item'
+      ? {
+          kind: 'item' as const,
+          ...itemView({ itemId: r.row.itemId, name: r.row.name, itemLevel: null, quality: 'EPIC', bonusIds: r.row.bonusIds }, icons, null),
+          isTier: r.row.isTier,
+          isCatalyst: r.row.isCatalyst,
+          source: r.row.source,
+        }
+      : { kind: 'any' as const, minItemLevel: r.row.minItemLevel, source: r.row.source },
     upgrade: upgradeFor(r, costs, gear.balances),
   }));
 
   const listRows = bis.lists?.[list] ?? [];
-  const isBis = (item: SnapshotItemInput) =>
-    listRows.some((r) => r.itemId === item.itemId || (r.isTier && item.isTier && r.slots.includes(item.slot as SlotType)));
+  const isBis = (item: SnapshotItemInput) => listRows.some((r) => r.kind === 'any'
+    ? r.slots.includes(item.slot as SlotType) && (item.itemLevel ?? 0) >= r.minItemLevel
+    : r.itemId === item.itemId || (r.isTier && item.isTier && r.slots.includes(item.slot as SlotType)));
   const vaultChoices = vaultItems.map((item) => ({ ...itemView(item, icons, decodeTrack(item.bonusIds, tracks)), isBis: isBis(item) }));
 
   const counts = Object.fromEntries(LIST_TYPES.map((l) => {
@@ -76,5 +92,23 @@ export async function getCharacterPage(services: Services, id: number, listType?
     bisError: bis.error,
     tracksError,
     specs,
+    priority: {
+      listType: choice.listType,
+      fellBack: choice.fellBack,
+      season: season.status,
+      needsSync: season.needsSync,
+      approximate: tracksError !== null,
+      dungeons: ranks.filter((d) => d.score > 0).map((d) => ({
+        challengeModeId: d.challengeModeId,
+        name: d.name,
+        score: d.score,
+        split: d.split,
+        credits: d.characters.flatMap((c) => c.credits).map((cr) => (cr.kind === 'item'
+          ? { kind: 'item' as const, slotLabel: cr.slotLabel, weight: cr.weight,
+              item: itemView({ itemId: cr.itemId, name: cr.name, itemLevel: null, quality: 'EPIC', bonusIds: cr.bonusIds }, icons, null) }
+          : cr)),
+      })),
+      nothingFrom: ranks.filter((d) => d.score === 0).map((d) => d.name),
+    },
   };
 }

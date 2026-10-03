@@ -22,7 +22,7 @@ export async function getItemIcons(db: Db, ids: number[]): Promise<Map<number, s
 export async function upsertItemDetails(db: Db, entries: ({ itemId: number } & ItemDetails)[], now: number) {
   await withWriteLock(db, async () => {
     for (const entry of entries) {
-      await db.insert(itemDetails).values({ ...entry, fetchedAt: now })
+      await db.insert(itemDetails).values({ itemId: entry.itemId, quality: entry.quality, isTier: entry.isTier, fetchedAt: now })
         .onConflictDoUpdate({ target: itemDetails.itemId, set: { quality: entry.quality, isTier: entry.isTier, fetchedAt: now } });
     }
   });

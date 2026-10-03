@@ -9,6 +9,8 @@ export type SlotType = (typeof SLOT_TYPES)[number];
 
 export type Quality = 'POOR' | 'COMMON' | 'UNCOMMON' | 'RARE' | 'EPIC' | 'LEGENDARY' | 'ARTIFACT' | 'HEIRLOOM';
 
+export type ArmorType = 'cloth' | 'leather' | 'mail' | 'plate';
+
 export type ListType = 'overall' | 'raid' | 'mythicPlus';
 export const LIST_TYPES: readonly ListType[] = ['overall', 'raid', 'mythicPlus'];
 
@@ -26,16 +28,10 @@ export interface GearItem {
   isTier: boolean;
 }
 
-export interface BisRow {
-  slotLabel: string;
-  slots: SlotType[];
-  itemId: number;
-  name: string;
-  bonusIds: number[];
-  isTier: boolean;
-  isCatalyst: boolean;
-  source: string;
-}
+interface BisRowBase { slotLabel: string; slots: SlotType[]; source: string }
+export interface BisItemRow extends BisRowBase { kind: 'item'; itemId: number; name: string; bonusIds: number[]; isTier: boolean; isCatalyst: boolean }
+export interface BisAnyRow extends BisRowBase { kind: 'any'; minItemLevel: number }
+export type BisRow = BisItemRow | BisAnyRow;
 
 export type BisLists = Record<ListType, BisRow[]>;
 
@@ -58,3 +54,7 @@ export interface Track {
 
 export type ItemState = 'missing' | 'inBags' | 'belowMyth' | 'mythUpgradable' | 'done';
 export const ITEM_STATES: readonly ItemState[] = ['done', 'mythUpgradable', 'belowMyth', 'inBags', 'missing'];
+
+export interface LootItem { itemId: number; inventoryType: string | null; armorType: ArmorType | null }
+/** One season dungeon and what it drops. `split` marks half of a dungeon credited with the whole instance's loot. */
+export interface SeasonLoot { challengeModeId: number; name: string; split: boolean; loot: LootItem[] }

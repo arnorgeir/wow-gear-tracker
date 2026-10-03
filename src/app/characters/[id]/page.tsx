@@ -2,11 +2,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CharacterAlerts } from '@/components/character-page/CharacterAlerts';
 import { CharacterHeader } from '@/components/character-page/CharacterHeader';
+import { DungeonPriority } from '@/components/character-page/DungeonPriority';
 import { GearTable } from '@/components/character-page/GearTable';
 import { ListTabs } from '@/components/character-page/ListTabs';
 import { VaultSection } from '@/components/character-page/VaultSection';
 import { CharacterSettings } from '@/components/character-settings/CharacterSettings';
 import { CrestSummary } from '@/components/crest-summary/CrestSummary';
+import { SeasonSync } from '@/components/season-sync/SeasonSync';
 import { SetupNotice } from '@/components/setup-notice/SetupNotice';
 import { SimcPaste } from '@/components/simc-paste/SimcPaste';
 import { StaleSync } from '@/components/stale-sync/StaleSync';
@@ -46,9 +48,15 @@ export default async function CharacterPage({ params, searchParams }: Props) {
       </section>
       <CharacterSettings id={view.id} specs={view.specs} spec={view.spec} activeSpec={view.activeSpec} priorityList={view.priorityList} />
       <ListTabs id={view.id} listType={view.listType} counts={view.counts} />
-      <GearTable rows={view.rows} tracksKnown={!view.tracksError} />
-      <VaultSection vault={view.vault} vaultChoices={view.vaultChoices} vaultChoicesAt={view.vaultChoicesAt} now={now} />
+      <div className="grid grid-cols-1 gap-8 min-[1380px]:grid-cols-[860px_minmax(0,1fr)] min-[1380px]:items-start">
+        <GearTable rows={view.rows} tracksKnown={!view.tracksError} />
+        <div className="flex flex-col gap-8">
+          <DungeonPriority priority={view.priority} specLabel={`${view.spec} ${view.className}`} />
+          <VaultSection vault={view.vault} vaultChoices={view.vaultChoices} vaultChoicesAt={view.vaultChoicesAt} now={now} />
+        </div>
+      </div>
       <StaleSync ids={view.status === 'ok' && isStale(view.lastSyncedAt, now) ? [view.id] : []} />
+      <SeasonSync region={view.region} needed={view.priority.needsSync} />
     </main>
   );
 }

@@ -11,12 +11,16 @@ export interface ItemView {
   trackLabel: string | null;
 }
 
+export type BisView =
+  | (ItemView & { kind: 'item'; isTier: boolean; isCatalyst: boolean; source: string })
+  | { kind: 'any'; minItemLevel: number; source: string };
+
 export interface GearRowView {
   slotLabel: string;
   slot: SlotType;
   state: ItemState;
   equipped: ItemView | null;
-  bis: ItemView & { isTier: boolean; isCatalyst: boolean; source: string };
+  bis: BisView;
   upgrade: UpgradeOption | null;
 }
 
@@ -64,6 +68,21 @@ export interface CharacterCardView extends CharacterSummary {
   upgradesReady: number;
 }
 
+export type PriorityCreditView =
+  | { kind: 'item'; slotLabel: string; weight: number; item: ItemView }
+  | { kind: 'tier'; slotLabel: string; weight: number }
+  | { kind: 'any'; slotLabel: string; weight: number; minItemLevel: number };
+export interface DungeonPriorityView { challengeModeId: number; name: string; score: number; split: boolean; credits: PriorityCreditView[] }
+export interface PriorityView {
+  listType: 'mythicPlus' | 'overall';
+  fellBack: boolean;
+  season: 'loading' | 'failed' | 'ready' | 'stale';
+  needsSync: boolean;
+  approximate: boolean;
+  dungeons: DungeonPriorityView[];
+  nothingFrom: string[];
+}
+
 export interface CharacterPageView extends CharacterSummary {
   listType: ListType;
   rows: GearRowView[];
@@ -76,4 +95,5 @@ export interface CharacterPageView extends CharacterSummary {
   bisError: string | null;
   tracksError: string | null;
   specs: string[];
+  priority: PriorityView;
 }

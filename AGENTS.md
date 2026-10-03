@@ -40,7 +40,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 - **`src/core` is plain TypeScript.** It never imports `next`, `react`, or anything from `src/app`, `src/components` or `src/server`. This keeps the option to move logic into a separate service later.
 - **`src/core` has three kinds of modules:**
   - Clients (`blizzard`, `method`, `raiderio`, `raidbots`) fetch and parse external data, and never touch the database.
-  - Logic (`gear`, `simc/parse`) is pure functions, with no network or database access.
+  - Logic (`gear`, `priority`, `simc/parse`) is pure functions, with no network or database access.
   - Sync (`sync`, `characters`, `simc/import-simc`) combines clients and the database, and receives both as parameters.
 - **`src/server` has three parts with distinct jobs:**
   - `services.ts` builds the one `Services` bundle and caches it on `globalThis`, so hot reloads reuse a single database connection and token cache. Reach it with `getServices()`, and never open a database or construct a client inside a page or route handler.
@@ -74,6 +74,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 - **Every write goes through `withWriteLock`** in `src/core/db/queries/write-lock.ts`. libsql's SQLite driver runs synchronously on the main thread: a write that waits on another connection's lock blocks the event loop, so the lock holder can never finish.
 - **Change the schema in `src/core/db/schema.ts`,** then run `npm run db:generate -- --name <name>`. Never edit a migration that's already committed.
 - **Cached Raidbots data is versioned.** When `upgrade_tracks` or `bonus_qualities` gain columns, bump the version in `TRACKS_META_KEY` in `src/core/sync/reference-sync.ts`, so installs refetch instead of trusting old rows for a day.
+- **Cached season loot is versioned the same way.** When `season_dungeons` or `dungeon_loot` gain columns, bump the version in `SEASON_META_KEY` in `src/core/sync/season-sync.ts`.
 - **In-memory test databases have one connection.** Don't run database reads in parallel with a write in the same code path. Run them in sequence.
 
 ## Errors and HTTP
@@ -90,6 +91,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 - **Method.gg has no API.** The parser reads its gearing page HTML. Some specs only have an Overall table, and some rows name no item ("Any 334").
 - **Raidbots `bonuses.json` decodes bonus IDs** into upgrade tracks like "Myth 3/6", upgrade costs, and item quality. Upgrade costs are keyed by track `group`, never by track name, because names repeat across seasons.
 - **Item quality comes from the equipped item,** or from bonus IDs for SimC items. Blizzard's item catalog only has base quality.
+- **Season loot joins by map ID.** Raider.IO gives each season dungeon a challenge mode ID only. Blizzard's keystone dungeon names its map, and the Encounter Journal instance with that map holds the loot. The two halves of a split dungeon, such as Tazavesh, share one journal instance, and the API doesn't say which boss belongs to which half.
 
 ## Testing rules
 

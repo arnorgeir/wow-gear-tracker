@@ -1,5 +1,5 @@
-import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import type { Faction, ItemLocation, ListType, Quality, Region, SlotType, SnapshotSource } from '../types';
+import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import type { ArmorType, Faction, ItemLocation, ListType, Quality, Region, SlotType, SnapshotSource } from '../types';
 
 export const characters = sqliteTable('characters', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -64,7 +64,10 @@ export const bisItems = sqliteTable('bis_items', {
   position: integer('position').notNull(),
   slotLabel: text('slot_label').notNull(),
   slots: text('slots', { mode: 'json' }).$type<SlotType[]>().notNull(),
-  itemId: integer('item_id').notNull(),
+  /** Null for an "Any" row, which names no item. */
+  itemId: integer('item_id'),
+  /** Set only for an "Any" row: the item level any item in the slot must reach. */
+  minItemLevel: integer('min_item_level'),
   name: text('name').notNull(),
   bonusIds: text('bonus_ids', { mode: 'json' }).$type<number[]>().notNull(),
   isTier: integer('is_tier', { mode: 'boolean' }).notNull(),
@@ -113,3 +116,24 @@ export const meta = sqliteTable('meta', {
   value: text('value').notNull(),
   updatedAt: integer('updated_at').notNull(),
 });
+
+/** The current season's Mythic+ dungeons. Exactly one season is stored; a new one replaces it. */
+export const seasonDungeons = sqliteTable('season_dungeons', {
+  challengeModeId: integer('challenge_mode_id').primaryKey(),
+  seasonSlug: text('season_slug').notNull(),
+  name: text('name').notNull(),
+  shortName: text('short_name').notNull(),
+  journalInstanceId: integer('journal_instance_id').notNull(),
+  mapId: integer('map_id').notNull(),
+});
+
+/** What each season dungeon drops, with slot and armor type for crediting tier and Any rows. */
+export const dungeonLoot = sqliteTable('dungeon_loot', {
+  challengeModeId: integer('challenge_mode_id').notNull().references(() => seasonDungeons.challengeModeId, { onDelete: 'cascade' }),
+  encounterId: integer('encounter_id').notNull(),
+  encounterName: text('encounter_name').notNull(),
+  itemId: integer('item_id').notNull(),
+  itemName: text('item_name').notNull(),
+  inventoryType: text('inventory_type'),
+  armorType: text('armor_type').$type<ArmorType>(),
+}, (t) => [primaryKey({ columns: [t.challengeModeId, t.encounterId, t.itemId] })]);

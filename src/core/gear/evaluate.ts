@@ -17,10 +17,15 @@ interface Input {
   bagItemIds?: ReadonlySet<number>;
 }
 
-const isMatch = (row: BisRow, item: GearItem | undefined) =>
-  item !== undefined && (row.isTier ? item.isTier : item.itemId === row.itemId);
+const isMatch = (row: BisRow, item: GearItem | undefined) => {
+  if (!item) return false;
+  if (row.kind === 'any') return item.itemLevel !== null && item.itemLevel >= row.minItemLevel;
+  return row.isTier ? item.isTier : item.itemId === row.itemId;
+};
 
 function stateFor(row: BisRow, matched: boolean, track: Track | null, bagItemIds: ReadonlySet<number>): ItemState {
+  // An "Any" row asks only for an item level, so track states and bags don't apply to it.
+  if (row.kind === 'any') return matched ? 'done' : 'missing';
   if (!matched) return !row.isTier && bagItemIds.has(row.itemId) ? 'inBags' : 'missing';
   if (!track) return 'done';
   if (track.name === 'Myth') return track.step >= track.max ? 'done' : 'mythUpgradable';

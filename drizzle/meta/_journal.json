@@ -36,6 +36,20 @@
       "when": 1790446989137,
       "tag": "0004_character-identity",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790732236221,
+      "tag": "0005_bis-any-rows",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1790790356282,
+      "tag": "0006_season-loot",
+      "breakpoints": true
     }
   ]
 }

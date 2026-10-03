@@ -1,5 +1,7 @@
-import { SLOT_TYPES, type GearItem, type Quality, type SlotType } from '../types';
-import type { CharacterProfile } from './types';
+import { SLOT_TYPES, type ArmorType, type GearItem, type Quality, type SlotType } from '../types';
+import type {
+  CharacterProfile, ItemInfo, JournalEncounter, JournalInstance, JournalInstanceRef, KeystoneDungeon,
+} from './types';
 
 export interface RawEquipment {
   equipped_items?: {
@@ -51,3 +53,43 @@ export function parseEquipment(raw: RawEquipment): GearItem[] {
       isTier: Boolean(item.set),
     }));
 }
+
+const ARMOR_CLASS_ID = 4;
+const ARMOR_SUBCLASS: Record<number, ArmorType> = { 1: 'cloth', 2: 'leather', 3: 'mail', 4: 'plate' };
+
+export interface RawItem {
+  quality?: { type: string };
+  preview_item?: { set?: unknown };
+  inventory_type?: { type: string };
+  item_class?: { id: number };
+  item_subclass?: { id: number };
+}
+
+/** Item details plus slot and armor type. Only armor (item class 4) has an armor type. */
+export function parseItemInfo(raw: RawItem): ItemInfo {
+  return {
+    quality: (raw.quality?.type as Quality | undefined) ?? null,
+    isTier: Boolean(raw.preview_item?.set),
+    inventoryType: raw.inventory_type?.type ?? null,
+    armorType: raw.item_class?.id === ARMOR_CLASS_ID ? (ARMOR_SUBCLASS[raw.item_subclass?.id ?? -1] ?? null) : null,
+  };
+}
+
+export interface RawKeystoneDungeon { name: string; map: { id: number; name: string } }
+export const parseKeystoneDungeon = (raw: RawKeystoneDungeon): KeystoneDungeon =>
+  ({ name: raw.name, mapId: raw.map.id, mapName: raw.map.name });
+
+export interface RawJournalInstanceIndex { instances?: { id: number; name: string }[] }
+export const parseJournalInstanceIndex = (raw: RawJournalInstanceIndex): JournalInstanceRef[] =>
+  (raw.instances ?? []).map(({ id, name }) => ({ id, name }));
+
+export interface RawJournalInstance { id: number; name: string; map?: { id: number }; encounters?: { id: number }[] }
+export const parseJournalInstance = (raw: RawJournalInstance): JournalInstance =>
+  ({ id: raw.id, name: raw.name, mapId: raw.map?.id ?? null, encounterIds: (raw.encounters ?? []).map((e) => e.id) });
+
+export interface RawJournalEncounter { id: number; name: string; items?: { item: { id: number; name: string } }[] }
+// The journal sometimes names an item twice for one encounter; the loot table keys on (dungeon, encounter, item).
+export const parseJournalEncounter = (raw: RawJournalEncounter): JournalEncounter => {
+  const items = new Map((raw.items ?? []).map((i) => [i.item.id, { itemId: i.item.id, name: i.item.name }]));
+  return { id: raw.id, name: raw.name, items: [...items.values()] };
+};

@@ -4,6 +4,7 @@ import { createMethodSource, methodSpecSlug, parseGearingHtml } from './method';
 import { fakeFetch, on } from '@/test/fake-fetch';
 
 const html = readFileSync(new URL('./__fixtures__/gearing.html', import.meta.url), 'utf8');
+const feral = readFileSync(new URL('./__fixtures__/feral-gearing.html', import.meta.url), 'utf8');
 
 describe('parseGearingHtml', () => {
   const lists = parseGearingHtml(html);
@@ -16,7 +17,7 @@ describe('parseGearingHtml', () => {
 
   it('flags tier and catalyst rows and cleans their text', () => {
     expect(lists.overall[0]).toEqual({
-      slotLabel: 'Head', slots: ['HEAD'], itemId: 271875, name: 'Gaze of the Coiled Watcher',
+      kind: 'item', slotLabel: 'Head', slots: ['HEAD'], itemId: 271875, name: 'Gaze of the Coiled Watcher',
       bonusIds: [], isTier: true, isCatalyst: true, source: 'Ula’tek',
     });
   });
@@ -37,6 +38,21 @@ describe('parseGearingHtml', () => {
 
   it('returns empty lists when the tables are missing', () => {
     expect(parseGearingHtml('<html></html>')).toEqual({ overall: [], raid: [], mythicPlus: [] });
+  });
+});
+
+describe('"Any" rows', () => {
+  const lists = parseGearingHtml(feral);
+
+  it('keeps an "Any <item level>" row and still skips the header', () => {
+    expect(lists.overall).toHaveLength(5);
+    expect(lists.overall[1]).toEqual({ kind: 'any', slotLabel: 'Shoulders', slots: ['SHOULDER'], minItemLevel: 334, source: '' });
+    expect(lists.overall.filter((r) => r.kind === 'any').map((r) => r.slotLabel)).toEqual(['Shoulders', 'Chest', 'Gloves', 'Boots']);
+    expect(lists.mythicPlus).toEqual([]);
+  });
+
+  it('still reads the named rows on the same page', () => {
+    expect(lists.overall[0]).toMatchObject({ kind: 'item', itemId: 271875, isTier: true });
   });
 });
 

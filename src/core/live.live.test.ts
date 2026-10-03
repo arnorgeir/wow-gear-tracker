@@ -3,6 +3,8 @@ import { createBlizzardClient } from './blizzard/client';
 import { readConfig } from './config';
 import { createMethodSource } from './method/method';
 import { createRaidbotsFetcher } from './raidbots/tracks';
+import { fetchMainSeason } from './raiderio/season';
+import { loadSeasonLoot } from './sync/season-sync';
 import type { Region } from './types';
 
 // Run with: node --env-file=.env ./node_modules/vitest/vitest.mjs run --config vitest.live.config.ts
@@ -37,4 +39,16 @@ describe('live services', () => {
     });
     expect(gear.length).toBeGreaterThan(5);
   });
+
+  it('this season’s dungeons still join to Encounter Journal loot by map ID', async () => {
+    const config = readConfig();
+    const blizzard = createBlizzardClient({ clientId: config.blizzardClientId, clientSecret: config.blizzardClientSecret });
+    const season = await fetchMainSeason(fetch, Date.now());
+    const data = await loadSeasonLoot(blizzard, (env.LIVE_TEST_REGION as Region) || 'eu', season);
+    expect(data.dungeons).toHaveLength(season.dungeons.length);
+    expect(data.loot.length).toBeGreaterThan(50);
+    expect(data.loot.some((l) => l.armorType !== null)).toBe(true);
+    const keys = data.loot.map((l) => `${l.challengeModeId}/${l.encounterId}/${l.itemId}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  }, 180_000);
 });
