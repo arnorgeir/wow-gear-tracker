@@ -20,7 +20,7 @@ describe('cellNote', () => {
 describe('needText', () => {
   it('names what is still needed, and nothing once the BiS item is worn', () => {
     expect(needText(row(named))).toBe('Need: Greathelm');
-    expect(needText(row({ ...named, isTier: true }))).toBe('Need: tier via catalyst');
+    expect(needText(row({ ...named, isTier: true }))).toBe('Need: Greathelm (tier, via catalyst)');
     expect(needText(row({ kind: 'any', minItemLevel: 334, source: '' }))).toBe('Need: any item, level 334+');
     expect(needText(row(named, 'done'))).toBeNull();
     expect(needText(row(named, 'inBags'))).toBe('Need: Greathelm, in your bags');
