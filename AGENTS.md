@@ -121,6 +121,7 @@ Plan: docs/superpowers/plans/<file>"
 
 ## Branches, commits and pull requests
 
+- **Branch from the latest `origin/main`, every time.** Before creating a branch, run `git fetch origin`, then branch with `git switch -c <name> origin/main`. A local `main` can be stale, and a branch cut from it carries old context and can conflict with pull requests that merged since. If a branch already exists and `origin/main` has moved, rebase it before you push or open the pull request. Never start from another feature branch unless the work depends on it, and say so in the pull request.
 - **Branch names are `<type>/<kebab-case-description>`,** where type is `feat`, `fix`, `chore` or `docs`. Name the work, not the issue number: `feat/character-identity`, `fix/add-bar-quickfixes`.
 - **Commit subjects are `type: lowercase imperative summary`,** with no trailing period. The types are `feat`, `fix`, `chore` and `docs`.
 - **Commit bodies are prose wrapped near 72 columns, and say why.** "The region select only shows two letters, so it's 80 px wide with less padding" beats a list of the files touched. Leave the body out when the subject already says everything.
