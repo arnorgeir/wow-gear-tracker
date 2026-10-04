@@ -107,6 +107,16 @@ describe('ensureTracks', () => {
     expect(result.tracks.get(1)?.group).toBe(618);
   });
 
+  it('stores crest icon names and refetches over a fresh v2 cache', async () => {
+    const db = await openTestDb();
+    await setMeta(db, 'tracks.v2.fetchedAt', '1', 1);
+    const withIcon = { ...data, tracks: [{ ...tracks[0]!, currencyId: 3446, currencyName: 'Myth Mistcrest', costPerStep: 20, currencyIcon: 'inv_121_crest_myth' }] };
+    let calls = 0;
+    const result = await ensureTracks({ db, fetchRaidbots: async () => { calls++; return withIcon; }, now: 2 });
+    expect(calls).toBe(1);
+    expect(result.tracks.get(1)?.currencyIcon).toBe('inv_121_crest_myth');
+  });
+
   it('reports missing track data and waits an hour before retrying', async () => {
     const db = await openTestDb();
     let calls = 0;

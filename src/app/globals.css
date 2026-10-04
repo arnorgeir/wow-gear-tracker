@@ -14,6 +14,14 @@
   --color-vault: #7fb4f0;
   --color-bags: #5fd6bd;
   --color-upgrade: #7be38a;
+  --color-missing: #f28b82;
+  --color-legacy: #d9a05b;
+  /* Upgrade track names, taken from the Mistcrest icons and brightened for the dark theme. */
+  --color-track-adventurer: #b9cf6a;
+  --color-track-veteran: #6fd365;
+  --color-track-champion: #b79fd9;
+  --color-track-hero: #e0bf5a;
+  --color-track-myth: #f2784b;
 }
 
 @theme inline {

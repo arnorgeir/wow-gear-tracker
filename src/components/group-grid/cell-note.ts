@@ -15,6 +15,6 @@ export function cellNote(state: GroupMemberState, hasRows: boolean): { text: str
 export function needText(cell: GearRowView): string | null {
   if (cell.state !== 'missing' && cell.state !== 'inBags') return null;
   if (cell.bis.kind === 'any') return `Need: any item, level ${cell.bis.minItemLevel}+`;
-  if (cell.bis.isTier) return 'Need: tier via catalyst';
+  if (cell.bis.isTier) return `Need: ${cell.bis.name} (tier, via catalyst)`;
   return cell.state === 'inBags' ? `Need: ${cell.bis.name}, in your bags` : `Need: ${cell.bis.name}`;
 }

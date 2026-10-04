@@ -49,6 +49,8 @@ export interface Track {
   group: number | null;
   currencyId: number | null;
   currencyName: string | null;
+  /** Wowhead's icon name for the crest currency, such as `inv_121_crest_myth`. Absent or null when unknown. */
+  currencyIcon?: string | null;
   costPerStep: number | null;
 }
 

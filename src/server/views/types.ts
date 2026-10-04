@@ -70,7 +70,7 @@ export interface CharacterCardView extends CharacterSummary {
 
 export type PriorityCreditView =
   | { kind: 'item'; slotLabel: string; weight: number; item: ItemView }
-  | { kind: 'tier'; slotLabel: string; weight: number }
+  | { kind: 'tier'; slotLabel: string; weight: number; item: ItemView }
   | { kind: 'any'; slotLabel: string; weight: number; minItemLevel: number };
 export interface DungeonPriorityView { challengeModeId: number; name: string; score: number; split: boolean; credits: PriorityCreditView[] }
 export interface PriorityView {

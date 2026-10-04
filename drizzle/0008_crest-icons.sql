@@ -1,0 +1,1 @@
+ALTER TABLE `upgrade_tracks` ADD `currency_icon` text;

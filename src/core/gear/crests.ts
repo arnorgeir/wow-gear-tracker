@@ -1,16 +1,20 @@
 import type { Track } from '../types';
+import { wowIconUrl } from '../wowhead/icons';
 
 export interface CrestCost {
   group: number;
   currencyId: number;
   currencyName: string;
   costPerStep: number;
+  iconUrl: string | null;
 }
 
 export interface UpgradeOption {
   steps: number;
+  currencyId: number;
   currencyName: string;
   costPerStep: number;
+  iconUrl: string | null;
 }
 
 export interface CrestBalance {
@@ -18,6 +22,7 @@ export interface CrestBalance {
   name: string;
   quantity: number;
   steps: number;
+  iconUrl: string | null;
 }
 
 /** One cost per upgrade track group. Every step of a track costs the same crest amount. */
@@ -30,6 +35,7 @@ export function crestCostsByGroup(tracks: Iterable<Track>): Map<number, CrestCos
       currencyId: track.currencyId,
       currencyName: track.currencyName ?? `Currency ${track.currencyId}`,
       costPerStep: track.costPerStep,
+      iconUrl: track.currencyIcon ? wowIconUrl(track.currencyIcon) : null,
     });
   }
   return costs;
@@ -42,7 +48,7 @@ export function affordableUpgrade(
   const cost = costs.get(track.group);
   if (!cost) return null;
   const steps = Math.min(track.max - track.step, Math.floor((balances.get(cost.currencyId) ?? 0) / cost.costPerStep));
-  return steps > 0 ? { steps, currencyName: cost.currencyName, costPerStep: cost.costPerStep } : null;
+  return steps > 0 ? { steps, currencyId: cost.currencyId, currencyName: cost.currencyName, costPerStep: cost.costPerStep, iconUrl: cost.iconUrl } : null;
 }
 
 export function summarizeCrests(balances: ReadonlyMap<number, number>, costs: ReadonlyMap<number, CrestCost>): CrestBalance[] {
@@ -53,7 +59,7 @@ export function summarizeCrests(balances: ReadonlyMap<number, number>, costs: Re
     const quantity = balances.get(cost.currencyId);
     if (quantity === undefined || seen.has(cost.currencyId)) continue;
     seen.add(cost.currencyId);
-    summary.push({ currencyId: cost.currencyId, name: cost.currencyName, quantity, steps: Math.floor(quantity / cost.costPerStep) });
+    summary.push({ currencyId: cost.currencyId, name: cost.currencyName, quantity, steps: Math.floor(quantity / cost.costPerStep), iconUrl: cost.iconUrl });
   }
   return summary;
 }

@@ -14,14 +14,16 @@ describe('DungeonPriority', () => {
     const html = render({
       ...base,
       dungeons: [{ challengeModeId: 501, name: 'Alpha Hollow', score: 7, split: false, credits: [
-        { kind: 'tier', slotLabel: 'Chest', weight: 4 },
+        { kind: 'tier', slotLabel: 'Chest', weight: 4,
+          item: { itemId: 80, name: 'Enigmatic Dreamwatcher’s Robe', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } },
         { kind: 'any', slotLabel: 'Shoulders', weight: 3, minItemLevel: 334 },
       ] }],
       nothingFrom: ['Beta Spire', 'Gamma Deep'],
     });
     expect(html).toContain('Mythic+ list');
     expect(html).toContain('Alpha Hollow');
-    expect(html).toContain('Tier via catalyst');
+    expect(html).toContain('Enigmatic Dreamwatcher’s Robe');
+    expect(html).toContain('Chest · tier via catalyst · weight 4');
     expect(html).toContain('Any item, level 334+');
     expect(html).toContain('Nothing you need from: Beta Spire, Gamma Deep.');
   });

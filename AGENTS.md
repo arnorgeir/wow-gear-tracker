@@ -110,6 +110,8 @@ Plan: docs/superpowers/plans/<file>"
 - **Raider.IO's character search (`/api/search`) is undocumented.** It only suggests characters. Official APIs confirm them. Map realms by Blizzard realm ID, never by Raider.IO's slug.
 - **Method.gg has no API.** The parser reads its gearing page HTML. Some specs only have an Overall table, and some rows name no item ("Any 334").
 - **Raidbots `bonuses.json` decodes bonus IDs** into upgrade tracks like "Myth 3/6", upgrade costs, and item quality. Upgrade costs are keyed by track `group`, never by track name, because names repeat across seasons.
+- **Wowhead's currency tooltip endpoint is undocumented.** `nether.wowhead.com/tooltip/currency/<id>` gives a crest's icon name, and only the name is stored; images are hotlinked from `wow.zamimg.com`. If it changes, crests fall back to their names.
+- **Wowhead's tooltip script only scans links.** `data-wowhead` on a `<button>` shows nothing, so a clickable cell puts the attribute on a link inside or over the button.
 - **Item quality comes from the equipped item,** or from bonus IDs for SimC items. Blizzard's item catalog only has base quality.
 - **Season loot joins by map ID.** Raider.IO gives each season dungeon a challenge mode ID only. Blizzard's keystone dungeon names its map, and the Encounter Journal instance with that map holds the loot. The two halves of a split dungeon, such as Tazavesh, share one journal instance, and the API doesn't say which boss belongs to which half.
 

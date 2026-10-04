@@ -5,6 +5,7 @@ import { readConfig } from '@/core/config';
 import { openDb, type Db } from '@/core/db/client';
 import { createMethodSource } from '@/core/method/method';
 import { createRaidbotsFetcher, type RaidbotsData } from '@/core/raidbots/tracks';
+import { createCurrencyIconFetcher, withCurrencyIcons } from '@/core/wowhead/currency';
 import { createCharacterSyncer, type CharacterSyncer } from '@/core/sync/character-sync';
 import type { BisSource } from '@/core/types';
 
@@ -29,7 +30,7 @@ async function build(): Promise<Services> {
     db,
     blizzard,
     bisSource: createMethodSource(),
-    fetchRaidbots: createRaidbotsFetcher(),
+    fetchRaidbots: withCurrencyIcons(createRaidbotsFetcher(), createCurrencyIconFetcher()),
     syncer: createCharacterSyncer({ db, blizzard }),
     now: Date.now,
     fetchFn: fetch,

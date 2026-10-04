@@ -19,9 +19,10 @@ const lists: BisLists = {
     { kind: 'item', slotLabel: 'Neck', slots: ['NECK'], itemId: 20, name: 'Best Neck', bonusIds: [1], isTier: false, isCatalyst: false, source: 'Dungeon B' },
   ],
 };
+const HERO_ICON = 'https://wow.zamimg.com/images/wow/icons/medium/inv_121_crest_hero.jpg';
 const tracks: Track[] = [
   { bonusId: 99, name: 'Hero', step: 5, max: 6, group: 617, currencyId: null, currencyName: null, costPerStep: null },
-  { bonusId: 98, name: 'Hero', step: 6, max: 6, group: 617, currencyId: 3445, currencyName: 'Hero Mistcrest', costPerStep: 20 },
+  { bonusId: 98, name: 'Hero', step: 6, max: 6, group: 617, currencyId: 3445, currencyName: 'Hero Mistcrest', currencyIcon: 'inv_121_crest_hero', costPerStep: 20 },
 ];
 const gear: GearItem[] = [
   { slot: 'HEAD', itemId: 11, name: 'Worn Tier Helm', itemLevel: 321, quality: 'EPIC', bonusIds: [], isTier: true },
@@ -119,8 +120,8 @@ describe('SimC data', () => {
     expect(page!.sourceAt).toBe(900);
     expect(page!.rows.map((r) => r.state)).toEqual(['done', 'belowMyth', 'inBags']);
     expect(page!.rows[0]!.upgrade).toBeNull();
-    expect(page!.rows[1]!.upgrade).toEqual({ steps: 1, currencyName: 'Hero Mistcrest', costPerStep: 20 });
-    expect(page!.crests).toEqual({ balances: [{ currencyId: 3445, name: 'Hero Mistcrest', quantity: 45, steps: 2 }], pastedAt: 900 });
+    expect(page!.rows[1]!.upgrade).toEqual({ steps: 1, currencyId: 3445, currencyName: 'Hero Mistcrest', costPerStep: 20, iconUrl: HERO_ICON });
+    expect(page!.crests).toEqual({ balances: [{ currencyId: 3445, name: 'Hero Mistcrest', quantity: 45, steps: 2, iconUrl: HERO_ICON }], pastedAt: 900 });
     expect(page!.vaultChoices.map((v) => [v.itemId, v.isBis])).toEqual([[20, true], [77, false]]);
     expect(page!.vaultChoicesAt).toBe(900);
 
@@ -196,6 +197,25 @@ describe('dungeon priority', () => {
       challengeModeId: 501, name: 'Alpha Hollow', score: 3, split: false,
       credits: [{ kind: 'item', slotLabel: 'Cloak', weight: 3, item: expect.objectContaining({ itemId: 30, iconUrl: 'https://i/30.jpg' }) }],
     }]);
+  });
+
+  it('credits a tier need with the tier piece and its icon', async () => {
+    const tierNeeds: BisLists = {
+      overall: [], raid: [],
+      mythicPlus: [{ kind: 'item', slotLabel: 'Chest', slots: ['CHEST'], itemId: 12, name: 'Tier Catalyst Robe', bonusIds: [], isTier: true, isCatalyst: true, source: 'Alpha Hollow' }],
+    };
+    const s = await services(tierNeeds);
+    const id = await seed(s);
+    await replaceSeason(s.db, {
+      slug: 'season-test-2',
+      dungeons: [{ challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11, imageUrl: null }],
+      loot: [{ challengeModeId: 501, encounterId: 1, encounterName: 'Hollow King', itemId: 40, itemName: 'Hollow Jerkin', inventoryType: 'CHEST', armorType: 'leather' }],
+    });
+    await setMeta(s.db, SEASON_META_KEY, 'season-test-2', 1000);
+    const page = await getCharacterPage(s, id);
+    expect(page!.priority.dungeons[0]!.credits).toEqual([
+      { kind: 'tier', slotLabel: 'Chest', weight: expect.any(Number), item: expect.objectContaining({ itemId: 12, name: 'Tier Catalyst Robe', iconUrl: 'https://i/12.jpg' }) },
+    ]);
   });
 
   it('asks for a sync and says loading before any season is stored', async () => {

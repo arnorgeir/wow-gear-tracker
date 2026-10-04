@@ -34,7 +34,7 @@ export async function getCharacterPage(services: Services, id: number, listType?
   const gearRows = list === choice.listType ? member.priorityRows : member.evaluate(list);
   const season = await readSeason(db, time);
   const ranks = rankDungeons([priorityCharacter(member, tracks)], season.dungeons);
-  const creditItemIds = ranks.flatMap((d) => d.characters.flatMap((c) => c.credits.flatMap((cr) => (cr.kind === 'item' ? [cr.itemId] : []))));
+  const creditItemIds = ranks.flatMap((d) => d.characters.flatMap((c) => c.credits.flatMap((cr) => (cr.kind === 'any' ? [] : [cr.itemId]))));
 
   const iconIds = [...gear.equipped.map((g) => g.itemId), ...gearRows.flatMap((r) => (r.row.kind === 'item' ? [r.row.itemId] : [])), ...member.vaultItems.map((i) => i.itemId), ...creditItemIds];
   const icons = await ensureItemIcons({ db, blizzard, now: time }, character.region, iconIds);

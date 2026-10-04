@@ -31,7 +31,7 @@ export function GroupMembers({ members, region, available, tracked }: Props) {
           <span key={m.key} className="flex h-12 items-center gap-2 rounded-full border border-line bg-surface-2 pl-1.5 pr-0.5">
             {m.character && <CharacterAvatar name={m.character.name} className={m.character.className} avatarUrl={m.character.avatarUrl} classIconUrl={m.character.classIconUrl} size={32} />}
             <span className="font-semibold" style={m.character ? { color: classTextColor(m.character.className) } : undefined}>{m.name}</span>
-            {m.character && <span className="text-sm text-muted">{m.character.spec}</span>}
+            {m.character && <span className="hidden text-sm text-muted sm:inline">{m.character.spec}</span>}
             <RemoveFromGroupButton memberKey={m.key} name={m.name} />
           </span>
         ))}

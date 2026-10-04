@@ -5,17 +5,17 @@ import type { PriorityCreditView, PriorityView } from '@/server/views/types';
 const LIST_NAMES = { mythicPlus: 'Mythic+ list', overall: 'Overall list' } as const;
 
 function Credit({ credit }: { credit: PriorityCreditView }) {
-  if (credit.kind === 'item') {
+  if (credit.kind !== 'any') {
+    const detail = credit.kind === 'tier' ? `${credit.slotLabel} · tier via catalyst · weight ${credit.weight}` : `${credit.slotLabel} · weight ${credit.weight}`;
     return (
       <ItemCard itemId={credit.item.itemId} name={credit.item.name} quality={credit.item.quality} iconUrl={credit.item.iconUrl}
-        bonusIds={credit.item.bonusIds} itemLevel={null} detail={`${credit.slotLabel} · weight ${credit.weight}`} />
+        bonusIds={credit.item.bonusIds} itemLevel={null} detail={detail} />
     );
   }
-  const what = credit.kind === 'tier' ? 'Tier via catalyst' : `Any item, level ${credit.minItemLevel}+`;
   return (
     <p className="text-[15px]">
       <span className="font-semibold">{credit.slotLabel}</span>
-      <span className="text-muted"> · {what} · weight {credit.weight}</span>
+      <span className="text-muted"> · Any item, level {credit.minItemLevel}+ · weight {credit.weight}</span>
     </p>
   );
 }

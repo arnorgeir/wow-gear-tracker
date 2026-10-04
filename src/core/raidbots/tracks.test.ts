@@ -18,8 +18,8 @@ describe('parseRaidbotsBonuses', () => {
     const tracks = parseRaidbotsBonuses(sample);
     expect(tracks).toHaveLength(2);
     expect(tracks).toEqual(expect.arrayContaining([
-      { bonusId: 12850, name: 'Myth', step: 2, max: 6, group: 618, currencyId: 3446, currencyName: 'Myth Mistcrest', costPerStep: 20 },
-      { bonusId: 12833, name: 'Champion', step: 1, max: 6, group: 616, currencyId: null, currencyName: null, costPerStep: null },
+      { bonusId: 12850, name: 'Myth', step: 2, max: 6, group: 618, currencyId: 3446, currencyName: 'Myth Mistcrest', currencyIcon: null, costPerStep: 20 },
+      { bonusId: 12833, name: 'Champion', step: 1, max: 6, group: 616, currencyId: null, currencyName: null, currencyIcon: null, costPerStep: null },
     ]));
   });
 });

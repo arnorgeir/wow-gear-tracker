@@ -61,7 +61,7 @@ describe('rankDungeons', () => {
     ];
     const ranks = rankDungeons([three], dungeons);
     expect(scores(ranks)).toEqual([['Alpha Hollow', 4], ['Beta Spire', 0], ['Gamma Deep', 0]]);
-    expect(ranks[0]!.characters[0]!.credits).toEqual([{ kind: 'tier', slotLabel: 'CHEST', weight: 4 }]);
+    expect(ranks[0]!.characters[0]!.credits).toEqual([{ kind: 'tier', slotLabel: 'CHEST', weight: 4, itemId: 80, name: 'BiS 80', bonusIds: [] }]);
     const four = character([named(['CHEST'], 80, true)], [gear('CHEST', 81, 3), ...tierPieces, gear('LEGS', 93, undefined, true)]);
     expect(rankDungeons([four], dungeons)[0]!.score).toBe(2);
   });
