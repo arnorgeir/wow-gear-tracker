@@ -4,6 +4,7 @@ import type { CharacterCardView } from '@/server/views/types';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { classTextColor } from '@/components/shared/class-colors';
 import { RemoveCharacterButton } from '@/components/remove-character-button/RemoveCharacterButton';
+import { CrestChip } from '@/components/crest-chip/CrestChip';
 import { crestLine } from './crest-line';
 
 export function CharacterCard({ card, now }: { card: CharacterCardView; now: number }) {
@@ -47,7 +48,10 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
             {counts.done} done, {counts.mythUpgradable} need crests, {counts.belowMyth} vault targets
             {counts.inBags > 0 ? `, ${counts.inBags} in bags` : ''}
           </span>
-          <span className={`text-sm ${crests.tone}`}>{crests.text}</span>
+          <span className="flex flex-wrap items-center gap-1.5">
+            {crests.balances.map((b) => <CrestChip key={b.currencyId} balance={b} />)}
+            <span className={`text-sm ${crests.tone}`}>{crests.text}</span>
+          </span>
         </div>
       ) : (
         <p className="text-sm text-muted">{card.bisError ?? 'Loading BiS list…'}</p>
