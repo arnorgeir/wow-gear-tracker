@@ -34,7 +34,7 @@ export function GroupCell({ cell, tracksKnown, slotLabel, memberName, character 
     : <span aria-hidden="true" className="block size-[34px] rounded-md border-2 border-dashed border-line-strong sm:size-9" />;
   return (
     <>
-      <div className="relative flex min-h-[80px] min-w-0 flex-col items-center gap-1 rounded-lg border border-line bg-surface-2 px-0.5 py-1.5 sm:min-h-[68px] sm:flex-row sm:gap-2.5 sm:px-2.5 sm:py-2"
+      <div className="relative flex min-h-[80px] min-w-0 flex-col items-center gap-1 rounded-lg border border-line bg-surface-2 px-0.5 py-1.5 sm:min-h-[68px] sm:flex-row sm:gap-2 sm:px-2 sm:py-2"
         style={tone ? ROW_TONE_STYLES[tone] : undefined}>
         <button ref={button} type="button" popoverTarget={id} title={hover} aria-label={cellLabel(memberName, slotLabel, cell)}
           className="absolute inset-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold" />
