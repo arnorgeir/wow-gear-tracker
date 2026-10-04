@@ -8,7 +8,7 @@ export function DungeonCard({ dungeon, rank }: { dungeon: GroupDungeonView; rank
   return (
     <article className="flex min-w-0 flex-col gap-3 rounded-xl border border-line-strong bg-raised p-3">
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="w-6 shrink-0 font-mono text-muted">{rank}</span>
+        <span className="w-9 shrink-0 text-center font-mono text-3xl font-bold text-ink">{rank}</span>
         <DungeonThumbnail imageUrl={dungeon.imageUrl} shortName={dungeon.shortName} />
         <h3 className="min-w-0 flex-1 basis-40 font-display text-lg font-bold wrap-anywhere">{dungeon.name}</h3>
         <p className="ml-auto font-mono text-gold"><span className="font-sans text-xs text-muted">Score</span> {dungeon.score}</p>
