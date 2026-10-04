@@ -33,8 +33,8 @@ export function GroupPriority({ priority }: { priority: GroupPriorityView }) {
   return (
     <section aria-label="Dungeon priority" className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="font-display text-2xl font-bold">Dungeon priority</h2>
-        <span className="text-sm text-muted">Score = weighted upgrades</span>
+        <h2 className="font-display text-xl font-bold">Dungeon priority</h2>
+        <span className="text-xs text-muted">Score = weighted upgrades</span>
       </div>
       {partial && <p className="text-sm text-muted">Covers {names(priority.covered)}. Left out: {excludedText(priority.excluded)}.</p>}
       {priority.fellBack.map((n) => <p key={n} className="text-sm text-muted">{n} uses the Overall list: Method has no Mythic+ list for that spec.</p>)}

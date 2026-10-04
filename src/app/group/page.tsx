@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { GroupEditsProvider } from '@/components/group-edits/GroupEditsProvider';
 import { GroupGrid } from '@/components/group-grid/GroupGrid';
+import { GroupLayout } from '@/components/group-layout/GroupLayout';
 import { GroupMembers } from '@/components/group-members/GroupMembers';
 import { GroupPriority } from '@/components/group-priority/GroupPriority';
 import { GroupVault } from '@/components/group-vault/GroupVault';
@@ -17,6 +18,9 @@ import { getGroupPage } from '@/server/views/group-page';
 import { resolveGroupRequest } from '@/server/views/group-page-params';
 
 export const dynamic = 'force-dynamic';
+
+// Below xl the Dungeons and Vault panels are boxes of their own; at xl they sit inside the rail's box.
+const PANEL_BOX = 'rounded-2xl border border-line bg-surface p-4 xl:rounded-none xl:border-0 xl:bg-transparent xl:p-0';
 
 type Props = { searchParams: Promise<{ chars?: string | string[] }> };
 
@@ -36,7 +40,7 @@ export default async function GroupPage({ searchParams }: Props) {
   const now = services.now();
 
   return (
-    <main className="mx-auto flex max-w-[1440px] flex-col gap-8 px-4 py-12 sm:px-16">
+    <main className="mx-auto flex max-w-[1440px] flex-col gap-8 px-4 py-12 sm:px-8 2xl:px-16">
       <GroupEditsProvider keys={view.keys}>
         <div className="flex flex-col gap-4">
           <h1 className="font-display text-4xl font-bold tracking-wide">Group</h1>
@@ -48,14 +52,12 @@ export default async function GroupPage({ searchParams }: Props) {
         {view.members.length === 0 ? (
           <p className="text-muted">Pick up to five characters to compare their gear and rank dungeons for the group.</p>
         ) : (
-          <>
-            <StateLegend />
-            <GroupGrid members={view.members} grid={view.grid} tracksKnown={view.tracksKnown} />
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
-              <GroupPriority priority={view.priority} />
-              <GroupVault vault={view.vault} now={now} />
-            </div>
-          </>
+          <GroupLayout
+            dungeonCount={view.priority.ranking?.dungeons.length ?? 0}
+            gear={<div className="flex flex-col gap-4"><StateLegend /><GroupGrid members={view.members} grid={view.grid} tracksKnown={view.tracksKnown} /></div>}
+            dungeons={<div className={PANEL_BOX}><GroupPriority priority={view.priority} /></div>}
+            vault={<div className={PANEL_BOX}><GroupVault vault={view.vault} now={now} /></div>}
+          />
         )}
       </GroupEditsProvider>
       <RememberGroup keys={view.keys} />

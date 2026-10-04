@@ -6,7 +6,7 @@ import type { GroupVaultView } from '@/server/views/types';
 
 export function GroupVault({ vault, now }: { vault: GroupVaultView[]; now: number }) {
   return (
-    <section aria-label="Great Vault" className="flex flex-col gap-5 rounded-2xl border border-line bg-surface p-5">
+    <section aria-label="Great Vault" className="flex flex-col gap-5">
       <h2 className="font-display text-2xl font-bold">Great Vault</h2>
       {vault.map((v) => (
         <div key={v.key} className="flex flex-col gap-2">
