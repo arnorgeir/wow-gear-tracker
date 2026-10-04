@@ -1,6 +1,6 @@
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { FACTION_TEXT, FactionBadge } from '@/components/faction-badge/FactionBadge';
-import { classColor } from '@/components/shared/class-colors';
+import { classColor, classTextColor } from '@/components/shared/class-colors';
 import type { SearchResult } from './use-character-search';
 
 interface Props {
@@ -26,11 +26,11 @@ export function SearchResults({ results, busy, isTracked, onPick, onManual }: Pr
               {r.faction && <span className="absolute -bottom-1.5 -right-1.5"><FactionBadge faction={r.faction} /></span>}
             </span>
             <span className="grow text-[17px]">
-              <strong className="font-semibold">{r.name}</strong><span className="text-muted"> - {r.realmName}</span>
+              <strong className="font-semibold" style={{ color: classTextColor(r.className) }}>{r.name}</strong><span className="text-muted"> - {r.realmName}</span>
               {isTracked(r) && <span className="ml-2 text-xs font-semibold text-muted">Added</span>}
             </span>
             <span className="flex flex-col items-end">
-              <span className="text-sm font-semibold" style={{ color: classColor(r.className) }}>{r.className}</span>
+              <span className="text-sm font-semibold" style={{ color: classTextColor(r.className) }}>{r.className}</span>
               {r.faction && <span className="text-xs font-semibold" style={{ color: FACTION_TEXT[r.faction].color }}>{FACTION_TEXT[r.faction].label}</span>}
             </span>
           </button>

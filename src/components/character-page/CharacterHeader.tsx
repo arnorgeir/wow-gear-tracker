@@ -1,7 +1,7 @@
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { RefreshButton } from '@/components/refresh-button/RefreshButton';
 import { RemoveCharacterButton } from '@/components/remove-character-button/RemoveCharacterButton';
-import { classColor } from '@/components/shared/class-colors';
+import { classTextColor } from '@/components/shared/class-colors';
 import { formatAge } from '@/core/format';
 import type { CharacterPageView } from '@/server/views/types';
 
@@ -14,9 +14,9 @@ export function CharacterHeader({ view, now }: { view: CharacterPageView; now: n
       <div className="flex items-center gap-4">
         <CharacterAvatar name={view.name} className={view.className} avatarUrl={view.avatarUrl} classIconUrl={view.classIconUrl} size={76} />
         <div className="flex flex-col">
-          <h1 className="font-display text-4xl font-bold tracking-wide">{view.name}</h1>
+          <h1 className="font-display text-4xl font-bold tracking-wide" style={{ color: classTextColor(view.className) }}>{view.name}</h1>
           <span className="text-muted">{view.realmName} ({view.region.toUpperCase()})</span>
-          <span className="font-semibold" style={{ color: classColor(view.className) }}>{view.identity}</span>
+          <span className="font-semibold" style={{ color: classTextColor(view.className) }}>{view.identity}</span>
         </div>
       </div>
       <div className="flex items-center gap-3">
