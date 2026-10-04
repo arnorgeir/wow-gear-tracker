@@ -30,11 +30,30 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 
 ## How work flows
 
-1. Ideas live as GitHub issues on the **Gear Tracker** project board.
+1. Ideas live as GitHub issues on the **Gear Tracker** project board. "Issue board" below says how they move.
 2. Anything bigger than a small fix gets a design spec in `docs/superpowers/specs/`, then an implementation plan in `docs/superpowers/plans/`.
 3. The spec is the authority. When a plan and the spec disagree, the spec wins.
 4. Work happens on a branch named `feat/<description>`, `fix/<description>`, `chore/<description>` or `docs/<description>`, and reaches `main` through a pull request. `main` is protected: CI must pass, and a review is required.
 5. `docs/workflow.md` says who does each step, on which model, and how work passes between steps.
+6. **Every step ends with a "Next" block:** the next step's name, who runs it, and a one-line prompt that starts it, as `docs/workflow.md` describes. The owner copies the prompt instead of looking up the flow.
+
+## Issue board
+
+- **Labels say which feature an issue belongs to.** Every issue gets an `area:` label: `group`, `character`, `dungeons`, `transmog`, `accounts`, or `app` for cross-cutting work. An issue that spans two features carries both. `gh issue list --label "area: group"` gathers one feature's issues.
+- **Board fields say the rest.** **Layer** names the part of the stack an issue touches, **Size** how big it is (XS and S count as minor), and **Status** where it stands.
+- **Status follows the work:** Backlog, Needs spec, Speccing, Ready, In progress, In review, Done. `docs/workflow.md` says which step sets which status. Closing an issue moves it to Done on its own.
+- **Starting a step claims its issues.** Before anything else, read each issue's assignees. If anyone other than the `gh` user running the session is assigned, stop and ask the owner. Otherwise assign the issue to yourself and set the step's status. When a request names a group of issues, such as "the minor group issues", list them for the owner before claiming them.
+- **A committed plan is linked from its issues.** When the plan is committed, comment on each issue it covers with the spec and plan paths, and move the issue to Ready.
+
+```sh
+gh api user --jq .login                                      # the gh user running this session
+gh issue view 64 --json assignees --jq '.assignees[].login'
+gh issue edit 64 --add-assignee @me
+gh project item-add 1 --owner arnorgeir --url https://github.com/arnorgeir/wow-gear-tracker/issues/64   # in case it isn't on the board yet
+gh project item-edit 1 --owner arnorgeir --url https://github.com/arnorgeir/wow-gear-tracker/issues/64 --field Status --value Speccing
+gh issue comment 64 --body "Spec: docs/superpowers/specs/<file>
+Plan: docs/superpowers/plans/<file>"
+```
 
 ## Architecture rules
 

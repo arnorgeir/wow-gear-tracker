@@ -6,23 +6,51 @@ The project rules in `AGENTS.md` apply to every step and both agents. Both of th
 
 ## The flow for a feature
 
-| Step | Who | Model | Output |
-|---|---|---|---|
-| 1. Brainstorm and spec | Claude | Opus | `docs/superpowers/specs/<date>-<name>-design.md`, approved by the owner and committed |
-| 2. Spec review | Codex | GPT-6 Astra, Medium | `docs/reviews/<spec-name>.md` |
-| 3. Resolve spec findings and plan | Claude | Opus | Spec findings resolved in the committed spec, then `docs/superpowers/plans/<date>-<name>.md` written and committed |
-| 4. Implement | Claude | Sonnet | A branch, implemented inline from the plan with TDD, the full gate green, pushed, and a pull request |
-| 5. Pull request review | Codex | GPT-6 Astra, Medium | `docs/reviews/pr-<N>.md` |
-| 6. Fixes and hand checks | Claude, with owner for manual checks | Sonnet | Fix commits pushed to the same branch, hand-check results and gaps recorded in the pull request's Testing section |
-| 7. Re-review | Codex | GPT-6 Astra, Light | Material fixes reviewed against the latest commit; repeat steps 6 and 7 until findings are resolved |
-| 8. Merge | Owner | | Required checks green on the final commit, then a merge commit, never a squash |
+| Step | Who | Model | Board status | Output |
+|---|---|---|---|---|
+| 1. `spec`: brainstorm and spec | Claude | Opus | Speccing | `docs/superpowers/specs/<date>-<name>-design.md`, approved by the owner and committed |
+| 2. `spec-review` | Codex | GPT-6 Astra, Medium | Speccing | `docs/reviews/<spec-name>.md` |
+| 3. `plan`: resolve spec findings and plan | Claude | Opus | Speccing, then Ready | Spec findings resolved in the committed spec, then `docs/superpowers/plans/<date>-<name>.md` written and committed, and linked from each issue it covers |
+| 4. `implement` | Claude | Sonnet | In progress, then In review | A branch, implemented inline from the plan with TDD, the full gate green, pushed, and a pull request |
+| 5. `pr-review` | Codex | GPT-6 Astra, Medium | In review | `docs/reviews/pr-<N>.md` |
+| 6. `fix`: fixes and hand checks | Claude, with owner for manual checks | Sonnet | In review | Fix commits pushed to the same branch, hand-check results and gaps recorded in the pull request's Testing section |
+| 7. `re-review` | Codex | GPT-6 Astra, Light | In review | Material fixes reviewed against the latest commit; repeat `fix` and `re-review` until findings are resolved |
+| 8. Merge | Owner | | Done, on its own when the pull request closes the issue | Required checks green on the final commit, then a merge commit, never a squash |
 
-- **Small fixes skip steps 1 to 3.** Anything that doesn't need a spec (see `AGENTS.md`, "How work flows") goes straight to implementation and pull request review.
+- **A step sets its status when it starts,** after claiming the issues as `AGENTS.md` ("Issue board") describes. `plan` moves the issues to Ready when the plan is committed, and `implement` moves them to In review when it opens the pull request.
+- **Small fixes skip steps 1 to 3.** Anything that doesn't need a spec (see `AGENTS.md`, "How work flows") goes from Backlog or Ready straight to `implement` and `pr-review`.
 - **The plan's review is optional.** Add a Codex review of the plan only when the plan is large or risky.
 - **Resolve spec review findings before planning.** Update and commit the spec when a finding changes it. Ask the owner to approve it again only when scope or intended behavior changes; clarifications can proceed without another sign-off.
 - **The owner approves the spec and merges the pull request.** Apart from changes to the approved scope or intended behavior, nothing else needs a sign-off in between.
 - **Claude owns the hand-check checklist and records the results.** Claude runs checks it can perform locally; the owner runs any manual checks assigned to them. Keep unfinished checks explicit in the pull request's Testing section.
 - **Checks apply to the final commit.** After fixes, rerun typecheck, lint and tests, plus build when pages or components changed. Required CI must pass on the final commit before merge.
+
+## Handing off between steps
+
+Start a step with its name and the issue or pull request it works on:
+
+```
+Run workflow step spec for #63 and #66.
+Run workflow step pr-review for PR #72.
+```
+
+The agent reads this page for what the step involves, then finds the rest on GitHub: the issue, the spec and plan linked from it, and the pull request.
+
+Every step ends with a **Next** block, so the owner never has to look up the flow:
+
+```
+Next: spec-review, Codex (GPT-6 Astra, Medium), new session
+> Run workflow step spec-review for #64. Spec: docs/superpowers/specs/2026-10-04-reorder-members-design.md
+```
+
+- **Name the step, who runs it, and the model,** and say whether it needs a new session. Between phases it always does (see "Keeping usage down").
+- **Put everything the next step can't find on its own into the prompt:** the spec path before the plan links it, the branch, or review findings for a cloud session.
+- **Say first when the owner has to act before the next step,** such as approving the spec, running hand checks or merging.
+- **Pick the branch after a review.** After `pr-review` or `re-review`, the next step is `fix` when findings remain or required hand checks are still open, such as the live API and browser checks a cloud `implement` leaves for a local session. The next step is merge only when no findings remain and the required checks are done and recorded in the pull request's Testing section. The owner's own checks still go to the owner first, as the previous point says.
+
+## Using one agent
+
+The "Who" column is the owner's setup, not a requirement. A contributor with only Claude Code or only Codex runs every step with it, and picks that tool's closest model tier from the table. Keep the reviews independent: run `spec-review`, `pr-review` and `re-review` in a fresh session that didn't write what it reviews, and on a different model when one is available.
 
 ## Codex model settings
 
@@ -75,4 +103,4 @@ Claude Code cloud sessions run on separate credits. Use them for work that needs
 - **Implementing a finished plan.** A cloud session on Sonnet works on its own branch, runs typecheck, lint, tests and build, pushes, and opens the pull request. Live API checks and hand checks against a copy of `data/app.db` stay local, and the pull request says they are still open.
 - **A deep review of a risky pull request,** such as hosting or login.
 
-A cloud session starts from what is on GitHub, so push the branch first. Include any needed review findings and other non-sensitive handoff context that isn't committed in its prompt. Never include credentials, `.env` contents or private database data; checks that need them stay local.
+Start one from claude.ai/code or the Claude app with the same prompt a local step would get, such as `Run workflow step implement for #64.` It doesn't need the owner's PC to be on. A cloud session starts from what is on GitHub, so push the branch first. Include any needed review findings and other non-sensitive handoff context that isn't committed in its prompt. Never include credentials, `.env` contents or private database data; checks that need them stay local.
