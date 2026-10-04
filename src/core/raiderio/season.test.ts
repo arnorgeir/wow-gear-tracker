@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { fakeFetch, json, on } from '@/test/fake-fetch';
-import { fetchMainSeason, pickMainSeason, type RawSeason } from './season';
+import { artworkUrl, fetchMainSeason, pickMainSeason, type RawSeason } from './season';
 
 const now = Date.parse('2026-09-30T12:00:00Z');
 const season = (slug: string, isMain: boolean, starts: Record<string, string | null>, dungeons: RawSeason['dungeons'] = []): RawSeason =>
   ({ slug, name: slug, is_main_season: isMain, starts, dungeons });
-const dungeons: RawSeason['dungeons'] = [{ challenge_mode_id: 501, name: 'Alpha Hollow', short_name: 'AH' }];
+const ART = 'https://cdn.raiderio.net/images/dungeons/expansion11/base/alpha-hollow.jpg';
+const dungeons: RawSeason['dungeons'] = [{ challenge_mode_id: 501, name: 'Alpha Hollow', short_name: 'AH', background_image_url: ART }];
 
 describe('pickMainSeason', () => {
   it('takes the newest main season that has started in any region', () => {
@@ -16,7 +17,7 @@ describe('pickMainSeason', () => {
       season('season-test-3', true, { eu: '2026-12-01T04:00:00Z' }),
       season('season-test-4', true, { eu: null }),
     ], now);
-    expect(picked).toEqual({ slug: 'season-test-2', name: 'season-test-2', dungeons: [{ challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH' }] });
+    expect(picked).toEqual({ slug: 'season-test-2', name: 'season-test-2', dungeons: [{ challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: ART }] });
   });
 
   it('returns null when no main season has started', () => {
@@ -48,5 +49,35 @@ describe('fetchMainSeason', () => {
   it('fails when Raider.IO lists no started main season', async () => {
     const { fn } = fakeFetch([on('static-data', () => json({ seasons: [] }))]);
     await expect(fetchMainSeason(fn, now)).rejects.toThrow('no started main Mythic+ season');
+  });
+});
+
+describe('artworkUrl', () => {
+  it('keeps an HTTPS URL on Raider.IO’s CDN unchanged', () => {
+    expect(artworkUrl(ART)).toBe(ART);
+  });
+
+  it.each([
+    ['missing', undefined],
+    ['null', null],
+    ['a number', 42],
+    ['empty', ''],
+    ['malformed', 'not a url'],
+    ['HTTP', 'http://cdn.raiderio.net/images/a.jpg'],
+    ['credential-bearing', 'https://user:pw@cdn.raiderio.net/images/a.jpg'],
+    ['another host', 'https://evil.example/images/a.jpg'],
+    ['a lookalike host', 'https://cdn.raiderio.net.evil.example/a.jpg'],
+  ])('turns %s into null', (_label, value) => {
+    expect(artworkUrl(value)).toBeNull();
+  });
+});
+
+describe('pickMainSeason artwork', () => {
+  it('keeps a dungeon whose artwork is unusable, with null artwork', () => {
+    const picked = pickMainSeason([season('season-test-2', true, { eu: '2026-08-19T04:00:00Z' }, [
+      { challenge_mode_id: 502, name: 'Streets of Beta', short_name: 'STRT', background_image_url: 'http://cdn.raiderio.net/x.jpg' },
+      { challenge_mode_id: 503, name: 'Beta Gambit', short_name: 'GMBT' },
+    ])], now);
+    expect(picked!.dungeons.map((d) => [d.challengeModeId, d.imageUrl])).toEqual([[502, null], [503, null]]);
   });
 });

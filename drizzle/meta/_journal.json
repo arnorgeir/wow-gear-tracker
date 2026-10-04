@@ -50,6 +50,13 @@
       "when": 1790790356282,
       "tag": "0006_season-loot",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791069005070,
+      "tag": "0007_season-artwork",
+      "breakpoints": true
     }
   ]
 }

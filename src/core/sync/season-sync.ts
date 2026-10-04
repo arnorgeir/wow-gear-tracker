@@ -2,7 +2,7 @@ import type { BlizzardClient } from '../blizzard/client';
 import type { JournalInstance } from '../blizzard/types';
 import type { Db } from '../db/client';
 import { getMeta, setMeta } from '../db/queries/meta';
-import { getSeasonLoot, replaceSeason, type DungeonLootRow, type SeasonData, type SeasonDungeonRow } from '../db/queries/season';
+import { getSeasonLoot, replaceSeason, updateSeasonArtwork, type DungeonLootRow, type SeasonData, type SeasonDungeonRow } from '../db/queries/season';
 import type { FetchFn } from '../http';
 import { fetchMainSeason, type MainSeason } from '../raiderio/season';
 import type { Region, SeasonLoot } from '../types';
@@ -10,7 +10,7 @@ import { DAY_MS } from './reference-sync';
 
 // The version in the key marks the stored tables' format. Bump it when season_dungeons or
 // dungeon_loot gain columns, so installs reload the season instead of trusting old rows.
-export const SEASON_META_KEY = 'season.v1';
+export const SEASON_META_KEY = 'season.v2';
 const SEASON_FAILED_META_KEY = 'season.failedAt';
 const SEASON_RETRY_MS = 60 * 60 * 1000;
 
@@ -44,7 +44,7 @@ export async function loadSeasonLoot(blizzard: BlizzardClient, region: Region, s
       if (loaded.mapId === keystone.mapId) { instance = loaded; break; }
     }
     if (!instance) throw new Error(`No Encounter Journal instance has the map of ${d.name}`);
-    dungeons.push({ challengeModeId: d.challengeModeId, name: d.name, shortName: d.shortName, journalInstanceId: instance.id, mapId: keystone.mapId, encounterIds: instance.encounterIds });
+    dungeons.push({ challengeModeId: d.challengeModeId, name: d.name, shortName: d.shortName, imageUrl: d.imageUrl, journalInstanceId: instance.id, mapId: keystone.mapId, encounterIds: instance.encounterIds });
   }
 
   const encounterIds = [...new Set(dungeons.flatMap((d) => d.encounterIds))];
@@ -65,7 +65,7 @@ export async function loadSeasonLoot(blizzard: BlizzardClient, region: Region, s
     }));
   }));
   const rows: SeasonDungeonRow[] = dungeons.map((d) => ({
-    challengeModeId: d.challengeModeId, name: d.name, shortName: d.shortName, journalInstanceId: d.journalInstanceId, mapId: d.mapId,
+    challengeModeId: d.challengeModeId, name: d.name, shortName: d.shortName, imageUrl: d.imageUrl, journalInstanceId: d.journalInstanceId, mapId: d.mapId,
   }));
   return { slug: season.slug, dungeons: rows, loot };
 }
@@ -77,6 +77,8 @@ async function runSync({ db, blizzard, fetchFn, now, region }: SeasonSyncDeps): 
   try {
     const season = await fetchMainSeason(fetchFn, now);
     if (loaded?.value === season.slug) {
+      // Same season: only artwork can have moved, so refresh it without rebuilding loot.
+      await updateSeasonArtwork(db, season.slug, season.dungeons);
       await setMeta(db, SEASON_META_KEY, season.slug, now);
       return 'current';
     }

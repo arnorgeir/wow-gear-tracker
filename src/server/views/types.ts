@@ -117,7 +117,7 @@ export interface GroupMemberView {
 }
 export interface GroupGridRow { slot: SlotType; label: string; cells: (GearRowView | null)[] }
 export interface GroupMemberCreditsView { key: string; name: string; className: string; avatarUrl: string | null; classIconUrl: string | null; credits: PriorityCreditView[] }
-export interface GroupDungeonView { challengeModeId: number; name: string; score: number; split: boolean; members: GroupMemberCreditsView[] }
+export interface GroupDungeonView { challengeModeId: number; name: string; shortName: string; imageUrl: string | null; score: number; split: boolean; members: GroupMemberCreditsView[] }
 export interface GroupPriorityView {
   season: 'loading' | 'failed' | 'ready' | 'stale';
   approximate: boolean;

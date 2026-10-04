@@ -1,10 +1,10 @@
-import { asc } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import type { Db } from '../client';
 import { dungeonLoot, seasonDungeons } from '../schema';
 import type { ArmorType, SeasonLoot } from '../../types';
 import { withWriteLock } from './write-lock';
 
-export interface SeasonDungeonRow { challengeModeId: number; name: string; shortName: string; journalInstanceId: number; mapId: number }
+export interface SeasonDungeonRow { challengeModeId: number; name: string; shortName: string; journalInstanceId: number; mapId: number; imageUrl: string | null }
 export interface DungeonLootRow {
   challengeModeId: number;
   encounterId: number;
@@ -33,8 +33,23 @@ export async function getSeasonLoot(db: Db): Promise<SeasonLoot[]> {
   return dungeons.map((d) => ({
     challengeModeId: d.challengeModeId,
     name: d.name,
+    shortName: d.shortName,
+    imageUrl: d.imageUrl,
     split: dungeons.some((x) => x !== d && x.journalInstanceId === d.journalInstanceId),
     loot: loot.filter((l) => l.challengeModeId === d.challengeModeId)
       .map((l) => ({ itemId: l.itemId, inventoryType: l.inventoryType, armorType: l.armorType })),
+  }));
+}
+
+/**
+ * Refreshes stored artwork for the season already loaded, so a corrected URL reaches existing
+ * installs without reloading loot. Rows it doesn't name keep theirs; it never adds a row.
+ */
+export async function updateSeasonArtwork(db: Db, slug: string, art: { challengeModeId: number; imageUrl: string | null }[]): Promise<void> {
+  await withWriteLock(db, () => db.transaction(async (tx) => {
+    for (const a of art) {
+      await tx.update(seasonDungeons).set({ imageUrl: a.imageUrl })
+        .where(and(eq(seasonDungeons.challengeModeId, a.challengeModeId), eq(seasonDungeons.seasonSlug, slug)));
+    }
   }));
 }

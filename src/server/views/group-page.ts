@@ -7,6 +7,7 @@ import { ensureBisLists, ensureClassIcons, ensureItemIcons, ensureTracks, type B
 import { readSeason } from '@/core/sync/season-sync';
 import type { Services } from '../services';
 import { alignGrid, exclusionReason, memberState } from './group-grid';
+import { dungeonArt } from './dungeon-art';
 import { creditView, loadMember, priorityCharacter, rowView, vaultChoicesFor, type MemberData } from './member';
 import { crestView } from './summarize';
 import type { GroupMemberView, GroupPageView } from './types';
@@ -89,6 +90,7 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
         dungeons: ranks.filter((d) => d.score > 0).map((d) => ({
           challengeModeId: d.challengeModeId,
           name: d.name,
+          ...dungeonArt(season.dungeons, d.challengeModeId),
           score: d.score,
           split: d.split,
           members: d.characters.map((c) => {
