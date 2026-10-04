@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LEGACY_HINT, detailParts, trackDisplay, trackText } from './track-label';
+import { NO_TRACK_HINT, detailParts, trackDisplay, trackText } from './track-label';
 
 describe('trackDisplay', () => {
   it('colors each current track by its name', () => {
@@ -10,13 +10,18 @@ describe('trackDisplay', () => {
     expect(trackDisplay('Myth 6/6', true).className).toBe('text-track-myth');
   });
 
-  it('calls an item that matches no current track Legacy, but only when the tracks are known', () => {
-    expect(trackDisplay(null, true)).toEqual({ text: 'Legacy', className: 'text-legacy italic', hint: LEGACY_HINT });
+  it('says No track for an item that matches no track, whether or not the track data loaded, and never names a season', () => {
+    for (const known of [true, false]) {
+      const display = trackDisplay(null, known);
+      expect(display.text).toBe('No track');
+      expect(display.text).not.toMatch(/legacy|last season|earlier/i);
+    }
   });
 
-  it('claims nothing about the season when the track data is unavailable', () => {
+  it('only highlights it, with a hedged hint, while the track data is loaded', () => {
+    expect(trackDisplay(null, true)).toEqual({ text: 'No track', className: 'text-legacy italic', hint: NO_TRACK_HINT });
+    expect(NO_TRACK_HINT).toMatch(/often/i);
     expect(trackDisplay(null, false)).toEqual({ text: 'No track', className: 'text-muted', hint: undefined });
-    expect(trackDisplay('Myth 6/6', false).className).toBe('text-track-myth');
   });
 
   it('leaves a track it does not know uncolored', () => {
@@ -25,17 +30,15 @@ describe('trackDisplay', () => {
 });
 
 describe('trackText', () => {
-  it('is the label, or Legacy / No track by whether the tracks are known', () => {
-    expect(trackText('Hero 2/6', true)).toBe('Hero 2/6');
-    expect(trackText(null, true)).toBe('Legacy');
-    expect(trackText(null, false)).toBe('No track');
+  it('is the label, or No track', () => {
+    expect(trackText('Hero 2/6')).toBe('Hero 2/6');
+    expect(trackText(null)).toBe('No track');
   });
 });
 
 describe('detailParts', () => {
   it('splits a leading track off the rest of an item card detail', () => {
     expect(detailParts('Myth 1/6 · 318')).toEqual({ lead: 'Myth 1/6', className: 'text-track-myth', rest: ' · 318' });
-    expect(detailParts('Legacy · 289')).toEqual({ lead: 'Legacy', className: 'text-legacy italic', rest: ' · 289' });
   });
 
   it('colors nothing in a detail that does not start with a track', () => {

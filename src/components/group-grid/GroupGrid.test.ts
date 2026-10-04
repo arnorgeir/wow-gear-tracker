@@ -75,19 +75,20 @@ describe('GroupGrid', () => {
     expect(html).not.toMatch(/<button[^>]*data-wowhead/);
   });
 
-  it('calls an equipped item with no current-season track Legacy, with a hint', () => {
+  it('says No track for an equipped item on no track, with a hedged hint, and never claims a season', () => {
     const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ equipped: { ...equipped, trackLabel: null } })] }]);
-    expect(html).toContain('>Legacy<');
-    expect(html).not.toContain('no track');
-    expect(html).toContain('title="Not on a current season upgrade track, so it is likely from an earlier season"');
+    expect(html).toContain('>No track<');
+    expect(html).not.toContain('Legacy');
+    expect(html).toContain('title="Not on a current season upgrade track. Often an item from an earlier season."');
   });
 
-  it('does not call an item Legacy when the track data is unavailable, or when nothing is equipped', () => {
+  it('shows no hint when the track data is unavailable, and no track at all when nothing is equipped', () => {
     const m = [member({ character: summary(3, 'Birkibjörn') })];
     const unknown = render(m, [{ slot: 'HEAD', label: 'Head', cells: [cell({ equipped: { ...equipped, trackLabel: null } })] }], false);
     expect(unknown).not.toContain('Legacy');
     expect(unknown).toContain('>No track<');
     expect(unknown).not.toContain('earlier season');
+    expect(unknown).not.toContain('text-legacy');
     const empty = render(m, [{ slot: 'HEAD', label: 'Head', cells: [cell({ equipped: null, state: 'missing' })] }]);
     expect(empty).not.toContain('Legacy');
     expect(empty).not.toContain('No track');

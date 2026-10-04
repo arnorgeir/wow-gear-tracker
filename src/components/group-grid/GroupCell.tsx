@@ -26,7 +26,7 @@ export function GroupCell({ cell, tracksKnown, slotLabel, memberName, character 
   const word = stateWord(cell.state, cell.bis.kind === 'item' && cell.bis.isTier);
   const eq = cell.equipped;
   const track = trackDisplay(eq ? eq.trackLabel : null, tracksKnown);
-  // Hovering shows what the cell still needs; a Legacy item also says what that means.
+  // Hovering shows what the cell still needs; an item on no track also says what that means.
   const hover = [needText(cell), eq && eq.trackLabel === null ? track.hint ?? null : null].filter(Boolean).join('. ') || undefined;
   const q = eq ? QUALITY_STYLES[eq.quality] ?? QUALITY_STYLES.COMMON : null;
   const icon = eq?.iconUrl

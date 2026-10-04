@@ -23,7 +23,7 @@ export function GearTable({ rows, tracksKnown }: { rows: GearRowView[]; tracksKn
           {row.equipped ? (
             <ItemCard itemId={row.equipped.itemId} name={row.equipped.name} quality={row.equipped.quality} iconUrl={row.equipped.iconUrl}
               bonusIds={row.equipped.bonusIds} itemLevel={row.equipped.itemLevel}
-              detail={[trackText(row.equipped.trackLabel, tracksKnown), row.equipped.itemLevel].filter(Boolean).join(' · ')} />
+              detail={[trackText(row.equipped.trackLabel), row.equipped.itemLevel].filter(Boolean).join(' · ')} />
           ) : <EmptySlotCard />}
           <BisTarget row={row} />
           <div className="flex flex-col gap-1.5">
