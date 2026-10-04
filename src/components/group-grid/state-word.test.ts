@@ -7,7 +7,7 @@ describe('stateWord', () => {
     expect(stateWord('mythUpgradable', false)).toEqual({ word: 'Crests', className: 'text-crest' });
     expect(stateWord('belowMyth', false)).toEqual({ word: 'Vault', className: 'text-vault' });
     expect(stateWord('inBags', false)).toEqual({ word: 'Bags', className: 'text-bags' });
-    expect(stateWord('missing', false)).toEqual({ word: 'Need', className: 'text-muted' });
+    expect(stateWord('missing', false)).toEqual({ word: 'Need', className: 'text-missing' });
   });
 
   it('says Need tier for a missing tier piece, and only for missing', () => {

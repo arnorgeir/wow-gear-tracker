@@ -69,7 +69,8 @@ describe('GroupPriority', () => {
     expect(html.indexOf('Alpha Hollow')).toBeLessThan(html.indexOf('Streets of Beta'));
     expect(html.match(/<h3/g)).toHaveLength(2);
     expect(html).toContain('<span class="sr-only">Score </span>8');
-    expect(html).toContain('Score = weighted upgrades');
+    expect(html).toContain('title="Score = weighted upgrades"');
+    expect(html).not.toContain('>Score = weighted upgrades<');
   });
 
   it('shows a lazy decorative thumbnail, or the short-name tile without one', () => {

@@ -6,5 +6,5 @@ export const STATE_LABELS: Record<ItemState, { text: string; className: string }
   mythUpgradable: { text: 'Upgrade with crests', className: 'text-crest' },
   belowMyth: { text: 'Great Vault target', className: 'text-vault' },
   inBags: { text: 'BiS in bags', className: 'text-bags' },
-  missing: { text: 'Missing', className: 'text-muted' },
+  missing: { text: 'Missing', className: 'text-missing' },
 };

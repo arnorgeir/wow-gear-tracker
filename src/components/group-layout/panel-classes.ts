@@ -1,5 +1,5 @@
 export type GroupView = 'gear' | 'dungeons' | 'vault';
-export interface PanelClasses { gear: string; rail: string; dungeons: string; vault: string; railDungeonsPressed: boolean }
+export interface PanelClasses { legend: string; gear: string; rail: string; dungeons: string; vault: string; railDungeonsPressed: boolean }
 
 /**
  * One view state drives both layouts. Below xl only the chosen panel shows; at xl the grid always
@@ -8,6 +8,7 @@ export interface PanelClasses { gear: string; rail: string; dungeons: string; va
  */
 export function panelClasses(view: GroupView): PanelClasses {
   return {
+    legend: view === 'gear' ? 'block' : 'hidden xl:block',
     gear: view === 'gear' ? 'block' : 'hidden xl:block',
     rail: view === 'gear' ? 'hidden xl:flex' : 'flex',
     dungeons: view === 'vault' ? 'hidden' : view === 'gear' ? 'hidden xl:block' : 'block',

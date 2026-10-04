@@ -4,7 +4,7 @@ import { ROW_TONE_STYLES, rowTone } from '@/components/shared/row-tone';
 import { StateBadge } from '@/components/state-badge/StateBadge';
 import { UpgradeBadge } from '@/components/upgrade-badge/UpgradeBadge';
 import type { GearRowView } from '@/server/views/types';
-import { BisTarget } from './BisTarget';
+import { BisTarget } from '@/components/bis-target/BisTarget';
 
 export function GearTable({ rows, tracksKnown }: { rows: GearRowView[]; tracksKnown: boolean }) {
   return (
@@ -22,7 +22,7 @@ export function GearTable({ rows, tracksKnown }: { rows: GearRowView[]; tracksKn
           {row.equipped ? (
             <ItemCard itemId={row.equipped.itemId} name={row.equipped.name} quality={row.equipped.quality} iconUrl={row.equipped.iconUrl}
               bonusIds={row.equipped.bonusIds} itemLevel={row.equipped.itemLevel}
-              detail={[row.equipped.trackLabel ?? 'no track', row.equipped.itemLevel].filter(Boolean).join(' · ')} />
+              detail={[row.equipped.trackLabel ?? 'Legacy', row.equipped.itemLevel].filter(Boolean).join(' · ')} />
           ) : <EmptySlotCard />}
           <BisTarget row={row} />
           <div className="flex flex-col gap-1.5">

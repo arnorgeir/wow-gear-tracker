@@ -12,8 +12,15 @@ describe('CrestChip', () => {
     const html = render(myth);
     expect(html).toContain('src="https://wow.zamimg.com/images/wow/icons/medium/inv_121_crest_myth.jpg"');
     expect(html).toContain('>85<');
-    expect(html).toContain('title="Myth Mistcrest: 85, 4 steps"');
+    expect(html).toContain('data-wowhead="currency=3446"');
     expect(html).toContain('<span class="sr-only">Myth Mistcrest: 85, 4 steps</span>');
+  });
+
+  it('links to the Wowhead currency, so hovering shows its tooltip with the crest name', () => {
+    const html = render(myth);
+    expect(html).toContain('href="https://www.wowhead.com/currency=3446"');
+    expect(html).toContain('data-wowhead="currency=3446"');
+    expect(html).not.toContain('title=');
   });
 
   it('falls back to the first word of the name without an icon', () => {

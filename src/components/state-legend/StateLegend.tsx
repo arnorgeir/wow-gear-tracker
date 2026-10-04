@@ -3,7 +3,7 @@ const LEGEND = [
   ['bg-crest', 'Upgrade with crests'],
   ['bg-vault', 'Great Vault target'],
   ['bg-bags', 'BiS in bags'],
-  ['bg-line', 'Missing'],
+  ['bg-missing', 'Missing'],
 ] as const;
 
 export function StateLegend() {

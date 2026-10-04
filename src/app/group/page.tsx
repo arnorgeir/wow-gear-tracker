@@ -54,7 +54,8 @@ export default async function GroupPage({ searchParams }: Props) {
         ) : (
           <GroupLayout
             dungeonCount={view.priority.ranking?.dungeons.length ?? 0}
-            gear={<div className="flex flex-col gap-4"><StateLegend /><GroupGrid members={view.members} grid={view.grid} tracksKnown={view.tracksKnown} /></div>}
+            legend={<StateLegend />}
+            gear={<GroupGrid members={view.members} grid={view.grid} tracksKnown={view.tracksKnown} />}
             dungeons={<div className={PANEL_BOX}><GroupPriority priority={view.priority} /></div>}
             vault={<div className={PANEL_BOX}><GroupVault vault={view.vault} now={now} /></div>}
           />

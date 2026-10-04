@@ -6,10 +6,10 @@ import { panelClasses, type GroupView } from './panel-classes';
 const TAB = 'flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg font-bold';
 const tabTone = (on: boolean) => (on ? 'bg-raised text-ink' : 'text-muted');
 
-interface Props { gear: ReactNode; dungeons: ReactNode; vault: ReactNode; dungeonCount: number }
+interface Props { legend: ReactNode; gear: ReactNode; dungeons: ReactNode; vault: ReactNode; dungeonCount: number }
 
 /** Tabs below xl, the grid beside a sticky rail at xl. The panels are server-rendered slots. */
-export function GroupLayout({ gear, dungeons, vault, dungeonCount }: Props) {
+export function GroupLayout({ legend, gear, dungeons, vault, dungeonCount }: Props) {
   const [view, setView] = useState<GroupView>('gear');
   const c = panelClasses(view);
   const tabs: [GroupView, string][] = [['gear', 'Gear'], ['dungeons', 'Dungeons'], ['vault', 'Vault']];
@@ -23,6 +23,7 @@ export function GroupLayout({ gear, dungeons, vault, dungeonCount }: Props) {
           </button>
         ))}
       </div>
+      <div className={c.legend}>{legend}</div>
       <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
         <div className={`${c.gear} min-w-0 xl:flex-1`}>{gear}</div>
         <aside className={`${c.rail} flex-col xl:sticky xl:top-6 xl:max-h-[calc(100dvh-3rem)] xl:w-[380px] xl:shrink-0 xl:gap-3 xl:rounded-2xl xl:border xl:border-line xl:bg-surface xl:p-4`}>

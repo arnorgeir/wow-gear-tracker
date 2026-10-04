@@ -1,5 +1,6 @@
 import type { Quality } from '@/core/types';
 import { QUALITY_STYLES } from './quality-styles';
+import { detailParts } from '@/components/shared/track-label';
 import { wowheadData } from './wowhead';
 
 interface ItemCardProps {
@@ -29,8 +30,18 @@ export function ItemCard({ itemId, name, quality, iconUrl, bonusIds, itemLevel, 
         : <span className="size-[42px] shrink-0 rounded-md border-2 bg-surface-2" style={{ borderColor: q.ring }} />}
       <span className="flex min-w-0 grow flex-col gap-0.5">
         <span className="truncate text-[15px] font-semibold" style={{ color: q.text }}>{name}</span>
-        {detail && <span className="truncate font-mono text-[13px] text-muted">{detail}</span>}
+        {detail && <Detail detail={detail} />}
       </span>
     </a>
+  );
+}
+
+/** The detail line, with a leading upgrade track in its color. */
+function Detail({ detail }: { detail: string }) {
+  const { lead, className, rest } = detailParts(detail);
+  return (
+    <span className="truncate font-mono text-[13px] text-muted">
+      {lead && <span className={className}>{lead}</span>}{rest}
+    </span>
   );
 }

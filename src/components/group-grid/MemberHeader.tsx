@@ -18,7 +18,7 @@ export function MemberHeader({ member }: { member: GroupMemberView }) {
         member.crests.balances.length > 0
           ? <div className="flex min-w-0 max-w-full flex-col items-center gap-1 sm:flex-row sm:flex-wrap">{member.crests.balances.map((b) => <CrestChip key={b.currencyId} balance={b} />)}</div>
           : <span className="text-xs text-muted">No crests</span>
-      ) : <Link href={`/characters/${c.id}`} className="text-xs">No SimC</Link>}
+      ) : <Link href={`/characters/${c.id}`} className="text-xs">Import SimC</Link>}
       {member.listType === 'overall' && (
         <span className="text-xs text-muted" title={member.fellBack ? 'Method has no Mythic+ list for this spec' : undefined}>Overall list</span>
       )}

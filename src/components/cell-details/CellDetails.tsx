@@ -1,11 +1,13 @@
 'use client';
 
 import { useRef, type RefObject, type SyntheticEvent } from 'react';
+import { BisTarget } from '@/components/bis-target/BisTarget';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { needText } from '@/components/group-grid/cell-note';
 import { QUALITY_STYLES } from '@/components/item-card/quality-styles';
 import { wowheadData } from '@/components/item-card/wowhead';
 import { classTextColor } from '@/components/shared/class-colors';
+import { trackDisplay } from '@/components/shared/track-label';
 import { StateBadge } from '@/components/state-badge/StateBadge';
 import { UpgradeBadge } from '@/components/upgrade-badge/UpgradeBadge';
 import type { CharacterSummary, GearRowView } from '@/server/views/types';
@@ -29,7 +31,8 @@ export function CellDetails({ id, anchor, cell, slotLabel, character, memberName
   };
   const eq = cell.equipped;
   const q = eq ? QUALITY_STYLES[eq.quality] ?? QUALITY_STYLES.COMMON : null;
-  const need = needText(cell);
+  const needed = needText(cell) !== null;
+  const track = trackDisplay(eq ? eq.trackLabel : null);
   return (
     <div ref={ref} id={id} popover="auto" onToggle={onToggle}
       className="fixed inset-x-3 top-auto bottom-3 m-0 max-h-[70dvh] w-auto overflow-y-auto rounded-xl border border-line-strong bg-surface p-3 text-ink shadow-2xl sm:inset-auto sm:w-80">
@@ -53,14 +56,23 @@ export function CellDetails({ id, anchor, cell, slotLabel, character, memberName
             <a href={`https://www.wowhead.com/item=${eq.itemId}`} data-wowhead={wowheadData(eq.itemId, eq.bonusIds, eq.itemLevel)} target="_blank" rel="noreferrer"
               className="font-semibold wrap-anywhere no-underline" style={{ color: q!.text }}>{eq.name}</a>
           ) : <span className="text-muted">Nothing equipped</span>}
-          {eq && <span className="font-mono text-[13px] text-muted">{[eq.trackLabel ?? 'no track', eq.itemLevel].filter(Boolean).join(' · ')}</span>}
+          {eq && (
+            <span className="font-mono text-[13px] text-muted" title={track.hint}>
+              <span className={track.className}>{track.text}</span>{eq.itemLevel ? ` · ${eq.itemLevel}` : ''}
+            </span>
+          )}
         </div>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <StateBadge state={cell.state} />
         {cell.upgrade && <UpgradeBadge upgrade={cell.upgrade} />}
       </div>
-      {need && <p className="mt-2 text-sm wrap-anywhere text-[#cfc7b8]">{need}</p>}
+      {needed && (
+        <div className="mt-3 flex flex-col gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted">Needed</span>
+          <BisTarget row={cell} />
+        </div>
+      )}
     </div>
   );
 }

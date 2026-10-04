@@ -48,13 +48,15 @@ describe('GroupGrid', () => {
   it('shows crests as chips and labels the Overall list', () => {
     const crests = { balances: [{ currencyId: 3446, name: 'Myth Mistcrest', quantity: 85, steps: 4, iconUrl: null }], pastedAt: 0 };
     const html = render([member({ listType: 'overall', fellBack: true, crests, character: summary(3, 'Birkibjörn') })], []);
-    expect(html).toContain('title="Myth Mistcrest: 85, 4 steps"');
+    expect(html).toContain('data-wowhead="currency=3446"');
     expect(html).toContain('Overall list');
     expect(html).toContain('title="Birkibjörn"');
   });
 
   it('asks for a paste when a member has no crests yet', () => {
-    expect(render([member({ character: summary(3, 'Birkibjörn') })], [])).toContain('No SimC');
+    const html = render([member({ character: summary(3, 'Birkibjörn') })], []);
+    expect(html).toContain('Import SimC');
+    expect(html).not.toContain('No SimC');
   });
 
   it('makes each cell a button with a full label, a state word and its own details card', () => {
@@ -64,13 +66,47 @@ describe('GroupGrid', () => {
     expect(html).toMatch(/<button[^>]*popoverTarget="[^"]+"/);
     expect(html).toContain('>Crests<');
     expect(html).toContain('popover="auto"');
-    expect(html).toContain('Myth 2/6 · 321');
+    expect(html).toContain('>Myth 2/6</span> · 321');
   });
 
   it('puts the Wowhead tooltip on the icon link, which Wowhead can scan, not on the button', () => {
     const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({})] }]);
     expect(html).toMatch(/<a[^>]*data-wowhead="item=271528[^"]*"/);
     expect(html).not.toMatch(/<button[^>]*data-wowhead/);
+  });
+
+  it('calls an equipped item with no current-season track Legacy, with a hint', () => {
+    const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ equipped: { ...equipped, trackLabel: null } })] }]);
+    expect(html).toContain('>Legacy<');
+    expect(html).not.toContain('no track');
+    expect(html).toContain('title="Not on a current season upgrade track, so it is from an earlier season"');
+  });
+
+  it('colors the track by name', () => {
+    const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({})] }]);
+    expect(html).toMatch(/text-track-myth[^>]*>Myth 2[/]6</);
+  });
+
+  it('shows what is needed when hovering a cell that still needs something', () => {
+    const missing = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'missing', bis: { kind: 'item', ...equipped, name: 'Greathelm of Temptation', isTier: false, isCatalyst: false, source: 'Kings’ Rest' } })] }]);
+    expect(missing).toMatch(/<button[^>]*title="Need: Greathelm of Temptation"/);
+    const done = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'done' })] }]);
+    expect(done).not.toMatch(/<button[^>]*title=/);
+  });
+
+  it('shows the needed item as a card in the details, like the gear overview, and not when nothing is needed', () => {
+    const bis = { kind: 'item' as const, ...equipped, itemId: 251126, name: 'Greathelm of Temptation', isTier: false, isCatalyst: false, source: 'Kings’ Rest' };
+    const missing = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'missing', bis })] }]);
+    expect(missing).toContain('Needed');
+    expect(missing).toContain('href="https://www.wowhead.com/item=251126"');
+    expect(missing).toContain('Kings’ Rest');
+    const done = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'done' })] }]);
+    expect(done).not.toContain('Needed');
+  });
+
+  it('colors the Need word and the Missing badge so they stand out', () => {
+    const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'missing' })] }]);
+    expect(html).toMatch(/text-missing[^>]*>Need</);
   });
 
   it('says Need tier for a missing tier piece, and the card names the piece', () => {
