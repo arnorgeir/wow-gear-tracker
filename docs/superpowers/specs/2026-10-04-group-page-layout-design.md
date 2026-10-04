@@ -74,7 +74,7 @@ The state words are short forms of today's `StateBadge` wording, in a new pure f
 | `mythUpgradable` | Crests | Upgrade with crests |
 | `belowMyth` | Vault | Great Vault target |
 | `inBags` | Bags | BiS in bags |
-| `missing` | Need | Missing |
+| `missing` | Need, or Need tier when the BiS row is a tier piece | Missing |
 
 The word always follows the state. When tracks are unknown (`tracksKnown` false), the cell drops its tone as it does today, and the word still shows.
 
@@ -102,7 +102,7 @@ A new `cell-details/CellDetails.tsx` opens when a cell is pressed. It shows:
 - the full `ItemCard`, the Wowhead link with its tooltip
 - `StateBadge`
 - `UpgradeBadge` when the item can be upgraded now
-- the need line from today's `needText`
+- the need line from today's `needText`, except that a tier need names the piece: "Need: Enigmatic Dreamwatcher's Plumage (tier, via catalyst)"
 - a close button
 
 It uses the native `popover` attribute, so it renders in the top layer, never clipped by the grid's scroll box, and the browser gives Escape and light dismiss. At `sm` and up it is placed beside the pressed cell, from the cell's `getBoundingClientRect` when it opens, and kept inside the viewport. Below `sm` it is fixed to the bottom of the screen with a 12 px margin. Focus moves into the card when it opens and back to the cell when it closes. One card is open at a time.
@@ -116,17 +116,21 @@ The panel keeps the heading "Dungeon priority", "Score = weighted upgrades", and
 Each ranked dungeon is a native `<details>` element inside the ordered list, which gives keyboard and screen-reader support with no client code. The first dungeon is open on load. Any number can be open.
 
 - **Summary:** rank, a 48×36 `DungeonThumbnail`, the dungeon name, the score, and one badge per benefiting member with an 18 px avatar and that member's number of credits. The member's name is in the badge for screen readers and in its `title`.
-- **Open body:** one line per benefiting member, in ranking order: a 20 px avatar, the class-colored name, then 32 px chips in credit order. A split dungeon's note sits at the top of the body.
+- **Open body:** one line per benefiting member, in ranking order: a 20 px avatar, the class-colored name, then chips in credit order. A split dungeon's note sits at the top of the body.
 
-The chips, labeled by a pure function:
+Each chip is a 32 px tile with its slot under it, in the short slot words from decision 4 ("Chest", "Ring 1", "Trink 2"), at 10 px. The visible slot word is what tells a reader which piece each need is for, without hovering. The chips, labeled by a pure function:
 
-| Credit | Chip | Label (tooltip and screen readers) |
+| Credit | Tile | Label (tooltip and screen readers) |
 |---|---|---|
 | `item` | the item's icon, a Wowhead link with `data-wowhead` | "Cloak of the Restless Tribes (Cloak)" |
-| `tier` | a dashed tile with "T" | "Tier legs (catalyst)" |
+| `tier` | the tier piece's own icon, a Wowhead link, with a gold "T" badge in the corner | "Enigmatic Dreamwatcher's Plumage (Shoulders), tier: catalyst a shoulders drop from this dungeon" |
 | `any` | a dashed tile with the minimum item level | "Any ring, level 334+" |
 
+A tier chip shows the piece the member is hunting, not the dungeon drop that becomes it. Any drop in that slot and armor type can be catalysted, so the drop is one of several equal candidates, while the tier piece matches the member's BiS list and the character page. A tier credit whose piece has no icon falls back to a dashed tile with "T" and the same label.
+
 Each chip keeps today's per-credit weight in its `title`.
+
+The character page's own dungeon priority list (`character-page/DungeonPriority.tsx`) shows tier needs the same way: the tier piece's name and icon with a tier label, instead of "Tier via catalyst".
 
 ### 8. Vault panel
 
@@ -167,7 +171,7 @@ Every member name the page shows has a `CharacterAvatar` beside it: the member p
 
 - **Schema:** `upgrade_tracks.currency_icon`, nullable text. Generate the migration with `npm run db:generate -- --name crest-icons`.
 - **Cache version:** `TRACKS_META_KEY` becomes `tracks.v3.fetchedAt`.
-- **Types:** `Track` gains `currencyIcon: string | null`. `CrestCost`, `CrestBalance` and `UpgradeOption` gain the fields in decision 9. No group view type changes shape beyond what those carry.
+- **Types:** `Track` gains `currencyIcon: string | null`. `CrestCost`, `CrestBalance` and `UpgradeOption` gain the fields in decision 9. The `tier` credit, in `rank.ts` and in `PriorityCreditView`, gains the tier piece's `itemId`, `name` and `bonusIds` from its BiS row; the view adds its `item: ItemView` the way item credits get theirs, so the loaders include tier credit item IDs in their icon lookups. No other view type changes shape.
 - **Services:** the Wowhead currency lookup is built in `services.ts` with the shared `fetchFn`, like the other clients.
 
 ## Component boundaries
@@ -193,9 +197,12 @@ Every member name the page shows has a `CharacterAvatar` beside it: the member p
 ### Automated
 
 - `panel-classes`: each view gives the visibility in the decision 3 table, including the rail switch's pressed state.
-- `state-word`: each state, including unknown tracks, gives its word.
+- `state-word`: each state, including unknown tracks, gives its word, and a missing tier row gives "Need tier".
 - `slot-short`: every slot type gives its short label.
 - `chip-label`: item, tier and Any credits give the labels in decision 7.
+- `rankDungeons`: a tier credit carries the tier piece's item ID, name and bonus IDs; scores and order are unchanged.
+- Group and character page views: a tier credit carries its `item` with the icon URL.
+- The cell `needText`: a tier need names the piece.
 - `crestLine`: returns balances as data with today's text and tone for the ready, none-affordable and unknown cases.
 - `wowhead/currency`: parses the icon from a trimmed tooltip fixture; rejects an icon name with other characters; an HTTP error or a missing field gives no icon.
 - `ensureTracks`, with the in-memory database and fake fetch: stores icon names per currency; one failed lookup stores null for that currency and the sync still succeeds; the v3 key forces a refetch over a fresh v2 key.
