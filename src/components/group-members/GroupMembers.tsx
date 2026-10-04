@@ -6,6 +6,7 @@ import type { TrackedCharacter } from '@/components/add-character-bar/tracked';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { useGroupEdits } from '@/components/group-edits/GroupEditsProvider';
 import { RemoveFromGroupButton } from '@/components/remove-from-group/RemoveFromGroupButton';
+import { classTextColor } from '@/components/shared/class-colors';
 import { LABEL_CLASS } from '@/components/shared/field-classes';
 import { MAX_GROUP_SIZE } from '@/core/characters/member-key';
 import type { Region } from '@/core/types';
@@ -29,7 +30,7 @@ export function GroupMembers({ members, region, available, tracked }: Props) {
         {members.map((m) => (
           <span key={m.key} className="flex h-12 items-center gap-2 rounded-full border border-line bg-surface-2 pl-1.5 pr-0.5">
             {m.character && <CharacterAvatar name={m.character.name} className={m.character.className} avatarUrl={m.character.avatarUrl} classIconUrl={m.character.classIconUrl} size={32} />}
-            <span className="font-semibold">{m.name}</span>
+            <span className="font-semibold" style={m.character ? { color: classTextColor(m.character.className) } : undefined}>{m.name}</span>
             {m.character && <span className="text-sm text-muted">{m.character.spec}</span>}
             <RemoveFromGroupButton memberKey={m.key} name={m.name} />
           </span>

@@ -1,3 +1,4 @@
+import { classTextColor } from '@/components/shared/class-colors';
 import Link from 'next/link';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { CrestSummary } from '@/components/crest-summary/CrestSummary';
@@ -14,7 +15,7 @@ export function MemberHeader({ member, now }: { member: GroupMemberView; now: nu
     <div className="flex flex-col gap-2 p-3">
       <span className="flex items-center gap-2">
         {c && <CharacterAvatar name={c.name} className={c.className} avatarUrl={c.avatarUrl} classIconUrl={c.classIconUrl} size={32} />}
-        {c ? <Link href={`/characters/${c.id}`} className="font-semibold">{c.name}</Link> : <span className="font-semibold">{member.name}</span>}
+        {c ? <Link href={`/characters/${c.id}`} className="font-semibold" style={{ color: classTextColor(c.className) }}>{c.name}</Link> : <span className="font-semibold">{member.name}</span>}
       </span>
       {member.state === 'untracked' && (
         <>

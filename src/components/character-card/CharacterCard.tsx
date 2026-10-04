@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { formatAge } from '@/core/format';
 import type { CharacterCardView } from '@/server/views/types';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
-import { classColor } from '@/components/shared/class-colors';
+import { classTextColor } from '@/components/shared/class-colors';
 import { RemoveCharacterButton } from '@/components/remove-character-button/RemoveCharacterButton';
 import { crestLine } from './crest-line';
 
 export function CharacterCard({ card, now }: { card: CharacterCardView; now: number }) {
-  const color = classColor(card.className);
+  const color = classTextColor(card.className);
   const counts = card.counts;
   const bis = counts ? counts.done + counts.mythUpgradable + counts.belowMyth : 0;
   const source = card.snapshot && card.sourceAt !== null
@@ -21,7 +21,7 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
       <div className="flex items-center gap-3.5">
         <CharacterAvatar name={card.name} className={card.className} avatarUrl={card.avatarUrl} classIconUrl={card.classIconUrl} size={52} />
         <div className="flex min-w-0 flex-col">
-          <Link href={`/characters/${card.id}`} className="truncate text-xl font-bold text-ink no-underline hover:underline">{card.name}</Link>
+          <Link href={`/characters/${card.id}`} className="truncate text-xl font-bold no-underline hover:underline" style={{ color }}>{card.name}</Link>
           <span className="text-[15px] text-muted">{card.realmName}</span>
           <span className="text-[15px] font-semibold" style={{ color }}>{card.identity}</span>
         </div>
