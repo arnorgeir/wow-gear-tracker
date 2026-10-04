@@ -171,7 +171,7 @@ The images are hotlinked from `https://wow.zamimg.com/images/wow/icons/medium/<i
 
 **Client.** A new client module, `src/core/wowhead/currency.ts`, fetches the endpoint through `fetchJson` and returns the `icon` field. It accepts only names matching `^[a-z0-9_]+$`; anything else counts as no icon. The Wowhead module is a client in the `src/core` sense: it fetches and parses, and never touches the database.
 
-**Storage.** `upgrade_tracks` gains a nullable `currency_icon` column. `ensureTracks` receives a `fetchCurrencyIcon` function beside `fetchRaidbots`. After a successful Raidbots fetch, it looks up each distinct currency ID, at most 4 at a time through `createLimiter`, and stores the names with the tracks. A failed lookup stores null for that currency and never fails the tracks sync; the next daily refresh tries again. `TRACKS_META_KEY` moves to `tracks.v3.fetchedAt`, so existing installs refetch instead of keeping rows without icons for a day.
+**Storage.** `upgrade_tracks` gains a nullable `currency_icon` column. The Wowhead module wraps the Raidbots fetcher (`withCurrencyIcons`): after a successful Raidbots fetch, it looks up each distinct currency ID, at most 4 at a time through `createLimiter`, and adds the names to the tracks, which `ensureTracks` stores as it stores every track field. Wrapping the fetcher keeps `ensureTracks` and its five callers unchanged. A failed lookup stores null for that currency and never fails the tracks sync; the next daily refresh tries again. `TRACKS_META_KEY` moves to `tracks.v3.fetchedAt`, so existing installs refetch instead of keeping rows without icons for a day.
 
 **Views.** One helper turns an icon name into the image URL. `CrestBalance` gains `iconUrl: string | null`. `UpgradeOption` gains `currencyId` and `iconUrl`. `CrestCost` carries the icon name from the track row.
 
@@ -195,7 +195,7 @@ Every member name the page shows has a `CharacterAvatar` beside it: the member p
 - **Schema:** `upgrade_tracks.currency_icon`, nullable text. Generate the migration with `npm run db:generate -- --name crest-icons`.
 - **Cache version:** `TRACKS_META_KEY` becomes `tracks.v3.fetchedAt`.
 - **Types:** `Track` gains `currencyIcon: string | null`. `CrestCost`, `CrestBalance` and `UpgradeOption` gain the fields in decision 9. The `tier` credit, in `rank.ts` and in `PriorityCreditView`, gains the tier piece's `itemId`, `name` and `bonusIds` from its BiS row; the view adds its `item: ItemView` the way item credits get theirs, so the loaders include tier credit item IDs in their icon lookups. No other view type changes shape.
-- **Services:** the Wowhead currency lookup is built in `services.ts` with the shared `fetchFn`, like the other clients.
+- **Services:** `services.ts` builds `fetchRaidbots` as `withCurrencyIcons(createRaidbotsFetcher(), createCurrencyIconFetcher())`.
 
 ## Component boundaries
 
