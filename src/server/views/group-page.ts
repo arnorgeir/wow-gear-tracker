@@ -109,6 +109,9 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
     vault: loaded.flatMap(({ data, view }) => (data ? [{
       key: view.key,
       name: view.name,
+      className: view.character!.className,
+      avatarUrl: view.character!.avatarUrl,
+      classIconUrl: view.character!.classIconUrl,
       pastedAt: data.gear.simc?.createdAt ?? null,
       choices: vaultChoicesFor(data.vaultItems, data.bis.lists?.[data.choice.listType] ?? [], icons, tracks),
     }] : [])),

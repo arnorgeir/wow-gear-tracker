@@ -127,7 +127,7 @@ export interface GroupPriorityView {
   /** Null when no member is eligible: the ranking is unavailable, which is not the same as nothing needed. */
   ranking: { dungeons: GroupDungeonView[]; nothingFrom: string[] } | null;
 }
-export interface GroupVaultView { key: string; name: string; pastedAt: number | null; choices: VaultChoiceView[] }
+export interface GroupVaultView { key: string; name: string; className: string; avatarUrl: string | null; classIconUrl: string | null; pastedAt: number | null; choices: VaultChoiceView[] }
 export interface GroupPageView {
   region: Region | null;
   keys: string[];

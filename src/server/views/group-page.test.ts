@@ -184,6 +184,8 @@ describe('getGroupPage', () => {
       { location: 'vault', slot: 'OFF_HAND', itemId: 61, name: 'Item 61', itemLevel: 330, quality: 'EPIC', bonusIds: [], isTier: false },
     ], 800);
     const { vault } = await getGroupPage(s, keys('birkibjörn', 'sólrún', 'gnúpur'));
+    expect(vault.map((v) => v.className)).toEqual(['Druid', 'Druid', 'Druid']);
+    expect(vault.every((v) => 'avatarUrl' in v && 'classIconUrl' in v)).toBe(true);
     expect(vault.map((v) => [v.name, v.pastedAt, v.choices.map((c) => [c.itemId, c.isBis])])).toEqual([
       ['Birkibjörn', null, []],
       ['Sólrún', 700, []],
