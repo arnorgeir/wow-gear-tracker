@@ -30,7 +30,7 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 
 ## How work flows
 
-1. Ideas live as GitHub issues on the **Gear Tracker** project board.
+1. Ideas live as GitHub issues on the **Gear Tracker** project board. Every issue gets an `area:` label naming the feature it belongs to (`group`, `character`, `dungeons`, `transmog`, `accounts`, or `app` for cross-cutting work), and can carry two when it spans features. The board's **Layer** field says which part of the stack it touches, and **Size** says how big it is: XS and S count as minor. `gh issue list --label "area: group"` gathers one feature's issues.
 2. Anything bigger than a small fix gets a design spec in `docs/superpowers/specs/`, then an implementation plan in `docs/superpowers/plans/`.
 3. The spec is the authority. When a plan and the spec disagree, the spec wins.
 4. Work happens on a branch named `feat/<description>`, `fix/<description>`, `chore/<description>` or `docs/<description>`, and reaches `main` through a pull request. `main` is protected: CI must pass, and a review is required.
