@@ -50,7 +50,7 @@ export default async function GroupPage({ searchParams }: Props) {
         ) : (
           <>
             <StateLegend />
-            <GroupGrid members={view.members} grid={view.grid} tracksKnown={view.tracksKnown} now={now} />
+            <GroupGrid members={view.members} grid={view.grid} tracksKnown={view.tracksKnown} />
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
               <GroupPriority priority={view.priority} />
               <GroupVault vault={view.vault} now={now} />

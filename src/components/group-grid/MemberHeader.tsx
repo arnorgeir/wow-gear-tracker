@@ -1,48 +1,26 @@
-import { classTextColor } from '@/components/shared/class-colors';
 import Link from 'next/link';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
-import { CrestSummary } from '@/components/crest-summary/CrestSummary';
-import { RefreshButton } from '@/components/refresh-button/RefreshButton';
-import { RemoveFromGroupButton } from '@/components/remove-from-group/RemoveFromGroupButton';
-import { TrackButton } from '@/components/track-button/TrackButton';
+import { CrestChip } from '@/components/crest-chip/CrestChip';
+import { classTextColor } from '@/components/shared/class-colors';
 import type { GroupMemberView } from '@/server/views/types';
 
-const LIST_LABEL = (m: GroupMemberView) => (m.fellBack ? 'Overall, Method has no Mythic+ list' : m.listType === 'overall' ? 'Overall' : 'Mythic+');
-
-export function MemberHeader({ member, now }: { member: GroupMemberView; now: number }) {
+/** Avatar, name and crests. Problems live in the notice row below, so every header is the same height. */
+export function MemberHeader({ member }: { member: GroupMemberView }) {
   const c = member.character;
+  if (!c) return <div className="min-w-0 p-1.5"><span className="block truncate text-sm font-semibold" title={member.name}>{member.name}</span></div>;
   return (
-    <div className="flex flex-col gap-2 p-3">
-      <span className="flex items-center gap-2">
-        {c && <CharacterAvatar name={c.name} className={c.className} avatarUrl={c.avatarUrl} classIconUrl={c.classIconUrl} size={32} />}
-        {c ? <Link href={`/characters/${c.id}`} className="font-semibold" style={{ color: classTextColor(c.className) }}>{c.name}</Link> : <span className="font-semibold">{member.name}</span>}
-      </span>
-      {member.state === 'untracked' && (
-        <>
-          <span className="text-sm text-muted">Not tracked · {member.realmSlug}</span>
-          <TrackButton memberKey={member.key} name={member.name} />
-        </>
-      )}
-      {member.state === 'notFound' && (
-        <>
-          <span role="alert" className="text-sm text-[#f3c9a2]">Blizzard can&rsquo;t find this character</span>
-          <RemoveFromGroupButton memberKey={member.key} name={member.name} variant="text" />
-        </>
-      )}
-      {c && member.state !== 'notFound' && (
-        <>
-          <span className="text-xs text-muted">{LIST_LABEL(member)}</span>
-          {member.syncError && (
-            <>
-              <span role="alert" className="text-sm text-[#f3c9a2]">Couldn&rsquo;t sync: {member.syncError}</span>
-              <RefreshButton id={c.id} />
-            </>
-          )}
-          {member.bisError && <span className="text-sm text-[#f3c9a2]">{member.bisError}</span>}
-          {member.crests
-            ? <CrestSummary crests={member.crests} now={now} />
-            : <span className="text-xs text-muted">Crests unknown. <Link href={`/characters/${c.id}`}>Paste SimC</Link> to see them.</span>}
-        </>
+    <div className="flex min-w-0 flex-col items-center gap-1.5 p-1 sm:items-start sm:p-2">
+      <Link href={`/characters/${c.id}`} title={c.name} className="flex min-w-0 max-w-full items-center gap-1.5 font-semibold no-underline" style={{ color: classTextColor(c.className) }}>
+        <CharacterAvatar name={c.name} className={c.className} avatarUrl={c.avatarUrl} classIconUrl={c.classIconUrl} size={26} />
+        <span className="sr-only truncate sm:not-sr-only">{c.name}</span>
+      </Link>
+      {member.crests ? (
+        member.crests.balances.length > 0
+          ? <div className="flex min-w-0 max-w-full flex-col items-center gap-1 sm:flex-row sm:flex-wrap">{member.crests.balances.map((b) => <CrestChip key={b.currencyId} balance={b} />)}</div>
+          : <span className="text-xs text-muted">No crests</span>
+      ) : <Link href={`/characters/${c.id}`} className="text-xs">No SimC</Link>}
+      {member.listType === 'overall' && (
+        <span className="text-xs text-muted" title={member.fellBack ? 'Method has no Mythic+ list for this spec' : undefined}>Overall list</span>
       )}
     </div>
   );
