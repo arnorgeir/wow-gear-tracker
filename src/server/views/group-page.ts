@@ -66,7 +66,7 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
     ...data.priorityRows.flatMap((r) => (r.row.kind === 'item' ? [r.row.itemId] : [])),
     ...data.vaultItems.map((i) => i.itemId),
   ] : []));
-  const creditIds = (ranks ?? []).flatMap((d) => d.characters.flatMap((c) => c.credits.flatMap((cr) => (cr.kind === 'item' ? [cr.itemId] : []))));
+  const creditIds = (ranks ?? []).flatMap((d) => d.characters.flatMap((c) => c.credits.flatMap((cr) => (cr.kind === 'any' ? [] : [cr.itemId]))));
   const icons = await ensureItemIcons({ db, blizzard, now: time }, region ?? 'eu', [...iconIds, ...creditIds]);
 
   const byId = new Map(eligible.map((l) => [l.character!.id, l]));

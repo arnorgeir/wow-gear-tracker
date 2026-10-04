@@ -35,7 +35,7 @@ describe('CreditCard', () => {
 
   it('shows tier and Any needs as plain cards with their slot, without a link or an item ID', () => {
     for (const credit of [
-      { kind: 'tier', slotLabel: 'Chest', weight: 5 },
+      { kind: 'tier', slotLabel: 'Chest', weight: 5, item: { itemId: 80, name: 'Tier Robe', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } },
       { kind: 'any', slotLabel: 'Feet', weight: 3, minItemLevel: 334 },
     ] satisfies PriorityCreditView[]) {
       const html = render(credit);

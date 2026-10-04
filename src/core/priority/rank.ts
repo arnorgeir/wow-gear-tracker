@@ -15,7 +15,7 @@ export interface PriorityCharacter {
 
 export type Credit =
   | { kind: 'item'; slotLabel: string; weight: number; itemId: number; name: string; bonusIds: number[] }
-  | { kind: 'tier'; slotLabel: string; weight: number }
+  | { kind: 'tier'; slotLabel: string; weight: number; itemId: number; name: string; bonusIds: number[] }
   | { kind: 'any'; slotLabel: string; weight: number; minItemLevel: number };
 
 export interface CharacterCredits { characterId: number; characterName: string; credits: Credit[] }
@@ -50,7 +50,7 @@ function dropsFor(row: BisRow, armor: ArmorType | null, dungeon: SeasonLoot): bo
 
 function creditFor(row: BisRow, weight: number): Credit {
   if (row.kind === 'any') return { kind: 'any', slotLabel: row.slotLabel, weight, minItemLevel: row.minItemLevel };
-  if (row.isTier) return { kind: 'tier', slotLabel: row.slotLabel, weight };
+  if (row.isTier) return { kind: 'tier', slotLabel: row.slotLabel, weight, itemId: row.itemId, name: row.name, bonusIds: row.bonusIds };
   return { kind: 'item', slotLabel: row.slotLabel, weight, itemId: row.itemId, name: row.name, bonusIds: row.bonusIds };
 }
 

@@ -199,6 +199,25 @@ describe('dungeon priority', () => {
     }]);
   });
 
+  it('credits a tier need with the tier piece and its icon', async () => {
+    const tierNeeds: BisLists = {
+      overall: [], raid: [],
+      mythicPlus: [{ kind: 'item', slotLabel: 'Chest', slots: ['CHEST'], itemId: 12, name: 'Tier Catalyst Robe', bonusIds: [], isTier: true, isCatalyst: true, source: 'Alpha Hollow' }],
+    };
+    const s = await services(tierNeeds);
+    const id = await seed(s);
+    await replaceSeason(s.db, {
+      slug: 'season-test-2',
+      dungeons: [{ challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11, imageUrl: null }],
+      loot: [{ challengeModeId: 501, encounterId: 1, encounterName: 'Hollow King', itemId: 40, itemName: 'Hollow Jerkin', inventoryType: 'CHEST', armorType: 'leather' }],
+    });
+    await setMeta(s.db, SEASON_META_KEY, 'season-test-2', 1000);
+    const page = await getCharacterPage(s, id);
+    expect(page!.priority.dungeons[0]!.credits).toEqual([
+      { kind: 'tier', slotLabel: 'Chest', weight: expect.any(Number), item: expect.objectContaining({ itemId: 12, name: 'Tier Catalyst Robe', iconUrl: 'https://i/12.jpg' }) },
+    ]);
+  });
+
   it('asks for a sync and says loading before any season is stored', async () => {
     const s = await services(needs);
     const id = await seed(s);

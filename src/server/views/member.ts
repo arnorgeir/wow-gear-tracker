@@ -73,10 +73,11 @@ export function vaultChoicesFor(items: SnapshotItemInput[], listRows: BisRow[], 
 }
 
 export function creditView(cr: Credit, icons: ReadonlyMap<number, string | null>): PriorityCreditView {
+  if (cr.kind === 'any') return cr;
+  const item = itemView({ itemId: cr.itemId, name: cr.name, itemLevel: null, quality: 'EPIC', bonusIds: cr.bonusIds }, icons, null);
   return cr.kind === 'item'
-    ? { kind: 'item', slotLabel: cr.slotLabel, weight: cr.weight,
-        item: itemView({ itemId: cr.itemId, name: cr.name, itemLevel: null, quality: 'EPIC', bonusIds: cr.bonusIds }, icons, null) }
-    : cr;
+    ? { kind: 'item', slotLabel: cr.slotLabel, weight: cr.weight, item }
+    : { kind: 'tier', slotLabel: cr.slotLabel, weight: cr.weight, item };
 }
 
 export const priorityCharacter = (m: MemberData, tracks: ReadonlyMap<number, Track>): PriorityCharacter => ({
