@@ -103,6 +103,7 @@ export const upgradeTracks = sqliteTable('upgrade_tracks', {
   group: integer('group_id'),
   currencyId: integer('currency_id'),
   currencyName: text('currency_name'),
+  currencyIcon: text('currency_icon'),
   costPerStep: integer('cost_per_step'),
 });
 

@@ -39,6 +39,7 @@ export function parseRaidbotsBonuses(data: Record<string, unknown>): Track[] {
       group: upgrade.group ?? null,
       currencyId: amount?.currencyId ?? null,
       currencyName: amount?.name ?? null,
+      currencyIcon: null,
       costPerStep: amount?.amount ?? null,
     });
   }

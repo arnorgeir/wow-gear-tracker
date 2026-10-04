@@ -12,7 +12,7 @@ import type { BisLists, BisSource, Quality, Region, Track } from '../types';
 export const DAY_MS = 86_400_000;
 // The version in the key marks the stored data's format. Bump it when Raidbots data gains fields,
 // so data cached by an older version of the app is refetched instead of trusted for a day.
-const TRACKS_META_KEY = 'tracks.v2.fetchedAt';
+const TRACKS_META_KEY = 'tracks.v3.fetchedAt';
 const TRACKS_FAILED_META_KEY = 'tracks.failedAt';
 const TRACKS_RETRY_MS = 60 * 60 * 1000;
 const TRACKS_ERROR = 'Upgrade track data couldn’t be loaded, so upgrade states may be wrong';
