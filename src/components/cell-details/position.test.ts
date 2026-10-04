@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { placeBeside } from './position';
+import { cardCoords, placeBeside } from './position';
 
 const viewport = { width: 1280, height: 800 };
 const card = { width: 320, height: 240 };
@@ -17,5 +17,15 @@ describe('placeBeside', () => {
   it('keeps it inside the viewport on the right and at the top', () => {
     expect(placeBeside(cell(1200, 100), card, viewport).left).toBe(952);
     expect(placeBeside(cell(100, 100), { width: 320, height: 790 }, viewport).top).toBe(8);
+  });
+});
+
+describe('cardCoords', () => {
+  it('places the card beside the cell on a wide screen', () => {
+    expect(cardCoords(true, cell(100, 100), card, viewport)).toEqual({ top: '164px', left: '100px' });
+  });
+
+  it('clears the coordinates on a phone, so the bottom-sheet classes apply again', () => {
+    expect(cardCoords(false, cell(100, 100), card, viewport)).toEqual({ top: '', left: '' });
   });
 });

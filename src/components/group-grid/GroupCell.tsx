@@ -25,9 +25,9 @@ export function GroupCell({ cell, tracksKnown, slotLabel, memberName, character 
   const tone = rowTone(cell.state, tracksKnown);
   const word = stateWord(cell.state, cell.bis.kind === 'item' && cell.bis.isTier);
   const eq = cell.equipped;
-  const track = trackDisplay(eq ? eq.trackLabel : null);
+  const track = trackDisplay(eq ? eq.trackLabel : null, tracksKnown);
   // Hovering shows what the cell still needs; a Legacy item also says what that means.
-  const hover = [needText(cell), eq && eq.trackLabel === null ? track.hint : null].filter(Boolean).join('. ') || undefined;
+  const hover = [needText(cell), eq && eq.trackLabel === null ? track.hint ?? null : null].filter(Boolean).join('. ') || undefined;
   const q = eq ? QUALITY_STYLES[eq.quality] ?? QUALITY_STYLES.COMMON : null;
   const icon = eq?.iconUrl
     ? <img src={eq.iconUrl} alt="" width={36} height={36} className="size-[34px] rounded-md border-2 sm:size-9" style={{ borderColor: q!.ring }} />
@@ -45,7 +45,7 @@ export function GroupCell({ cell, tracksKnown, slotLabel, memberName, character 
         ) : <span className="shrink-0">{icon}</span>}
         <span aria-hidden="true" className="pointer-events-none flex min-w-0 max-w-full flex-col items-center gap-px leading-snug sm:items-start">
           <span className="font-mono text-[11px] text-ink sm:text-xs">{eq?.itemLevel ?? '–'}</span>
-          <span className={`hidden max-w-full truncate text-xs sm:block ${track.className}`}>{track.text}</span>
+          {eq && <span className={`hidden max-w-full truncate text-xs sm:block ${track.className}`}>{track.text}</span>}
           <span className={`text-[10px] font-bold sm:text-xs ${word.className}`}>{word.word}</span>
         </span>
         {cell.upgrade && (
@@ -54,7 +54,7 @@ export function GroupCell({ cell, tracksKnown, slotLabel, memberName, character 
           </span>
         )}
       </div>
-      <CellDetails id={id} anchor={button} cell={cell} slotLabel={slotLabel} character={character} memberName={memberName} />
+      <CellDetails id={id} anchor={button} tracksKnown={tracksKnown} cell={cell} slotLabel={slotLabel} character={character} memberName={memberName} />
     </>
   );
 }

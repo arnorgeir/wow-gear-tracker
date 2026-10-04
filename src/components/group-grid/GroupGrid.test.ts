@@ -17,8 +17,8 @@ const member = (over: Partial<GroupMemberView>): GroupMemberView => ({
   key: 'eu.argent-dawn.birkibjörn', name: 'Birkibjörn', realmSlug: 'argent-dawn', character: null, state: 'ready',
   syncError: null, bisError: null, hasRows: true, listType: 'mythicPlus', fellBack: false, crests: null, ...over,
 });
-const render = (members: GroupMemberView[], grid: GroupGridRow[]) =>
-  renderToStaticMarkup(createElement(GroupEditsProvider, { keys: members.map((m) => m.key) }, createElement(GroupGrid, { members, grid, tracksKnown: true }))).replace(/<link[^>]*\/>/g, '');
+const render = (members: GroupMemberView[], grid: GroupGridRow[], tracksKnown = true) =>
+  renderToStaticMarkup(createElement(GroupEditsProvider, { keys: members.map((m) => m.key) }, createElement(GroupGrid, { members, grid, tracksKnown }))).replace(/<link[^>]*\/>/g, '');
 
 const equipped = { itemId: 271528, name: 'Enigmatic Dreamwatcher’s Somnolent Stare', itemLevel: 321, quality: 'EPIC' as const, bonusIds: [12], iconUrl: 'https://render.worldofwarcraft.com/icons/56/stare.jpg', trackLabel: 'Myth 2/6' };
 const cell = (over: Partial<GearRowView>): GearRowView => ({
@@ -79,7 +79,18 @@ describe('GroupGrid', () => {
     const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ equipped: { ...equipped, trackLabel: null } })] }]);
     expect(html).toContain('>Legacy<');
     expect(html).not.toContain('no track');
-    expect(html).toContain('title="Not on a current season upgrade track, so it is from an earlier season"');
+    expect(html).toContain('title="Not on a current season upgrade track, so it is likely from an earlier season"');
+  });
+
+  it('does not call an item Legacy when the track data is unavailable, or when nothing is equipped', () => {
+    const m = [member({ character: summary(3, 'Birkibjörn') })];
+    const unknown = render(m, [{ slot: 'HEAD', label: 'Head', cells: [cell({ equipped: { ...equipped, trackLabel: null } })] }], false);
+    expect(unknown).not.toContain('Legacy');
+    expect(unknown).toContain('>No track<');
+    expect(unknown).not.toContain('earlier season');
+    const empty = render(m, [{ slot: 'HEAD', label: 'Head', cells: [cell({ equipped: null, state: 'missing' })] }]);
+    expect(empty).not.toContain('Legacy');
+    expect(empty).not.toContain('No track');
   });
 
   it('colors the track by name', () => {
@@ -102,6 +113,15 @@ describe('GroupGrid', () => {
     expect(missing).toContain('Kings’ Rest');
     const done = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'done' })] }]);
     expect(done).not.toContain('Needed');
+  });
+
+  it('lets the needed item’s name wrap in the details card instead of clipping', () => {
+    const bis = { kind: 'item' as const, ...equipped, name: 'Enigmatic Dreamwatcher’s Somnolent Stare of the Endless Night', isTier: true, isCatalyst: true, source: 'Kings’ Rest' };
+    const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'missing', bis })] }]);
+    const needed = html.slice(html.indexOf('>Needed<'));
+    expect(needed).toContain('Tier piece (catalyst Enigmatic Dreamwatcher’s Somnolent Stare of the Endless Night)');
+    expect(needed).toContain('wrap-anywhere');
+    expect(needed).not.toContain('truncate');
   });
 
   it('colors the Need word and the Missing badge so they stand out', () => {

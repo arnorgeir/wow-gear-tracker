@@ -11,3 +11,10 @@ export function placeBeside(cell: Box, card: Size, viewport: Size): { top: numbe
   const left = Math.min(cell.left, viewport.width - MARGIN - card.width);
   return { top: Math.max(MARGIN, top), left: Math.max(MARGIN, left) };
 }
+
+/** Inline coordinates for the card: beside the cell on a wide screen, none on a phone, where the bottom-sheet classes apply. */
+export function cardCoords(wide: boolean, cell: Box, card: Size, viewport: Size): { top: string; left: string } {
+  if (!wide) return { top: '', left: '' };
+  const { top, left } = placeBeside(cell, card, viewport);
+  return { top: `${top}px`, left: `${left}px` };
+}

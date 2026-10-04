@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, type RefObject, type SyntheticEvent } from 'react';
+import { useCallback, useEffect, useRef, type RefObject, type SyntheticEvent } from 'react';
 import { BisTarget } from '@/components/bis-target/BisTarget';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { needText } from '@/components/group-grid/cell-note';
@@ -11,28 +11,43 @@ import { trackDisplay } from '@/components/shared/track-label';
 import { StateBadge } from '@/components/state-badge/StateBadge';
 import { UpgradeBadge } from '@/components/upgrade-badge/UpgradeBadge';
 import type { CharacterSummary, GearRowView } from '@/server/views/types';
-import { placeBeside } from './position';
+import { cardCoords } from './position';
 
-interface Props { id: string; anchor: RefObject<HTMLElement | null>; cell: GearRowView; slotLabel: string; character: CharacterSummary | null; memberName: string }
+interface Props { id: string; tracksKnown: boolean; anchor: RefObject<HTMLElement | null>; cell: GearRowView; slotLabel: string; character: CharacterSummary | null; memberName: string }
 
 /** Everything a compact cell abbreviates, in full. A native popover: Escape and outside clicks close it. */
-export function CellDetails({ id, anchor, cell, slotLabel, character, memberName }: Props) {
+export function CellDetails({ id, tracksKnown, anchor, cell, slotLabel, character, memberName }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  // Coordinates follow the cell on a wide screen and are cleared on a phone. They are redone on every
+  // resize while the card is open, so a card never keeps desktop coordinates after the breakpoint changes.
+  const place = useCallback(() => {
+    const el = ref.current;
+    if (!el || !anchor.current) return;
+    const coords = cardCoords(window.matchMedia('(min-width: 40rem)').matches, anchor.current.getBoundingClientRect(), el.getBoundingClientRect(), { width: window.innerWidth, height: window.innerHeight });
+    el.style.top = coords.top;
+    el.style.left = coords.left;
+  }, [anchor]);
+  useEffect(() => {
+    const onResize = () => { if (ref.current?.matches(':popover-open')) place(); };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [place]);
   const onToggle = (e: SyntheticEvent<HTMLDivElement>) => {
     const el = ref.current;
-    if ((e.nativeEvent as Event & { newState?: string }).newState !== 'open' || !el || !anchor.current) return;
-    if (window.matchMedia('(min-width: 40rem)').matches) {
-      const card = el.getBoundingClientRect();
-      const { top, left } = placeBeside(anchor.current.getBoundingClientRect(), card, { width: window.innerWidth, height: window.innerHeight });
-      el.style.top = `${top}px`;
-      el.style.left = `${left}px`;
+    const opened = (e.nativeEvent as Event & { newState?: string }).newState === 'open';
+    if (!el) return;
+    if (!opened) {
+      el.style.top = '';
+      el.style.left = '';
+      return;
     }
+    place();
     el.querySelector<HTMLElement>('[data-autofocus]')?.focus();
   };
   const eq = cell.equipped;
   const q = eq ? QUALITY_STYLES[eq.quality] ?? QUALITY_STYLES.COMMON : null;
   const needed = needText(cell) !== null;
-  const track = trackDisplay(eq ? eq.trackLabel : null);
+  const track = trackDisplay(eq ? eq.trackLabel : null, tracksKnown);
   return (
     <div ref={ref} id={id} popover="auto" onToggle={onToggle}
       className="fixed inset-x-3 top-auto bottom-3 m-0 max-h-[70dvh] w-auto overflow-y-auto rounded-xl border border-line-strong bg-surface p-3 text-ink shadow-2xl sm:inset-auto sm:w-80">
@@ -70,7 +85,7 @@ export function CellDetails({ id, anchor, cell, slotLabel, character, memberName
       {needed && (
         <div className="mt-3 flex flex-col gap-1.5">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted">Needed</span>
-          <BisTarget row={cell} />
+          <BisTarget row={cell} wrap />
         </div>
       )}
     </div>

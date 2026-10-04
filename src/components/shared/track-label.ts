@@ -1,4 +1,4 @@
-export const LEGACY_HINT = 'Not on a current season upgrade track, so it is from an earlier season';
+export const LEGACY_HINT = 'Not on a current season upgrade track, so it is likely from an earlier season';
 
 // Literal class names, so Tailwind sees them. The colors come from the Mistcrest icons, brightened for the dark theme.
 const TRACK_CLASS: Record<string, string> = {
@@ -10,9 +10,19 @@ const TRACK_CLASS: Record<string, string> = {
 };
 const LEGACY_CLASS = 'text-legacy italic';
 
-/** What a track shows as: its own label in its color, or Legacy for an item on no current-season track. */
-export function trackDisplay(label: string | null): { text: string; className: string; hint: string | undefined } {
-  if (label === null) return { text: 'Legacy', className: LEGACY_CLASS, hint: LEGACY_HINT };
+/** A track's label, or what to call an item that matches no track: Legacy when the tracks are known, else just No track. */
+export const trackText = (label: string | null, tracksKnown: boolean) => label ?? (tracksKnown ? 'Legacy' : 'No track');
+
+/**
+ * What a track shows as. An item matching no track is only called Legacy while the track data is loaded:
+ * without it every item matches nothing, and that says nothing about the season.
+ */
+export function trackDisplay(label: string | null, tracksKnown: boolean): { text: string; className: string; hint: string | undefined } {
+  if (label === null) {
+    return tracksKnown
+      ? { text: 'Legacy', className: LEGACY_CLASS, hint: LEGACY_HINT }
+      : { text: 'No track', className: 'text-muted', hint: undefined };
+  }
   return { text: label, className: TRACK_CLASS[label.split(' ')[0]!] ?? 'text-muted', hint: undefined };
 }
 
