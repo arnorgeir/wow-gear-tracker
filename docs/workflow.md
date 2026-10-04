@@ -46,7 +46,7 @@ Next: spec-review, Codex (GPT-6 Astra, Medium), new session
 - **Name the step, who runs it, and the model,** and say whether it needs a new session. Between phases it always does (see "Keeping usage down").
 - **Put everything the next step can't find on its own into the prompt:** the spec path before the plan links it, the branch, or review findings for a cloud session.
 - **Say first when the owner has to act before the next step,** such as approving the spec, running hand checks or merging.
-- **Pick the branch after a review.** After `pr-review` or `re-review`, the next step is `fix` when findings remain and merge when none do.
+- **Pick the branch after a review.** After `pr-review` or `re-review`, the next step is `fix` when findings remain or required hand checks are still open, such as the live API and browser checks a cloud `implement` leaves for a local session. The next step is merge only when no findings remain and the required checks are done and recorded in the pull request's Testing section. The owner's own checks still go to the owner first, as the previous point says.
 
 ## Using one agent
 
