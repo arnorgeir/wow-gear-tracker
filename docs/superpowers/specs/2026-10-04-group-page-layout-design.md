@@ -1,6 +1,6 @@
 # Group page layout for five members, with crest icons
 
-Status: draft, awaiting owner approval
+Status: approved. The owner moved the spec to review and planning on 2026-10-04; the review findings are resolved here as clarifications.
 Date: 2026-10-04
 Issues: #75 — Group page layout that scales to five members and small screens; #63 — Show crest icons instead of crest names
 Design: the "Approved: Group page for five" row of the design canvas, https://claude.ai/artifact/XW7MPW49MWZZoYEty6MTxc (boards "Approved: Group page, desktop (side rail)", "… tablet (768)" and "… phone (390)")
@@ -12,7 +12,13 @@ The Group page answers two questions: how does everyone's gear compare, and wher
 
 It also replaces crest names with their icons everywhere crests appear (#63), because the compact column headers only have room for icons.
 
-The data the page shows does not change. Rankings, scores, member states, vault choices and crest balances come from the same loaders. This spec changes layout and presentation, and adds one piece of data: the icon name of each crest currency. It supersedes the page layout in the group-page spec and the "Keep the existing page layout and controls" decision of the dungeon priority spec. Those specs remain authoritative for everything else.
+The data the page shows does not change. Rankings, scores, member states, vault choices and crest balances come from the same loaders. This spec changes layout and presentation, and adds one piece of data: the icon name of each crest currency. It supersedes, from the group-page spec, the page layout and the group grid's column header and cell presentation. From the dungeon priority spec it supersedes:
+
+- decision 3, "Mini item cards beneath each member": visible full item names, unmodified credit slot labels and plain non-link tier cards give way to the chips in decision 7 here;
+- decision 5, "Keep the existing page layout and controls": the dungeons now collapse, as decision 7 here describes;
+- the acceptance tests that check that rendered structure: always-visible full item names, credit cards that are not buttons, and every need visible without expanding.
+
+Those specs remain authoritative for everything else, including scoring, ordering, eligibility, every notice and its wording, split dungeons, and dungeon artwork.
 
 ## What success looks like
 
@@ -30,15 +36,23 @@ The data the page shows does not change. Rankings, scores, member states, vault 
 At the `xl` breakpoint (1280 px) and wider, the page body is two columns:
 
 - **Left:** the state legend, then the compact gear grid (decision 3), filling the remaining width.
-- **Right:** a rail about 400 px wide, sticky at `top-6`. A two-button switch at its top shows **Dungeons** or **Great Vault**. It opens on Dungeons.
+- **Right:** a rail 380 px wide. A two-button switch at its top shows **Dungeons** or **Great Vault**. It opens on Dungeons.
 
-1280 px is the narrowest width where each of five grid columns keeps about 130 px, the least the compact cell needs for an icon beside "Champion 2/6". The owner chose this layout because the page is mostly used as an overview of each other's gear and where to go next. A "run next" hero (option C in the canvas) was rejected because the group may not hold the top dungeon's keystone. The dungeon-by-member matrix (option B) was rejected because it hides the gear while you read it.
+**The rail scrolls on its own.** It is `sticky` at `top-6`, aligned to the start of the row so it never stretches to the grid's height, and no taller than the viewport: `max-height: calc(100dvh - 3rem)`. It is a flex column: the switch stays fixed at its top, and the panel below it scrolls (`overflow-y: auto`, `overscroll-behavior: contain`). The scroll area is focusable (`tabindex="0"`, labeled by the visible panel's name), so keyboard users can scroll it, and links and summaries inside scroll into view as they take focus. However many dungeons are open and however many vault choices there are, all of them and the switch stay reachable without scrolling past the grid.
+
+**Width budget at 1280 px.** The group page's side padding changes from `sm:px-16` to `sm:px-8 2xl:px-16`, so 1280 px leaves 1216 px of content. The rail takes 380 and the gap 24, leaving 812 for the grid section. Its border (2), inner padding (2 × 8), slot column (64) and five column gaps (5 × 6) leave 700, or 140 px per member column. A cell's padding (2 × 5), icon (36) and gap (6) leave 88 px of text, enough for "Champion 2/6" at 12 px. The header's avatar (24) and gap (6) leave 110 px for the name, which truncates with an ellipsis; the full name is in the link's `title` and in the member pill above the grid.
+
+1280 px is the narrowest width where this budget holds. The owner chose this layout because the page is mostly used as an overview of each other's gear and where to go next. A "run next" hero (option C in the canvas) was rejected because the group may not hold the top dungeon's keystone. The dungeon-by-member matrix (option B) was rejected because it hides the gear while you read it.
 
 ### 2. Below 1280 px: tabs
 
 Below `xl`, a tab bar with three buttons, **Gear**, **Dungeons** and **Vault**, sits under the member pills. Dungeons shows the number of ranked dungeons beside its label. Only the chosen panel shows, at full width. The page opens on Gear. Each tab is a `<button>` with `aria-pressed` and a touch target of at least 44 px.
 
-Below `sm` (640 px), the gear grid shrinks further (decision 3), and the member pills hide the spec.
+Below `sm` (640 px), the gear grid shrinks further (decisions 4 and 5), and the member pills hide the spec.
+
+**Width budget between `sm` and `xl`.** At 768 px the content is 704 px wide; the same grid gives 118 px per member column, so the track label truncates with an ellipsis and stays readable in the details card.
+
+**Width budget at 390 px.** Side padding is `px-4`, leaving 358 px. The grid section's border (2), inner padding (2 × 4), slot column (44) and five gaps (5 × 3) leave 289, or 57 px per member column. A stacked cell holds a 34 px icon, the item level at 11 px and the state word at 10 px; "Need tier" is the longest word, about 44 px. The header is decision 5's narrow form.
 
 The phone board drew the members as an avatar grid behind an "Edit group" button. This spec keeps today's wrapping pills instead, without the spec, so adding and removing members work the same at every size with no new code.
 
@@ -88,9 +102,13 @@ Columns for members without rows keep today's `cellNote` text.
 
 `MemberHeader` slims to:
 
-- **Line 1:** the avatar and class-colored name, linking to the character page, as today.
-- **Line 2:** crest chips (decision 9), always shown, never behind a toggle. With no paste, a short "No SimC" link to the character page replaces them.
-- **Only when it applies:** today's warnings and buttons, unchanged in wording: the untracked line with Track, not found with Remove, the sync error with Refresh, the BiS error, and "Overall list" when the member fell back to Method's Overall list. The Mythic+ list is the default and gets no label.
+- **Line 1:** the avatar and class-colored name, linking to the character page. The name truncates with an ellipsis, with the full name in the link's `title`.
+- **Line 2:** crest chips (decision 9), wrapping, always shown, never behind a toggle. With no paste, a short "No SimC" link to the character page replaces them.
+- "Overall list" in muted text when the member fell back to Method's Overall list. The Mythic+ list is the default and gets no label.
+
+Below `sm`, the header narrows to a 28 px avatar linking to the character page, with the name as its accessible name and `title`, and the crest chips stacked one per line under it. The names stay visible in the member pills above.
+
+**Member notices get their own row.** Today's warnings and buttons, unchanged in wording, move out of the column header into one full-width row directly under the header row, spanning every column: the untracked line with Track, not found with Remove, the sync error with Refresh, and the BiS error. Each notice starts with the member's avatar and name. The row is absent when no member has a notice. A long sync error and its button cannot fit a 57 px column, and one row keeps the column headers the same height at every size.
 
 The owner chose always-visible compact crests over a collapsible header: fewer things to click.
 
@@ -98,14 +116,15 @@ The owner chose always-visible compact crests over a collapsible header: fewer t
 
 A new `cell-details/CellDetails.tsx` opens when a cell is pressed. It shows:
 
-- the member's avatar and name, and the slot
-- the full `ItemCard`, the Wowhead link with its tooltip
+- the member's avatar and name, and the full slot label
+- the equipped item: its icon, and its full name in quality color, wrapping onto as many lines as it needs, never truncated. The name is a Wowhead link with `data-wowhead`, opening in a new tab; the card never needs Wowhead to show the name. An empty slot says "Nothing equipped".
+- the track label and item level, including the track that phone cells hide
 - `StateBadge`
 - `UpgradeBadge` when the item can be upgraded now
-- the need line from today's `needText`, except that a tier need names the piece: "Need: Enigmatic Dreamwatcher's Plumage (tier, via catalyst)"
+- the need line from today's `needText`, wrapping in full, except that a tier need names the piece: "Need: Enigmatic Dreamwatcher's Plumage (tier, via catalyst)"
 - a close button
 
-It uses the native `popover` attribute, so it renders in the top layer, never clipped by the grid's scroll box, and the browser gives Escape and light dismiss. At `sm` and up it is placed beside the pressed cell, from the cell's `getBoundingClientRect` when it opens, and kept inside the viewport. Below `sm` it is fixed to the bottom of the screen with a 12 px margin. Focus moves into the card when it opens and back to the cell when it closes. One card is open at a time.
+It uses the native `popover` attribute, so it renders in the top layer, never clipped by the grid's scroll box, and the browser gives Escape and light dismiss. At `sm` and up it is placed beside the pressed cell, from the cell's `getBoundingClientRect` when it opens, and kept inside the viewport. Below `sm` it is fixed to the bottom of the screen with a 12 px margin, at most 70% of the viewport tall, and scrolls inside when a long name and need line need more. Focus moves into the card when it opens and back to the cell when it closes. One card is open at a time.
 
 The owner chose a card over a `title` attribute because the item name and what replaces it must stay reachable by touch and keyboard, and Wowhead's tooltip cannot say what replaces the item.
 
@@ -118,7 +137,7 @@ Each ranked dungeon is a native `<details>` element inside the ordered list, whi
 - **Summary:** rank, a 48×36 `DungeonThumbnail`, the dungeon name, the score, and one badge per benefiting member with an 18 px avatar and that member's number of credits. The member's name is in the badge for screen readers and in its `title`.
 - **Open body:** one line per benefiting member, in ranking order: a 20 px avatar, the class-colored name, then chips in credit order. A split dungeon's note sits at the top of the body.
 
-Each chip is a 32 px tile with its slot under it, in the short slot words from decision 4 ("Chest", "Ring 1", "Trink 2"), at 10 px. The visible slot word is what tells a reader which piece each need is for, without hovering. The chips, labeled by a pure function:
+Each chip is a 32 px tile with its slot under it at 10 px. Credit slots are Method's labels (`slotLabel` strings such as "Shoulders", "Ring", "Trinket" or "Main-Hand"), not `SlotType`s, so they shorten through their own pure function, `group-priority/credit-slot.ts`, separate from the grid's: Shoulder and Shoulders become Shldr, Trinket becomes Trink, Weapon, Main Hand and Main-Hand become Weap, Off Hand and Off-Hand become Off-h, and every other known Method label (Head, Neck, Cloak, Back, Chest, Wrist, Wrists, Gloves, Hands, Belt, Waist, Legs, Boots, Feet, Ring) stays as it is. An unknown label shows as Method wrote it, truncated with an ellipsis. The full label is always in the chip's label. Method does not number rings and trinkets, so neither do the chips, and nothing substitutes an equipped slot. The visible slot word is what tells a reader which piece each need is for, without hovering. The chips, labeled by a pure function:
 
 | Credit | Tile | Label (tooltip and screen readers) |
 |---|---|---|
@@ -156,12 +175,16 @@ The images are hotlinked from `https://wow.zamimg.com/images/wow/icons/medium/<i
 
 **Views.** One helper turns an icon name into the image URL. `CrestBalance` gains `iconUrl: string | null`. `UpgradeOption` gains `currencyId` and `iconUrl`. `CrestCost` carries the icon name from the track row.
 
-**Display.** A new `crest-chip/CrestChip.tsx` shows a 16 px icon and the count in mono, with the full name and steps in its `title` and for screen readers ("Myth Mistcrest: 85, 4 steps"). With no icon, it shows the first word of the name and the count, as the character card does today. It is used:
+**Display.** A new `crest-chip/CrestChip.tsx` shows a 16 px icon and the count in mono, with the full name and steps in its `title` and for screen readers ("Myth Mistcrest: 85, 4 steps"). It falls back to the first word of the name and the count, as the character card does today ("Myth 85"), in two cases: the icon URL is null, or the browser fails to load the image (a 404 or a blocked host). In a 57 px phone column the fallback word truncates with an ellipsis; the full name stays in the label.
+
+The browser case needs client code, so the icon is a small client component, `crest-chip/CrestIcon.tsx`, following the pattern of `group-priority/DungeonThumbnail.tsx`: it remembers which URL failed, renders the fallback for that URL only, and so tries a changed URL again and never retries in a loop. It also checks on mount for an image that failed before hydration. `CrestChip` itself stays a server component around it.
+
+It is used:
 
 - in the group column headers (decision 5)
 - in `CrestSummary` on the character page, replacing the name chips; the paste age stays
 - on character cards, where `crestLine` returns the balances as data and the card renders chips, followed by today's "3 BiS upgrades ready" or "no BiS upgrades affordable" text and tone
-- in `UpgradeBadge`, as a 13 px crest icon before the step count, with today's `title` text
+- in `UpgradeBadge`, as a 13 px `CrestIcon` before the step count, with today's `title` text naming the crest and cost. When the icon is null or fails, the badge shows no icon and no fallback word: it reads as today's badge, and the `title` still names the crest.
 
 ### 10. Avatars beside every member name
 
@@ -182,12 +205,14 @@ Every member name the page shows has a `CharacterAvatar` beside it: the member p
 | `group-layout/panel-classes.ts` | pure | View to classes, tested |
 | `group-grid/GroupGrid.tsx` | server | Grid with compact cells and short slot labels |
 | `group-grid/GroupCell.tsx` | client | Cell button that opens `CellDetails` |
-| `group-grid/state-word.ts`, `group-grid/slot-short.ts` | pure | Words and short labels, tested |
+| `group-grid/state-word.ts`, `group-grid/slot-short.ts` | pure | Words and short grid slot labels, tested |
+| `group-grid/MemberNotices.tsx` | server | The full-width notice row under the header row |
 | `cell-details/CellDetails.tsx` | client | The popover card and its placement |
 | `group-grid/MemberHeader.tsx` | server | Slim header with crest chips and warnings |
 | `group-priority/DungeonRow.tsx` | server | One `<details>` dungeon, replacing `DungeonCard` |
-| `group-priority/CreditChip.tsx`, `group-priority/chip-label.ts` | server, pure | Chips and their labels, replacing `CreditCard` |
-| `crest-chip/CrestChip.tsx` | server | Icon and count with fallback |
+| `group-priority/CreditChip.tsx`, `group-priority/chip-label.ts`, `group-priority/credit-slot.ts` | server, pure, pure | Chips, their labels and short credit slots, replacing `CreditCard` |
+| `crest-chip/CrestChip.tsx` | server | Icon and count, with the name fallback |
+| `crest-chip/CrestIcon.tsx` | client | The icon image, falling back on a null URL or a failed load |
 | `src/core/wowhead/currency.ts` | core client | Icon name lookup |
 
 `GroupCell` becomes a client component only because it opens the card. The cell's markup stays plain, and its rules stay in the pure functions.
@@ -199,6 +224,7 @@ Every member name the page shows has a `CharacterAvatar` beside it: the member p
 - `panel-classes`: each view gives the visibility in the decision 3 table, including the rail switch's pressed state.
 - `state-word`: each state, including unknown tracks, gives its word, and a missing tier row gives "Need tier".
 - `slot-short`: every slot type gives its short label.
+- `credit-slot`: every Method label in `SLOT_MAP` gives its short form, and an unknown label comes back unchanged.
 - `chip-label`: item, tier and Any credits give the labels in decision 7.
 - `rankDungeons`: a tier credit carries the tier piece's item ID, name and bonus IDs; scores and order are unchanged.
 - Group and character page views: a tier credit carries its `item` with the icon URL.
@@ -212,7 +238,9 @@ Every member name the page shows has a `CharacterAvatar` beside it: the member p
 
 The project has no browser-level tests, so these are checked by hand on the final commit:
 
-- 1440, 1280, 1024, 768 and 390 px wide, with five members: the layout matches the approved boards, and nothing scrolls sideways at 390 px.
+- 1440, 1280, 1024, 768 and 390 px wide, with five members: the layout matches the approved boards, and nothing scrolls sideways at 390 px. Repeat the 1280 and 390 px checks with the longest character name in the group, with the crest icon host blocked (fallback words), and with one member untracked and one with a sync error (the notice row).
+- At 1280 × 720, with every dungeon row open, and again on the Vault switch with five pasted members: every dungeon, every choice and the switch are reachable by mouse wheel and by keyboard, without scrolling the page past the grid.
+- On a phone, with Wowhead blocked: a cell with a long equipped item name and a long replacement name opens a card showing both names in full, and the track label, without leaving the page.
 - The rail stays in view while the grid scrolls, and its switch shows Dungeons and Vault.
 - Tabs switch panels, and resizing across 1280 px keeps a sensible panel.
 - A cell opens the details card by mouse, touch and keyboard; Escape and an outside click close it; focus returns to the cell.
