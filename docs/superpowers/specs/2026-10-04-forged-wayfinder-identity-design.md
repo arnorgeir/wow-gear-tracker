@@ -1,9 +1,10 @@
 # Forged Wayfinder visual identity
 
-Status: approved in conversation on 2026-10-04; written spec awaiting the owner's review.
+Status: approved. The owner moved the spec to review and planning on 2026-10-04. The spec review's finding is resolved here (decision 3, "Group view tabs size to their content"), and the owner's request recorded in that review is added as decision 8.
 Date: 2026-10-04
 Issues: #77 — Apply the Forged Wayfinder visual identity; #69 — Add a favicon (sub-issue of #77)
 Assets: `output/brand/forged-wayfinder-v1/` (staged on this branch, moved by this work; see decision 7)
+Parent spec for decision 8: `docs/superpowers/specs/2026-10-04-group-page-layout-design.md`
 
 ## Goal
 
@@ -11,13 +12,16 @@ The app still wears a placeholder: a generic stroked shield in the header and th
 
 "Forged Wayfinder" names the visual direction, not the site. The displayed name stays "Gear Tracker" until a naming decision is made.
 
+**One presentation change rides along, at the owner's request.** The compact group cells from the group-page layout spec never show the equipped item's name, even when three members leave each cell wide. Decision 8 shows the name whenever the cell is wide enough, and keeps the compact cell everywhere else. It changes what the group grid shows, so it is the one exception to "layouts and data presentation are unchanged" below. From the group-page layout spec it supersedes only decision 4's rule that the cell's text column holds item level, track and state word and nothing else; that spec stays authoritative for everything else about the cell, the details card and the grid.
+
 ## What success looks like
 
 - The header shows the flat Open Crest beside "Gear Tracker" on every page.
 - The browser tab and an iOS home-screen bookmark show the Open Crest, readable on both light and dark browser chrome.
 - Main navigation, the group page's view switches and the character page's two side panels carry the matching utility icon beside their visible label, and every one keeps its text as its accessible name.
-- Nothing moves, wraps or overflows at 1440, 768 or 375 px that didn't before.
-- Gear rarity, class, state and upgrade-track colours, Blizzard artwork, layouts, data and interactions are unchanged.
+- Nothing overflows at 1440, 768, 375 or 320 px that didn't before. The only layout shift is the group page's phone tabs sizing to their content (decision 3).
+- Group cells at least 180 px wide show the equipped item's name; narrower cells look as they do today (decision 8).
+- Gear rarity, class, state and upgrade-track colours, Blizzard artwork, data and interactions are unchanged. Apart from decisions 3 and 8, so are layouts.
 
 ## Constraints from the owner
 
@@ -75,7 +79,11 @@ Where they go:
 
 **Upgrades and Bags are not used.** The only places they would fit are the state legend, the state words and the upgrade badge. Those render at 12–13 px, below the 24 px floor the icon family is drawn for, and they are coloured by state, so a brand icon there would blur brand and state meaning. Both icons stay in the pack for a future control that needs them.
 
-Icons are never placed below 24 px. Tab heights (44 px), nav link padding and heading line heights already fit them; the tabs' existing `gap-1.5` spaces icon and label, and nav links gain `inline-flex items-center gap-2`.
+Icons are never placed below 24 px. Every `BrandIcon` carries `shrink-0`, so a flex row can never compress it. Tab heights (44 px), nav link padding and heading line heights already fit them vertically; the tabs' existing `gap-1.5` spaces icon, label and count, and nav links gain `inline-flex items-center gap-2`.
+
+**Group view tabs size to their content.** Today the three phone tabs share the width equally (`flex-1`). Measured in Chrome on 2026-10-04 with a populated group: bold 16 px "Dungeons" is 70.6 px wide and the one-digit mono count 7.2 px. With the icon, the Dungeons tab needs 24 + 6 + 70.6 + 6 + 7.2 = 113.8 px of content, but an equal share at a 375 px viewport is (375 − 32 page padding − 2 border − 8 padding − 8 gaps) / 3 = 108.3 px, so it would overflow or squeeze the icon.
+
+The tabs change from `flex-1` to `flex-auto` (`flex: 1 1 auto`): each starts at its content width and the spare width is shared equally. Content widths are about 66 px for Gear, 70 px for Vault and 114 px for Dungeons, 250 px together, against 325 px available at 375 px and 270 px at 320 px. At 375 px each tab grows by about 25 px, so Dungeons is about 139 px wide and every tab keeps its icon, label and count and its 44 px height. A two-digit count (7 px more) still fits at 320 px. The count and label never shrink or drop. Tabs at `sm` and up have far more room and look the same as today apart from uneven widths, which the 4 px gaps and shared background make hard to notice. The xl rail switch keeps `flex-1`: each of its two buttons is 168 px wide, and "Great Vault" with its icon needs about 115.
 
 ### 4. Divider motif: the header's bottom edge
 
@@ -107,6 +115,40 @@ The metallic Open Crest appears once, at 160 px, centred at the top of the setup
 - **Source pack:** moves from `output/brand/forged-wayfinder-v1/` to `docs/brand/forged-wayfinder-v1/` with history intact, as the editable masters and usage notes. Its README's "Future Next.js integration" section is replaced by an "Installed in the app" section that maps each installed file to its source, and names the components that carry inline copies of the paths, so a future change to the artwork updates both.
 - **Not committed:** `output/brand/forged-wayfinder-v1.zip`, a duplicate of the pack. It stays untracked and is left in place.
 
+### 8. Item names in group cells that have room (owner request)
+
+The owner asked, during spec review on 2026-10-04, for the group overview to show equipped item names when cells have room: with three members the cells are wide, yet they still show only icon, item level, track and state word.
+
+**The rule follows the cell's own width, not the member count or the viewport.** Each `GroupCell` becomes a CSS size container (Tailwind v4's built-in `@container`, which sets `container-type: inline-size`). The name shows when the cell is at least **180 px** wide (`@min-[180px]:`). The grid's columns are `minmax(0, 1fr)`, so the cell's width comes from the grid track, never from its content, and inline-size containment is safe.
+
+Measured cell widths on 2026-10-04 (Chrome, populated groups; viewport width, then cell width per member count):
+
+| Viewport | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| 1440 (rail beside grid) | 869 | 432 | 286 | 213 | 169 |
+| 1024 | 857 | 426 | 282 | 210 | 167 |
+| 768 | 601 | 298 | 196 | 146 | 115 |
+| 375 | 271 | 134 | 88 | 66 | 52 |
+
+At 180 px the five-member desktop grid (167–169) and every five-member phone or tablet layout stay compact, with a margin of 11 px or more, while three members at 768 px and up (196 and wider) and four members on desktop (210 and wider) show names. A 180 px cell at `sm` and up leaves 180 − 2 border − 16 padding − 36 icon − 8 gap = 118 px for text, about 19 characters of 12 px Barlow: enough to recognise an item.
+
+**What a wide cell shows, at `sm` and up (the row layout):**
+
+- **Line 1, new:** the equipped item's name, 12 px semibold in its quality's text colour from `QUALITY_STYLES`, one line, truncated with an ellipsis. When the upgrade arrow is shown, the name line keeps 14 px of right padding so the arrow in the top-right corner never covers it.
+- **Line 2:** item level (mono) and track label on one line, separated by 6 px. In a compact cell they stay on two lines as today. Joining them keeps a wide cell at three lines, so names don't make rows taller than today's 68 px minimum.
+- **Line 3:** the state word, unchanged.
+
+**Below `sm` (the stacked layout)** a cell is 180 px or wider only for one member on a phone (256–271 px). There the name shows as the first text line under the icon, centred and truncated; item level and state word stay as they are, and the track stays hidden as today.
+
+**Unchanged in every cell:** icon and quality border, row tone, state word and its colour, upgrade arrow, Wowhead tooltip link, the button covering the cell, its accessible name (which already includes the full item name), and the details card, which still shows the full name, wrapping and never truncated.
+
+**Empty and unknown cases.**
+- A slot with nothing equipped shows no name, never a placeholder or the BiS item's name.
+- An unknown track (`tracksKnown` false or no track label) leaves line 2 as the item level plus whatever `trackDisplay` returns today.
+- Member columns showing a `cellNote` instead of cells are unchanged.
+
+The name is visual only: the text column stays `aria-hidden`, as today, because the button's accessible name already says everything.
+
 ## Component boundaries
 
 | Unit | Job | Used by |
@@ -117,13 +159,16 @@ The metallic Open Crest appears once, at 160 px, centred at the top of the setup
 
 All three are server-safe (no state, no effects). `MainNav` and `GroupLayout` are already client components and import `BrandIcon` like any other component.
 
+Decision 8 changes `group-grid/GroupCell.tsx` markup only: the container class, the name line and the line-2 wrapper. Nothing in the cell's rules (`rowTone`, `stateWord`, `trackDisplay`, `cellLabel`) changes, and the width rule lives in CSS, so there is no new pure function to extract.
+
 ## Acceptance tests
 
 ### Automated
 
 - `BrandIcon` renders an `<svg>` with `aria-hidden="true"`, `focusable="false"`, `viewBox="0 0 64 64"`, the given size as width and height, and the given class; Vault includes its filled diamond.
 - `BrandMark` renders an `<svg>` with `aria-hidden="true"`, `viewBox="0 0 256 256"`, four paths, and the given size.
-- `GroupLayout`'s tab buttons and rail buttons still render their labels as text ("Gear", "Dungeons", "Vault", "Great Vault"), with an `aria-hidden` icon inside each.
+- `GroupLayout`'s tab buttons and rail buttons still render their labels as text ("Gear", "Dungeons", "Vault", "Great Vault"), with an `aria-hidden` icon inside each. The Dungeons tab still renders its count. Phone tabs carry `flex-auto`, rail buttons `flex-1`.
+- `GroupGrid`: a cell with an equipped item renders the item name inside the `aria-hidden` text column, in a span that carries `hidden @min-[180px]:block` and `truncate`, in its quality's text colour; the cell carries `@container`. A cell with nothing equipped renders no name. A cell with an upgrade gives the name line its right padding. The button's accessible name is unchanged.
 - `MainNav` renders each link with its label text and an `aria-hidden` icon that carries `hidden sm:block`.
 - `DungeonPriority` and `VaultSection` headings still contain their heading text, plus an `aria-hidden` icon.
 - `SetupNotice` still lists the missing variables, and its metallic image has an empty `alt`.
@@ -132,7 +177,15 @@ All three are server-safe (no state, no effects). `MainNav` and `GroupLayout` ar
 
 - The browser tab shows the crest on `/`, `/group` and a character page in Chrome; `<head>` holds the `favicon.ico`, `icon.svg` and `apple-icon.png` links.
 - The header at 1440, 768 and 375 px: no horizontal scroll; at 375 px the nav shows labels only.
-- Group page tabs at 768 and 375 px, and the rail switch at 1440 px: icons beside labels, nothing wraps that didn't before.
+- Group page tabs at 768, 375 and 320 px with a populated group, and the rail switch at 1440 px: icons beside labels, nothing wraps that didn't before. At 375 and 320 px, read each tab icon's rendered bounding box (`getBoundingClientRect`), not its width attribute: 24 × 24, with the Dungeons label and count fully visible and no horizontal scroll.
+- Item names (decision 8), with made-up or local characters only, never committed:
+  - At 1440 px, go from five members to three: names appear (cells 169 → 286 px); add members back to five and they disappear.
+  - At 768 px with three members (196 px), names show; with four (146 px), compact.
+  - At 375 px with one member, the name shows centred under the icon; with two or more, compact.
+  - Long names truncate with an ellipsis and never cover the upgrade arrow or the state word, or cause horizontal scroll.
+  - An empty slot shows no name; with tracks unknown, line 2 shows the item level and today's track text.
+  - Pressing a wide cell still opens the details card with the full name; the Wowhead tooltip still shows on the icon.
+  - Rows are no taller than today at three members.
 - Character page at 1440 and 375 px: heading icons aligned with Cinzel headings.
 - The header diamond is centred and overlaps nothing at all three widths.
 - The setup notice, by running a server with `BLIZZARD_CLIENT_ID` set empty: the metallic crest and corners render, the panel fits at 375 px.
@@ -144,6 +197,8 @@ The project has no browser test setup, so layout, overflow and visual checks are
 
 - **Stroke clipping at the viewBox edge.** Some icon paths touch 2–62 on a 64-unit grid with a 3.2-unit stroke, so half the stroke reaches 0.4 units from the edge. The browser check at 24 px showed no clipping; `overflow="visible"` on the SVG is the fix if a renderer clips.
 - **Inline path copies drift from the pack.** Decision 7's README section names the components that hold copies.
+- **Measured widths drift.** The 180 px threshold and the tab budget rest on Chrome measurements of today's fonts and padding. A later change to cell padding, the icon size or the rail width moves them; the hand checks above re-measure.
+- **Container queries in old browsers.** Size container queries need Chrome 105, Safari 16 or Firefox 110. Where they are unsupported, `hidden` keeps every cell compact, which is today's behaviour.
 
 ## Out of scope
 
@@ -151,3 +206,5 @@ The project has no browser test setup, so layout, overflow and visual checks are
 - A light theme. The app is dark only; the charcoal logo variant stays in the pack.
 - Brand icons in state badges, the legend or the upgrade badge (decision 3).
 - Any change to tokens other than adding `--color-header`, to fonts, or to gear, class, state or track colours.
+- Item names wrapping onto two lines, or a user setting for names. One truncated line keeps row heights fixed; the full name is one press away in the details card.
+- Any other change to the group grid, its header, notices or details card.
