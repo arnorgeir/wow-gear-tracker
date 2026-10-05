@@ -35,8 +35,7 @@ path connection for rasterization. It preserves the overall emblem.
 The metallic PNG is a separate rendered interpretation isolated from the
 approved Open Crest reference. Use it as decorative large artwork, not as the
 geometric source of truth or a favicon. Flat SVGs are the implementation
-masters. Inspect the vector preview before integrating; artwork has not been
-installed into the app.
+masters. Inspect the vector preview before changing the artwork.
 
 ## Usage
 
@@ -57,14 +56,26 @@ parchment `#ece6da`, gold `#f2c14e`. Retain the app's Cinzel / Barlow / IBM Plex
 Mono typography. No fonts are bundled. Supporting ornament should be subtle
 and should not compete with gear rarity and state colors.
 
-## Future Next.js integration
+## Installed in the app
 
-The installed Next.js guide supports `src/app/favicon.ico`, `src/app/icon.svg`
-and `src/app/apple-icon.png`. Copy the corresponding exports only when doing
-the integration. Serve other assets from an appropriate `public/brand/`
-directory. Wire the regular and maskable app icons into the app manifest when
-one is introduced; its name must follow the eventual naming decision.
+The pack moved here from `output/brand/` when it was installed (issue #77).
+These files and components hold copies of its artwork. Update them with the
+masters here when the artwork changes.
 
-No application files, metadata, manifest, dependencies, database, or Git history
-were changed by this export. Build verification is not required for these
-standalone assets; application integration still needs its own checks.
+| In the app | Copied from |
+|---|---|
+| `src/app/favicon.ico` | `favicon/favicon.ico` |
+| `src/app/icon.svg` | `favicon/favicon.svg` |
+| `src/app/apple-icon.png` | `app-icons/apple-touch-icon.png` |
+| `public/brand/open-crest-metallic.png` (setup notice) | `logos/open-crest-metallic.png` |
+| `src/components/brand-mark/BrandMark.tsx` (inline paths) | `logos/open-crest-mono.svg` |
+| `src/components/brand-icon/BrandIcon.tsx` (inline paths: characters, group, dungeons, vault) | `icons/current-color/` |
+| `src/components/setup-notice/CornerFrame.tsx` (one corner, mirrored) | `motifs/corner-frame.svg` |
+| Header bottom line with a gold diamond, `src/app/layout.tsx` (drawn in CSS) | `motifs/divider.svg` |
+
+Not installed yet: the regular and maskable app icons (they belong to a web
+app manifest, which waits for the site's name), the Upgrades and Bags icons,
+the gold, parchment and charcoal logo files, and the social background.
+
+The design decisions are in
+`docs/superpowers/specs/2026-10-04-forged-wayfinder-identity-design.md`.
