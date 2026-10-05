@@ -18,16 +18,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${cinzel.variable} ${barlow.variable} ${plexMono.variable}`}>
       <body className="min-h-screen">
-        <header className="relative border-b border-line bg-header">
-          <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between px-4 sm:px-16">
-            <Link href="/" className="flex items-center gap-3 font-display text-[22px] font-bold tracking-wide text-ink no-underline">
-              <BrandMark size={32} className="shrink-0 text-gold" />
+        <header className="border-b border-line bg-header">
+          {/* Phones: the brand row above a row of tabs. From sm up: one 64 px row, tabs right after the brand. The right end stays free for account buttons. */}
+          <div className="mx-auto flex max-w-[1440px] flex-col px-4 sm:h-16 sm:flex-row sm:gap-10 sm:px-16">
+            <Link href="/" className="-mx-2 flex h-[52px] items-center gap-2 self-start px-2 font-display text-[17px] font-bold tracking-wide text-ink no-underline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold sm:h-auto sm:gap-3 sm:self-auto sm:text-[21px]">
+              <BrandMark size={32} className="size-[26px] shrink-0 text-gold sm:size-8" />
               Gear Tracker
             </Link>
             <MainNav />
           </div>
-          {/* The divider motif: a gold diamond centred on the header's bottom line. */}
-          <span aria-hidden="true" className="pointer-events-none absolute bottom-0 left-1/2 size-3 -translate-x-1/2 translate-y-1/2 rotate-45 border border-gold bg-header" />
         </header>
         {children}
         <Script id="wowhead-config" strategy="beforeInteractive">
