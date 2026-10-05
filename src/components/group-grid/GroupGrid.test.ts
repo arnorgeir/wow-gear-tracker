@@ -143,4 +143,26 @@ describe('GroupGrid', () => {
     expect(html).toContain('Nothing equipped');
     expect(html).toContain('>Need<');
   });
+
+  it('makes each cell a size container whose name line shows only from 180 px, in the quality colour', () => {
+    const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({})] }]);
+    expect(html).toContain('class="@container relative flex');
+    expect(html).toContain('<span class="hidden max-w-full truncate text-xs font-semibold @min-[162px]:block" style="color:#c58cf5">Enigmatic Dreamwatcher’s Somnolent Stare</span>');
+  });
+
+  it('keeps a wide cell name clear of the upgrade arrow', () => {
+    const upgrade = { steps: 4, currencyId: 3446, currencyName: 'Myth Mistcrest', costPerStep: 20, iconUrl: null };
+    const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ upgrade })] }]);
+    expect(html).toContain('@min-[162px]:block pr-3.5"');
+  });
+
+  it('shows no name for an empty slot, not even the BiS item', () => {
+    const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ equipped: null, state: 'missing' })] }]);
+    expect(html).not.toContain('@min-[162px]:block');
+  });
+
+  it('puts item level and track on one line in a wide cell', () => {
+    const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({})] }]);
+    expect(html).toMatch(/<span class="flex max-w-full min-w-0 flex-col items-center gap-px sm:items-start @min-\[162px\]:flex-row @min-\[162px\]:gap-1\.5"><span class="font-mono[^"]*">321<\/span><span class="[^"]*">Myth 2\/6<\/span><\/span>/);
+  });
 });
