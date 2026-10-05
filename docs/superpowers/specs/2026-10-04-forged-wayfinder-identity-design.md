@@ -119,7 +119,7 @@ The metallic Open Crest appears once, at 160 px, centred at the top of the setup
 
 The owner asked, during spec review on 2026-10-04, for the group overview to show equipped item names when cells have room: with three members the cells are wide, yet they still show only icon, item level, track and state word.
 
-**The rule follows the cell's own width, not the member count or the viewport.** Each `GroupCell` becomes a CSS size container (Tailwind v4's built-in `@container`, which sets `container-type: inline-size`). The name shows when the cell is at least **180 px** wide (`@min-[180px]:`). The grid's columns are `minmax(0, 1fr)`, so the cell's width comes from the grid track, never from its content, and inline-size containment is safe.
+**The rule follows the cell's own width, not the member count or the viewport.** Each `GroupCell` becomes a CSS size container (Tailwind v4's built-in `@container`, which sets `container-type: inline-size`). The name shows when the cell is at least **180 px** wide. A container query measures the container's content box, which at `sm` and up is the cell minus its 1 px borders and 8 px side padding (18 px), so the class is `@min-[162px]:` (162 + 18 = 180). Written as `@min-[180px]` it would hide the name in a 196 px cell (178 px of content), which the implementation measured. The grid's columns are `minmax(0, 1fr)`, so the cell's width comes from the grid track, never from its content, and inline-size containment is safe.
 
 Measured cell widths on 2026-10-04 (Chrome, populated groups; viewport width, then cell width per member count):
 
