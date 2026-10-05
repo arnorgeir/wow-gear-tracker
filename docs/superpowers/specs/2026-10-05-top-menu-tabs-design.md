@@ -65,7 +65,7 @@ This shows the icons that are hidden on phones today, and removes the 320 px ove
 
 ### 4. Focus is a gold outline
 
-The brand link and each tab get `focus-visible:outline-2 focus-visible:outline-gold`, with `outline-offset-[-2px]` on the tabs so the outline isn't cut off by the bar's edges. This is the outline the app already uses on other controls, such as `ItemCard` and `GroupCell`.
+The brand link and each tab get `focus-visible:outline-2 focus-visible:outline-gold`, with an inset offset (`focus-visible:-outline-offset-2`) on both. The brand and the tabs fill the bar from its top edge, so an outside outline would lose its top edge to the viewport. The brand link also gets 8 px of side padding cancelled by a negative margin (`-mx-2 px-2`), so the inset outline clears the name without moving it. This is the outline the app already uses on other controls, such as `ItemCard` and `GroupCell`.
 
 ### 5. Where the code goes
 

@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="border-b border-line bg-header">
           {/* Phones: the brand row above a row of tabs. From sm up: one 64 px row, tabs right after the brand. The right end stays free for account buttons. */}
           <div className="mx-auto flex max-w-[1440px] flex-col px-4 sm:h-16 sm:flex-row sm:gap-10 sm:px-16">
-            <Link href="/" className="flex h-[52px] items-center gap-2 self-start font-display text-[17px] font-bold tracking-wide text-ink no-underline focus-visible:outline-2 focus-visible:outline-gold sm:h-auto sm:gap-3 sm:self-auto sm:text-[21px]">
+            <Link href="/" className="-mx-2 flex h-[52px] items-center gap-2 self-start px-2 font-display text-[17px] font-bold tracking-wide text-ink no-underline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold sm:h-auto sm:gap-3 sm:self-auto sm:text-[21px]">
               <BrandMark size={32} className="size-[26px] shrink-0 text-gold sm:size-8" />
               Gear Tracker
             </Link>
