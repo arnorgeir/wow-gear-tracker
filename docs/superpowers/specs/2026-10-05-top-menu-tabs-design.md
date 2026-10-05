@@ -1,6 +1,6 @@
 # Top menu: tabs on the header line
 
-Status: approved by the owner in conversation on 2026-10-05, awaiting spec review.
+Status: approved by the owner on 2026-10-05. The spec review's one finding is resolved: the success criteria and hand checks now allow the content shift caused by the header's new height, including the taller phone header (decision 3).
 Date: 2026-10-05
 Issue: #88 — Redesign the top menu as tabs on the header line
 Design: the "WoW Gear Tracker" canvas, board "Top menu: variations of A, tabs on the line", variation A1. The board "Top menu: four directions" holds the directions that were not chosen.
@@ -19,7 +19,7 @@ This change rearranges the same parts into tabs that stand on the header's botto
 - On phones the tabs sit on a second row with their icons visible, and nothing overflows at 390 or 320 px.
 - The right end of the bar is empty.
 - Keyboard focus on a tab or the brand is visible.
-- Nothing below the header moves or changes.
+- Nothing below the header changes. The page content moves vertically only by the header's change in height: 8 px up on desktop and tablet, and down by the phone header's extra height on phones (decision 3). Page spacing, layout, data and behaviour stay the same.
 
 ## Constraints from the owner
 
@@ -57,7 +57,7 @@ Colour is not the only signal: the current tab also has the underline and the di
 Below 640 px the header becomes two rows inside the same `header` element:
 
 1. A 52 px row with the brand: the crest at 26 px and the name at 17 px.
-2. The nav: one tab per page, each taking an equal share of the width (`flex-1`), with the 24 px icon above a 13 px label. Each tab has 8 px of padding above and 10 px below, so the row is about 59 px tall.
+2. The nav: one tab per page, each taking an equal share of the width (`flex-1`), with the 24 px icon above a 13 px label. Each tab has 8 px of padding above and 10 px below, so the row is about 59 px tall. The exact height depends on the label's line height and is not pinned. The phone header is about 111 px against today's 72, so on phones the page content starts about 39 px lower. That shift is expected, and pages don't compensate for it.
 
 The current tab has the same gold label, icon and underline as on desktop, without the diamond. The diamond stays in the markup and is hidden below `sm` (`hidden sm:block`). Equal-width tabs leave no space beside the underline, so the diamond would crowd the line. The canvas phone mockup has no diamond either.
 
@@ -84,7 +84,7 @@ The brand link and each tab get `focus-visible:outline-2 focus-visible:outline-g
   - the diamond centred under the current tab and cut by the bottom line;
   - the phone tabs equal in width, with icons visible;
   - Tab moves focus through the brand and both tabs, and each shows the gold outline;
-  - nothing below the header moved apart from the 8 px height change on desktop.
+  - the content moves only by the header's height change. Measure the header height and the top of `main` before and after at 1440 and 390 px. The content's shift must equal the header's change in height: −8 px on desktop, and +the phone header's measured increase on phones. Nothing else in the page layout may move.
 - Typecheck, lint, tests and `npm run build` must be clean, with the build run in a separate worktree or with dev stopped.
 
 ## Out of scope
