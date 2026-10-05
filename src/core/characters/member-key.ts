@@ -11,7 +11,7 @@ export interface MemberKey { region: Region; realmSlug: string; nameKey: string 
 export const MAX_GROUP_SIZE = 5;
 export const GROUP_COOKIE = 'group';
 
-const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SLUG = /^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u;
 const NAME = /^\p{L}+$/u;
 
 export function memberKeyOf(c: { region: Region; realmSlug: string; name: string }): MemberKey {
