@@ -16,6 +16,11 @@ describe('resolveGroupRequest', () => {
     expect(resolveGroupRequest(undefined, '%E0%A4%A')).toEqual({ keys: [] });
   });
 
+  it('keeps members on realms with accented slugs', () => {
+    expect(resolveGroupRequest('eu.festung-der-stürme.Birkibjörn', undefined))
+      .toEqual({ keys: [{ region: 'eu', realmSlug: 'festung-der-stürme', nameKey: 'birkibjörn' }] });
+  });
+
   it('never redirects when chars is present, even empty', () => {
     expect(resolveGroupRequest('', encodeGroupCookie(['eu.argent-dawn.birkibjörn']))).toEqual({ keys: [] });
   });

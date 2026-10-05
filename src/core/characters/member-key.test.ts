@@ -62,6 +62,29 @@ describe('member keys', () => {
     expect(groupHref([])).toBe('/group?chars=');
   });
 
+  describe('accented realm slugs', () => {
+    const stürme: MemberKey = { region: 'eu', realmSlug: 'festung-der-stürme', nameKey: 'birkibjörn' };
+    const k = formatMemberKey(stürme);
+
+    it('round-trips through format and parse', () => {
+      expect(k).toBe('eu.festung-der-stürme.birkibjörn');
+      expect(parseMemberKey(k)).toEqual(stürme);
+      expect(parseMemberKey('EU.Festung-der-STÜRME.Birkibjörn')).toEqual(stürme);
+    });
+
+    it('round-trips through a group link and the cookie', () => {
+      const chars = new URL(groupHref([k]), 'http://localhost').searchParams.get('chars')!;
+      expect(parseMemberKeys(chars)).toEqual([stürme]);
+      expect(decodeGroupCookie(encodeGroupCookie([k]))).toEqual([stürme]);
+    });
+
+    it('still rejects malformed slugs', () => {
+      for (const bad of ['eu.festung der-stürme.birki', 'eu.festung.der.birki', 'eu.festung--der.birki', 'eu.festung-.birki', 'eu..birki']) {
+        expect(parseMemberKey(bad)).toBeNull();
+      }
+    });
+  });
+
   it('round-trips the cookie, and treats a malformed one as empty', () => {
     expect(decodeGroupCookie(encodeGroupCookie([formatMemberKey(birki)]))).toEqual([birki]);
     expect(decodeGroupCookie('eu.argent-dawn.birkibjörn')).toEqual([birki]); // already decoded by Next
