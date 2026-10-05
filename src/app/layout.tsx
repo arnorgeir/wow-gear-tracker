@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Script from 'next/script';
 import { Suspense } from 'react';
 import { Barlow, Cinzel, IBM_Plex_Mono } from 'next/font/google';
+import { BrandMark } from '@/components/brand-mark/BrandMark';
 import { MainNav } from '@/components/main-nav/MainNav';
 import { WowheadRefresh } from '@/components/wowhead-refresh/WowheadRefresh';
 import './globals.css';
@@ -17,16 +18,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${cinzel.variable} ${barlow.variable} ${plexMono.variable}`}>
       <body className="min-h-screen">
-        <header className="border-b border-line bg-[#1a1713]">
+        <header className="relative border-b border-line bg-header">
           <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between px-4 sm:px-16">
             <Link href="/" className="flex items-center gap-3 font-display text-[22px] font-bold tracking-wide text-ink no-underline">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f2c14e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /><path d="M9 12l2 2 4-4" />
-              </svg>
+              <BrandMark size={32} className="shrink-0 text-gold" />
               Gear Tracker
             </Link>
             <MainNav />
           </div>
+          {/* The divider motif: a gold diamond centred on the header's bottom line. */}
+          <span aria-hidden="true" className="pointer-events-none absolute bottom-0 left-1/2 size-3 -translate-x-1/2 translate-y-1/2 rotate-45 border border-gold bg-header" />
         </header>
         {children}
         <Script id="wowhead-config" strategy="beforeInteractive">
