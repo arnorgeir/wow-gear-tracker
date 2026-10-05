@@ -14,7 +14,7 @@ import { stateWord } from './state-word';
 interface Props { cell: GearRowView | null; tracksKnown: boolean; slotLabel: string; memberName: string; character: CharacterSummary | null }
 
 /**
- * One compact cell: icon, item level, track and a state word. A button covers the cell and opens the
+ * One compact cell: icon, item level, track and a state word, plus the item name when the cell is at least 180 px wide. A button covers the cell and opens the
  * details card. Wowhead's script only scans links, so the icon is a link on top of the button; a click
  * on it opens the card too, and Wowhead is one tap further in the card.
  */
@@ -34,7 +34,7 @@ export function GroupCell({ cell, tracksKnown, slotLabel, memberName, character 
     : <span aria-hidden="true" className="block size-[34px] rounded-md border-2 border-dashed border-line-strong sm:size-9" />;
   return (
     <>
-      <div className="relative flex min-h-[80px] min-w-0 flex-col items-center gap-1 rounded-lg border border-line bg-surface-2 px-0.5 py-1.5 sm:min-h-[68px] sm:flex-row sm:gap-2 sm:px-2 sm:py-2"
+      <div className="@container relative flex min-h-[80px] min-w-0 flex-col items-center gap-1 rounded-lg border border-line bg-surface-2 px-0.5 py-1.5 sm:min-h-[68px] sm:flex-row sm:gap-2 sm:px-2 sm:py-2"
         style={tone ? ROW_TONE_STYLES[tone] : undefined}>
         <button ref={button} type="button" popoverTarget={id} title={hover} aria-label={cellLabel(memberName, slotLabel, cell)}
           className="absolute inset-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold" />
@@ -43,9 +43,18 @@ export function GroupCell({ cell, tracksKnown, slotLabel, memberName, character 
             target="_blank" rel="noreferrer" tabIndex={-1} aria-hidden="true" className="relative z-10 shrink-0"
             onClick={(e) => { e.preventDefault(); button.current?.click(); }}>{icon}</a>
         ) : <span className="shrink-0">{icon}</span>}
+        {/* The cell is a size container: from 180 px wide it shows the item name and joins item level and track,
+            so a wide cell keeps three lines and the row keeps its height. */}
         <span aria-hidden="true" className="pointer-events-none flex min-w-0 max-w-full flex-col items-center gap-px leading-snug sm:items-start">
-          <span className="font-mono text-[11px] text-ink sm:text-xs">{eq?.itemLevel ?? '–'}</span>
-          {eq && <span className={`hidden max-w-full truncate text-xs sm:block ${track.className}`}>{track.text}</span>}
+          {eq && (
+            <span className={`hidden max-w-full truncate text-xs font-semibold @min-[162px]:block${cell.upgrade ? ' pr-3.5' : ''}`} style={{ color: q!.text }}>
+              {eq.name}
+            </span>
+          )}
+          <span className="flex max-w-full min-w-0 flex-col items-center gap-px sm:items-start @min-[162px]:flex-row @min-[162px]:gap-1.5">
+            <span className="font-mono text-[11px] text-ink sm:text-xs">{eq?.itemLevel ?? '–'}</span>
+            {eq && <span className={`hidden max-w-full truncate text-xs sm:block ${track.className}`}>{track.text}</span>}
+          </span>
           <span className={`text-[10px] font-bold sm:text-xs ${word.className}`}>{word.word}</span>
         </span>
         {cell.upgrade && (
