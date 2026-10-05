@@ -48,4 +48,9 @@ describe('DungeonPriority', () => {
     const html = render({ ...base, dungeons: [{ challengeModeId: 502, name: 'Streets of Beta', score: 3, split: true, credits: [] }] });
     expect(html).toContain('Split dungeon');
   });
+
+  it('puts a gold dungeons icon in the heading, beside its text', () => {
+    const html = render(base);
+    expect(html).toMatch(/<h2 class="flex items-center gap-2\.5[^"]*"><svg[^>]*aria-hidden="true"[^>]*class="shrink-0 text-gold"[^>]*>.*<\/svg>Dungeon priority<\/h2>/);
+  });
 });

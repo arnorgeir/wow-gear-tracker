@@ -1,3 +1,4 @@
+import { BrandIcon } from '@/components/brand-icon/BrandIcon';
 import { ItemCard } from '@/components/item-card/ItemCard';
 import { APPROXIMATE, SEASON_FAILED, SEASON_LOADING, SEASON_STALE, SPLIT_DUNGEON } from '@/components/shared/priority-copy';
 import type { PriorityCreditView, PriorityView } from '@/server/views/types';
@@ -49,8 +50,9 @@ function Ranking({ priority }: { priority: PriorityView }) {
 export function DungeonPriority({ priority, specLabel }: { priority: PriorityView; specLabel: string }) {
   return (
     <section aria-label="Dungeon priority" className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="font-display text-2xl font-bold">Dungeon priority</h2>
+      {/* items-center, not items-baseline: the heading is a flex row with an icon, so it has no text baseline to share. */}
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2.5 font-display text-2xl font-bold"><BrandIcon name="dungeons" size={28} className="text-gold" />Dungeon priority</h2>
         <span className="text-sm text-muted">{LIST_NAMES[priority.listType]}</span>
       </div>
       {priority.fellBack && <p className="text-sm text-muted">Using the Overall list: Method has no Mythic+ list for {specLabel}.</p>}
