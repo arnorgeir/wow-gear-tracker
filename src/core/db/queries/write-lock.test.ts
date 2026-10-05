@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { openDb } from '../client';
 import { openTestDb } from '@/test/db';
 import type { BisLists, GearItem } from '../../types';
@@ -33,6 +33,27 @@ describe('concurrent writes', () => {
     expect((await getTrackMap(db)).size).toBe(1);
     expect(await getBisLists(db, 'guardian-druid')).not.toBeNull();
     expect(await getLatestSnapshot(db, id)).not.toBeNull();
+  });
+});
+
+describe('write lock across bundles', () => {
+  it('serializes writers from two separately loaded copies of the module', async () => {
+    const db = await openTestDb();
+    vi.resetModules();
+    const a = await import('./write-lock');
+    vi.resetModules();
+    const b = await import('./write-lock');
+    expect(a).not.toBe(b);
+    let running = 0;
+    let overlapped = false;
+    const task = async () => {
+      running++;
+      if (running > 1) overlapped = true;
+      await new Promise((r) => setTimeout(r, 10));
+      running--;
+    };
+    await Promise.all([a.withWriteLock(db, task), b.withWriteLock(db, task)]);
+    expect(overlapped).toBe(false);
   });
 });
 
