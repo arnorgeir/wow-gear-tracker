@@ -5,13 +5,15 @@ import type { SearchResult } from './use-character-search';
 
 interface Props {
   results: SearchResult[];
+  /** The searched name, shown when nothing matched. */
+  term: string;
   busy: boolean;
   isTracked: (result: SearchResult) => boolean;
   onPick: (result: SearchResult) => void;
   onManual: () => void;
 }
 
-export function SearchResults({ results, busy, isTracked, onPick, onManual }: Props) {
+export function SearchResults({ results, term, busy, isTracked, onPick, onManual }: Props) {
   return (
     <ul role="listbox" aria-label="Matching characters"
       className="absolute top-full z-10 mt-2 flex w-full flex-col gap-0.5 rounded-xl border border-line-strong bg-surface-2 p-1.5 shadow-2xl">
@@ -36,6 +38,7 @@ export function SearchResults({ results, busy, isTracked, onPick, onManual }: Pr
           </button>
         </li>
       ))}
+      {results.length === 0 && <li className="px-3 py-2 text-sm text-muted">No character found for “{term}”</li>}
       <li className="border-t border-line px-3 pb-1 pt-2.5 text-sm text-muted">
         Not listed? <button type="button" className="text-gold underline" onClick={onManual}>Pick the realm yourself</button>
       </li>
