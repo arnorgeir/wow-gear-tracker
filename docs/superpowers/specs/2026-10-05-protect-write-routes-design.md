@@ -17,7 +17,7 @@ This change closes both: a request guard in front of the app, and a loopback bin
 
 - The issue's repro, `curl -X POST -H "Origin: http://evil.example" -H "Content-Type: text/plain" "http://localhost:3000/api/season/sync?region=eu"`, answers 403. So does every other write route with a foreign `Origin`.
 - A page served under a DNS name that isn't `localhost`, such as a rebound `evil.example`, gets 403 on every route and page.
-- `npm run dev` and `npm start` listen on `127.0.0.1:3000` only. `npm run dev -- -H 0.0.0.0` still serves the app to a phone on the LAN by IP address, and its writes work.
+- `npm run dev` and `npm start` listen on `127.0.0.1:3000` only. `npm start -- -H 0.0.0.0`, after a build, still serves the app to a phone on the LAN by IP address, and its writes work.
 - Every UI flow works as before: add a character, refresh, paste SimC, change settings, remove a character, sync the season.
 - A write body over 1 MB answers 413 before any route handler runs, with or without `Content-Length`. Nothing is stored, and no sync starts.
 - `PATCH /api/characters/<id>` with a `specOverride` that isn't one of the character's class specs answers 400 and stores nothing.
@@ -87,7 +87,7 @@ So the proxy measures the body itself, against a limit set below Next's cap:
 
 `127.0.0.1` and not `localhost`: on recent Node, `localhost` can resolve to `::1` only, and then `http://127.0.0.1:3000` stops answering. Browsers opening `http://localhost:3000` fall back to `127.0.0.1`, so the README's URL keeps working.
 
-Opting in to the LAN is `npm run dev -- -H 0.0.0.0`. Next's CLI takes the last `-H` it is given (a plain commander option), so no extra script is needed. The README documents it under the commands table, with a warning: the app has no login, so anyone on that network can change its data while the server is open.
+Opting in to the LAN is `npm run build`, then `npm start -- -H 0.0.0.0`. Next's CLI takes the last `-H` it is given (a plain commander option), so no extra script is needed. It isn't `npm run dev -- -H 0.0.0.0`: Next's dev server blocks its own dev resources for any origin but `localhost` (`allowedDevOrigins`), so a phone gets the page but it never hydrates, and its buttons send nothing. The fix session found this by hand on 2026-10-06. Adding LAN ranges to `allowedDevOrigins` would loosen a dev-only safety net for a convenience the production server already gives. The README documents it under the commands table, with a warning: the app has no login, so anyone on that network can change its data while the server is open.
 
 ### 4. Input validation scope
 
@@ -165,7 +165,7 @@ Full gate: `npm run typecheck && npm run lint && npm test`, and `npm run build`,
    - The same chunked PATCH padded to exactly 1,048,576 bytes succeeds and changes the spec.
 5. `netstat -an | findstr 3000` shows `127.0.0.1:3000` only, for both `npm run dev` and `npm start`.
 6. In the browser, add a character, refresh it, paste SimC, change spec and priority list, remove it, and sync the season. None of them fail.
-7. `npm run dev -- -H 0.0.0.0`, then open `http://<lan-ip>:3000` from a phone and change a setting.
+7. `npm run build`, then `npm start -- -H 0.0.0.0`. Open `http://<lan-ip>:3000` from a phone and change a setting; it saves.
 8. A PATCH with `{"specOverride":"Nonsense"}` answers 400, and the character page still shows the old spec.
 9. With Blizzard unreachable (a wrong `BLIZZARD_CLIENT_SECRET`), a priority-only PATCH and `{"specOverride":null}` both answer 200 and save. `{"specOverride":"<a valid spec>"}` answers 500 and stores nothing.
 

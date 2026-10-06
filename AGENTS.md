@@ -16,7 +16,7 @@ A local Next.js app that compares World of Warcraft characters' gear to Method.g
 
 | Command | Does |
 |---|---|
-| `npm run dev` | Starts the app on http://localhost:3000, bound to 127.0.0.1. `npm run dev -- -H 0.0.0.0` opens it to the LAN |
+| `npm run dev` | Starts the app on http://localhost:3000, bound to 127.0.0.1. For a phone on the LAN, `npm run build` then `npm start -- -H 0.0.0.0`; dev blocks its scripts for non-localhost origins |
 | `npm test` | Unit and integration tests |
 | `npm run typecheck` | TypeScript checks |
 | `npm run lint` | ESLint |
