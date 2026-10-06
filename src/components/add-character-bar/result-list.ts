@@ -17,3 +17,9 @@ export function showResultList(s: ListState): boolean {
   if (!s.open || s.manual || term.length < 3) return false;
   return s.resultCount > 0 || s.searchedTerm === term;
 }
+
+/** A search runs, or waits out its debounce, until results for the current term come back. */
+export function isSearching(s: Pick<ListState, 'manual' | 'term' | 'searchedTerm'>): boolean {
+  const term = s.term.trim();
+  return !s.manual && term.length >= 3 && s.searchedTerm !== term;
+}

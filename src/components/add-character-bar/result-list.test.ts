@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { showResultList } from './result-list';
+import { isSearching, showResultList } from './result-list';
 
 const base = { open: true, manual: false, term: 'Birkibjörn', resultCount: 0, searchedTerm: null };
 
@@ -21,5 +21,17 @@ describe('showResultList', () => {
     expect(showResultList({ ...base, resultCount: 2, open: false })).toBe(false);
     expect(showResultList({ ...base, resultCount: 2, manual: true })).toBe(false);
     expect(showResultList({ ...base, resultCount: 2, term: 'Bi' })).toBe(false);
+  });
+});
+
+describe('isSearching', () => {
+  it('is true until the search for the current term comes back', () => {
+    expect(isSearching({ manual: false, term: 'Birkibjörn ', searchedTerm: 'Birki' })).toBe(true);
+    expect(isSearching({ manual: false, term: 'Birkibjörn ', searchedTerm: 'Birkibjörn' })).toBe(false);
+  });
+
+  it('is false under three characters or in manual mode, where no search runs', () => {
+    expect(isSearching({ manual: false, term: 'Bi', searchedTerm: null })).toBe(false);
+    expect(isSearching({ manual: true, term: 'Birkibjörn', searchedTerm: null })).toBe(false);
   });
 });
