@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Faction, Region } from '@/core/types';
+import { showResultList } from './result-list';
 
 export interface SearchResult {
   name: string;
@@ -23,6 +24,7 @@ export function useCharacterSearch(lockedRegion: Region | null = null) {
   const region = lockedRegion ?? chosenRegion;
   const [term, setTerm] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [searchedTerm, setSearchedTerm] = useState<string | null>(null);
   const [manual, setManual] = useState(false);
   const [realms, setRealms] = useState<Realm[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -49,9 +51,11 @@ export function useCharacterSearch(lockedRegion: Region | null = null) {
   useEffect(() => {
     if (manual || term.trim().length < 3) return;
     const timer = setTimeout(async () => {
-      const res = await fetch(`/api/search?region=${region}&term=${encodeURIComponent(term.trim())}`).catch(() => null);
+      const query = term.trim();
+      const res = await fetch(`/api/search?region=${region}&term=${encodeURIComponent(query)}`).catch(() => null);
       if (!res?.ok) { setManual(true); setSearchError('Search is unavailable. Pick the realm yourself.'); return; }
       setResults(await res.json());
+      setSearchedTerm(query);
     }, 300);
     return () => clearTimeout(timer);
   }, [term, region, manual]);
@@ -61,13 +65,13 @@ export function useCharacterSearch(lockedRegion: Region | null = null) {
     fetch(`/api/realms?region=${region}`).then((r) => (r.ok ? r.json() : [])).then(setRealms).catch(() => setRealms([]));
   }, [manual, region]);
 
-  const visibleResults = open && !manual && term.trim().length >= 3 ? results : [];
-
+  const showList = showResultList({ open, manual, term, resultCount: results.length, searchedTerm });
   /** Empties the field and the list after a character is added. */
   function clear() {
     setTerm('');
     setResults([]);
+    setSearchedTerm(null);
   }
 
-  return { region, setRegion, term, setTerm, manual, setManual, realms, searchError, setOpen, searchRef, visibleResults, clear };
+  return { region, setRegion, term, setTerm, manual, setManual, realms, searchError, setOpen, searchRef, results, showList, clear };
 }

@@ -24,7 +24,7 @@ interface Props {
 export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdded }: Props) {
   const router = useRouter();
   const {
-    region, setRegion, term, setTerm, manual, setManual, realms, searchError, setOpen, searchRef, visibleResults, clear,
+    region, setRegion, term, setTerm, manual, setManual, realms, searchError, setOpen, searchRef, results, showList, clear,
   } = useCharacterSearch(lockedRegion);
   const [realmSlug, setRealmSlug] = useState('');
   const [addingName, setAddingName] = useState<string | null>(null);
@@ -63,8 +63,8 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
         <input id="character-name" type="search" autoComplete="off" value={term}
           onChange={(e) => { setTerm(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
           placeholder="Search by name" className={inputClass} />
-        {visibleResults.length > 0 && (
-          <SearchResults results={visibleResults} busy={pending}
+        {showList && (
+          <SearchResults results={results} term={term.trim()} busy={pending}
             isTracked={(r) => isTracked(trackedLookup, region, r)}
             onPick={(r) => add(r.name, { name: r.name, realmId: r.blizzardRealmId })} onManual={() => setManual(true)} />
         )}
