@@ -63,13 +63,16 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
         <input id="character-name" type="search" autoComplete="off" value={term}
           onChange={(e) => { setTerm(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
           placeholder="Search by name" className={inputClass} />
-        {/* Sits left of the search input's built-in × button, which padding would push inward. */}
-        {searching && (
-          <span role="status" className="pointer-events-none absolute bottom-0 right-11 flex h-12 items-center gap-2 text-sm text-muted">
-            <span aria-hidden className="size-3.5 animate-spin rounded-full border-2 border-line-strong border-t-gold" />
-            Searching…
-          </span>
-        )}
+        {/* Sits left of the search input's built-in × button, which padding would push inward. Stays mounted so
+            screen readers announce the text when it appears; they skip a live region that arrives with its text. */}
+        <span role="status" className="pointer-events-none absolute bottom-0 right-11 flex h-12 items-center gap-2 text-sm text-muted">
+          {searching && (
+            <>
+              <span aria-hidden className="size-3.5 animate-spin rounded-full border-2 border-line-strong border-t-gold" />
+              Searching…
+            </>
+          )}
+        </span>
         {showList && (
           <SearchResults results={results} term={term.trim()} busy={pending}
             isTracked={(r) => isTracked(trackedLookup, region, r)}
