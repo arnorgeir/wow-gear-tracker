@@ -100,7 +100,15 @@ Opting in to the LAN is `npm run dev -- -H 0.0.0.0`. Next's CLI takes the last `
 
   It returns `undefined` when `value` is `undefined`, meaning leave the field alone. It returns `null` for `null` or `''`, meaning clear the override. It returns `value` when `value` is a string in `specs`. Anything else throws `UserError('Unknown spec for this class.')`, which `errorResponse` turns into a 400.
 
-  The PATCH route calls it only when `body.specOverride !== undefined`. It loads specs with `services.blizzard.getClasses(character.region)` and finds the class by `character.className`. The result is cached in memory per region, which is what the character page's spec select already reads. When Blizzard can't be reached, the error goes through `errorResponse` as a logged 500, and nothing is stored. When the class isn't found, `specs` is empty, so only clearing the override is accepted.
+  The PATCH route calls it only when `body.specOverride !== undefined`. Blizzard is asked only when the request sets an override:
+
+  | `specOverride` in the body | Blizzard lookup | Result |
+  |---|---|---|
+  | absent | none | field unchanged; a priority-only change works with Blizzard down |
+  | `null` or `''` | none | override cleared; works with Blizzard down |
+  | any other value | `services.blizzard.getClasses(character.region)`, class found by `character.className` | stored when it is one of the class's specs, otherwise 400 |
+
+  Clearing needs no spec list, and the settings select sends `null` whenever the active spec is picked, so it must not depend on Blizzard. The `getClasses` result is cached in memory per region, which is what the character page's spec select already reads. When a lookup is needed and Blizzard can't be reached, the error goes through `errorResponse` as a logged 500, and nothing in the request is stored, including a `priorityList` sent with it. When the class isn't found, `specs` is empty, so setting any override answers 400.
 
   The PATCH route reads the character row today only to check that it exists. It now keeps the row for `region` and `className`.
 - **Out of scope:** `POST /api/characters` needs no change, since Blizzard confirms the character before anything is stored. `priorityList` is already checked against its two values.
@@ -159,6 +167,7 @@ Full gate: `npm run typecheck && npm run lint && npm test`, and `npm run build`,
 6. In the browser, add a character, refresh it, paste SimC, change spec and priority list, remove it, and sync the season. None of them fail.
 7. `npm run dev -- -H 0.0.0.0`, then open `http://<lan-ip>:3000` from a phone and change a setting.
 8. A PATCH with `{"specOverride":"Nonsense"}` answers 400, and the character page still shows the old spec.
+9. With Blizzard unreachable (a wrong `BLIZZARD_CLIENT_SECRET`), a priority-only PATCH and `{"specOverride":null}` both answer 200 and save. `{"specOverride":"<a valid spec>"}` answers 500 and stores nothing.
 
 Gaps: the project has no HTTP-level test setup. Next's own body cloning, the 2 MB buffer cap and the matcher are covered only by hand checks 1 to 4. `src/proxy.test.ts` covers the proxy's own logic on a chunked stream, not Next's server around it.
 
