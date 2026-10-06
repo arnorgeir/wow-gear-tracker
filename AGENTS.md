@@ -16,7 +16,7 @@ A local Next.js app that compares World of Warcraft characters' gear to Method.g
 
 | Command | Does |
 |---|---|
-| `npm run dev` | Starts the app on http://localhost:3000 |
+| `npm run dev` | Starts the app on http://localhost:3000, bound to 127.0.0.1. `npm run dev -- -H 0.0.0.0` opens it to the LAN |
 | `npm test` | Unit and integration tests |
 | `npm run typecheck` | TypeScript checks |
 | `npm run lint` | ESLint |
@@ -99,6 +99,7 @@ Plan: docs/superpowers/plans/<file>"
 
 ## Errors and HTTP
 
+- **`src/proxy.ts` guards every request.** It serves only `localhost` and IP-literal hosts, which stops DNS rebinding. On `/api` writes it rejects other origins (`Sec-Fetch-Site`, else `Origin`) and bodies over 1 MB, measured from the body itself because Next truncates the proxy's copy silently. The rules live in `src/server/request-guard.ts`. New write routes get them automatically. Never write on `GET`: the guard lets every `GET` through.
 - **`UserError` means the message is safe to show.** Route handlers turn it into a 400, `MissingConfigError` into a 503, and anything else into a logged 500 with a generic body. Throw `UserError` for what the user can fix, and keep internals out of its message.
 - **Check our errors with `isUserError`, `isHttpError` and `isMissingConfigError`, never `instanceof`.** Next gives each server bundle its own copy of a module, and the services cache hands objects from one bundle to another, so `instanceof` fails depending on which page happened to load first. The guards read a `Symbol.for` brand that every copy shares.
 - **Every external request goes through `fetchJson` or `fetchWithRetry`** in `src/core/http.ts`: each attempt times out after ten seconds, and a 429 is retried once, honoring `Retry-After`. Cap parallel requests with `createLimiter`.
