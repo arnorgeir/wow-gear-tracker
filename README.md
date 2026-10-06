@@ -31,12 +31,16 @@ A paste also brings in bag items, Great Vault choices and crest counts, which Bl
 
 | Script | Does |
 |---|---|
-| `npm run dev` | Starts the app on localhost:3000 |
+| `npm run dev` | Starts the app on http://localhost:3000, reachable from this computer only |
 | `npm test` | Runs unit and integration tests |
 | `npm run test:live` | Checks the real Blizzard, Method and Raidbots APIs with your `.env` |
 | `npm run typecheck` | Type-checks the project |
 | `npm run lint` | Lints the project |
 | `npm run db:generate -- --name <name>` | Generates a migration after a schema change |
+
+### Using the app from your phone
+
+Run `npm run build`, then `npm start -- -H 0.0.0.0`. That opens the app to your network, so a phone on the same Wi-Fi can use `http://<your-pc-ip>:3000`. `npm run dev` won't do here: Next's dev server blocks its own scripts for any address but localhost, so the page loads but buttons do nothing. Use the IP address: the app refuses other host names. The app has no login, so anyone on that network can add, change and remove characters while it runs this way. Do not do it on public Wi-Fi.
 
 ## How it's built
 
