@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Faction, Region } from '@/core/types';
-import { isSearching, showResultList } from './result-list';
+import { isSearching, searchKey, showResultList } from './result-list';
 
 export interface SearchResult {
   name: string;
@@ -23,8 +23,10 @@ export function useCharacterSearch(lockedRegion: Region | null = null) {
   // A group locks the region to its members'; the user's own choice applies only when nothing locks it.
   const region = lockedRegion ?? chosenRegion;
   const [term, setTerm] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [searchedTerm, setSearchedTerm] = useState<string | null>(null);
+  // The latest answer with the region it came from: matches for another region are never shown or clickable.
+  const [answer, setAnswer] = useState<{ region: Region; key: string; results: SearchResult[] } | null>(null);
+  const results = answer?.region === region ? answer.results : [];
+  const searchedKey = answer?.key ?? null;
   const [manual, setManual] = useState(false);
   const [realms, setRealms] = useState<Realm[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -50,14 +52,18 @@ export function useCharacterSearch(lockedRegion: Region | null = null) {
 
   useEffect(() => {
     if (manual || term.trim().length < 3) return;
+    // Set by cleanup once the term or region changed: a response that lands after that answers an old search.
+    let stale = false;
     const timer = setTimeout(async () => {
       const query = term.trim();
       const res = await fetch(`/api/search?region=${region}&term=${encodeURIComponent(query)}`).catch(() => null);
+      if (stale) return;
       if (!res?.ok) { setManual(true); setSearchError('Search is unavailable. Pick the realm yourself.'); return; }
-      setResults(await res.json());
-      setSearchedTerm(query);
+      const found = await res.json();
+      if (stale) return;
+      setAnswer({ region, key: searchKey(region, query), results: found });
     }, 300);
-    return () => clearTimeout(timer);
+    return () => { stale = true; clearTimeout(timer); };
   }, [term, region, manual]);
 
   useEffect(() => {
@@ -65,14 +71,13 @@ export function useCharacterSearch(lockedRegion: Region | null = null) {
     fetch(`/api/realms?region=${region}`).then((r) => (r.ok ? r.json() : [])).then(setRealms).catch(() => setRealms([]));
   }, [manual, region]);
 
-  const showList = showResultList({ open, manual, term, resultCount: results.length, searchedTerm });
-  const searching = isSearching({ manual, term, searchedTerm });
+  const showList = showResultList({ open, manual, region, term, resultCount: results.length, searchedKey });
+  const searching = isSearching({ manual, region, term, searchedKey });
 
   /** Empties the field and the list after a character is added. */
   function clear() {
     setTerm('');
-    setResults([]);
-    setSearchedTerm(null);
+    setAnswer(null);
   }
 
   return { region, setRegion, term, setTerm, manual, setManual, realms, searchError, setOpen, searchRef, results, showList, searching, clear };
