@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Faction, Region } from '@/core/types';
-import { showResultList } from './result-list';
+import { isSearching, showResultList } from './result-list';
 
 export interface SearchResult {
   name: string;
@@ -66,6 +66,8 @@ export function useCharacterSearch(lockedRegion: Region | null = null) {
   }, [manual, region]);
 
   const showList = showResultList({ open, manual, term, resultCount: results.length, searchedTerm });
+  const searching = isSearching({ manual, term, searchedTerm });
+
   /** Empties the field and the list after a character is added. */
   function clear() {
     setTerm('');
@@ -73,5 +75,5 @@ export function useCharacterSearch(lockedRegion: Region | null = null) {
     setSearchedTerm(null);
   }
 
-  return { region, setRegion, term, setTerm, manual, setManual, realms, searchError, setOpen, searchRef, results, showList, clear };
+  return { region, setRegion, term, setTerm, manual, setManual, realms, searchError, setOpen, searchRef, results, showList, searching, clear };
 }
