@@ -10,8 +10,8 @@ import { buildTrackedLookup, isTracked, type TrackedCharacter } from './tracked'
 import { useCharacterSearch } from './use-character-search';
 
 const inputClass = 'h-12 rounded-xl border border-line-strong bg-surface-2 px-4 text-[17px] text-ink focus:border-gold focus:outline-none';
-// Narrower padding and width: the region select only ever shows two letters.
-const regionClass = `${inputClass.replace('px-4', 'px-3')} w-20`;
+// Narrow: the region select only ever shows two letters. Extra right padding keeps the chevron off the border.
+const regionClass = `${inputClass.replace('px-4', 'pl-3 pr-5')} w-20`;
 
 interface Props {
   trackedCharacters: TrackedCharacter[];
