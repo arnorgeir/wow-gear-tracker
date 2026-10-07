@@ -14,16 +14,16 @@ describe('DungeonPriority', () => {
     const html = render({
       ...base,
       dungeons: [{ challengeModeId: 501, name: 'Alpha Hollow', score: 7, split: false, credits: [
-        { kind: 'tier', slotLabel: 'Chest', weight: 4, fit: 'unverified', dropStats: null, targetName: 'BiS', targetStats: null,
-          item: { itemId: 80, name: 'Enigmatic Dreamwatcher’s Robe', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } },
+        { kind: 'tier', slotLabel: 'Chest', weight: 4, fit: 'alternative', dropStats: ['MASTERY_RATING', 'VERSATILITY'], targetName: 'Primordial Robe of Rites', targetStats: ['HASTE_RATING', 'MASTERY_RATING'],
+          item: { itemId: 80, name: 'Hoarded Harvest Wrap', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } },
         { kind: 'any', slotLabel: 'Shoulders', weight: 3, minItemLevel: 334 },
       ] }],
       nothingFrom: ['Beta Spire', 'Gamma Deep'],
     });
     expect(html).toContain('Mythic+ list');
     expect(html).toContain('Alpha Hollow');
-    expect(html).toContain('Enigmatic Dreamwatcher’s Robe');
-    expect(html).toContain('Chest · tier via catalyst · weight 4');
+    expect(html).toContain('Hoarded Harvest Wrap');
+    expect(html).toContain('Chest · catalyst alternative (Mastery/Vers, BiS Haste/Mastery) · weight 4');
     expect(html).toContain('Any item, level 334+');
     expect(html).toContain('Nothing you need from: Beta Spire, Gamma Deep.');
   });

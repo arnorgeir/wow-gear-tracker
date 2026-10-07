@@ -20,9 +20,26 @@ describe('cellNote', () => {
 describe('needText', () => {
   it('names what is still needed, and nothing once the BiS item is worn', () => {
     expect(needText(row(named))).toBe('Need: Greathelm');
-    expect(needText(row({ ...named, isTier: true }))).toBe('Need: Greathelm (tier, via catalyst)');
+    expect(needText(row({ ...named, isTier: true }))).toBe('Need: tier (catalyst Greathelm)');
     expect(needText(row({ kind: 'any', minItemLevel: 334, source: '' }))).toBe('Need: any item, level 334+');
     expect(needText(row(named, 'done'))).toBeNull();
     expect(needText(row(named, 'inBags'))).toBe('Need: Greathelm, in your bags');
+  });
+});
+
+describe('needText for tier rows', () => {
+  const HM = ['HASTE_RATING', 'MASTERY_RATING'];
+  const tier = { ...named, name: 'Primordial Robe of Rites', isTier: true, targetStats: HM };
+
+  it('names the pair and base for a missing tier piece', () => {
+    expect(needText(row(tier))).toBe('Need: tier, Haste/Mastery (catalyst Primordial Robe of Rites)');
+  });
+
+  it('names both pairs for a tier piece with the wrong stats', () => {
+    expect(needText({ ...row(tier, 'wrongStats'), equippedStats: ['CRIT_RATING', 'MASTERY_RATING'] })).toBe('Tier, Crit/Mastery; Method BiS wants Haste/Mastery');
+  });
+
+  it('says nothing once the tier piece is right', () => {
+    expect(needText(row(tier, 'done'))).toBeNull();
   });
 });

@@ -38,14 +38,17 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
             <span className="text-sm font-semibold uppercase tracking-wider text-muted">{listName}</span>
             <span className="font-mono"><strong className="text-gold">{bis}</strong><span className="text-muted"> / {card.total}</span></span>
           </div>
+          {/* A tier piece with the wrong stats isn't BiS: it gets its own segment. */}
           <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-line" aria-hidden="true">
             <div className="bg-gold" style={{ flexGrow: counts.done }} />
             <div className="bg-crest" style={{ flexGrow: counts.mythUpgradable }} />
             <div className="bg-vault" style={{ flexGrow: counts.belowMyth }} />
+            <div className="bg-stats" style={{ flexGrow: counts.wrongStats }} />
             <div style={{ flexGrow: counts.missing + counts.inBags }} />
           </div>
           <span className="text-sm text-muted">
             {counts.done} done, {counts.mythUpgradable} need crests, {counts.belowMyth} vault targets
+            {counts.wrongStats > 0 ? `, ${counts.wrongStats} wrong stats` : ''}
             {counts.inBags > 0 ? `, ${counts.inBags} in bags` : ''}
           </span>
           <span className="flex flex-wrap items-center gap-1.5">

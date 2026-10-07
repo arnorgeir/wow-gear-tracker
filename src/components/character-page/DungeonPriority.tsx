@@ -2,12 +2,13 @@ import { BrandIcon } from '@/components/brand-icon/BrandIcon';
 import { ItemCard } from '@/components/item-card/ItemCard';
 import { APPROXIMATE, SEASON_FAILED, SEASON_LOADING, SEASON_STALE, SPLIT_DUNGEON } from '@/components/shared/priority-copy';
 import type { PriorityCreditView, PriorityView } from '@/server/views/types';
+import { creditDetail } from './credit-detail';
 
 const LIST_NAMES = { mythicPlus: 'Mythic+ list', overall: 'Overall list' } as const;
 
 function Credit({ credit }: { credit: PriorityCreditView }) {
   if (credit.kind !== 'any') {
-    const detail = credit.kind === 'tier' ? `${credit.slotLabel} · tier via catalyst · weight ${credit.weight}` : `${credit.slotLabel} · weight ${credit.weight}`;
+    const detail = creditDetail(credit);
     return (
       <ItemCard itemId={credit.item.itemId} name={credit.item.name} quality={credit.item.quality} iconUrl={credit.item.iconUrl}
         bonusIds={credit.item.bonusIds} itemLevel={null} detail={detail} />

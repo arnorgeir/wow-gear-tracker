@@ -26,7 +26,7 @@ describe('GroupPriority', () => {
       { challengeModeId: 502, name: 'Streets of Beta', shortName: 'STRT', imageUrl: null, score: 3, split: true, members: [{ ...credits, credits: [{ kind: 'any', slotLabel: 'Boots', weight: 3, minItemLevel: 334 }] }] },
     ] } });
     expect(html).toContain('Alpha Hollow');
-    expect(html).toContain('Tier Robe (Chest), tier: catalyst a chest drop from this dungeon');
+    expect(html).toContain('Tier Robe (Chest), catalyst into tier, stats unverified');
     expect(html).toContain('Any boots, level 334+');
     expect(html.match(/Split dungeon/g)).toHaveLength(1);
     expect(html).toContain('Nothing anyone needs from: Delta Deep.');
@@ -112,7 +112,7 @@ describe('GroupPriority', () => {
     const tier: PriorityCreditView = { kind: 'tier', slotLabel: 'Shoulders', weight: 5, fit: 'unverified', dropStats: null, targetName: 'BiS', targetStats: null, item: plumage };
     const html = render({ ...base, ranking: { nothingFrom: [], dungeons: [dungeon({ members: [{ ...credits, credits: [tier] }] })] } });
     expect(html).toContain('href="https://www.wowhead.com/item=271526"');
-    expect(html).toContain('aria-label="Enigmatic Dreamwatcher’s Plumage (Shoulders), tier: catalyst a shoulders drop from this dungeon"');
+    expect(html).toContain('aria-label="Enigmatic Dreamwatcher’s Plumage (Shoulders), catalyst into tier, stats unverified"');
     expect(html).toContain('src="https://render.worldofwarcraft.com/icons/56/plumage.jpg"');
     expect(html).toContain('>T</span>');
     expect(html).toContain('>Shldr</span>');
@@ -122,7 +122,7 @@ describe('GroupPriority', () => {
     const tier: PriorityCreditView = { kind: 'tier', slotLabel: 'Chest', weight: 5, fit: 'unverified', dropStats: null, targetName: 'BiS', targetStats: null, item: { ...plumage, iconUrl: null, name: 'Enigmatic Dreamwatcher’s Robe' } };
     const html = render({ ...base, ranking: { nothingFrom: [], dungeons: [dungeon({ members: [{ ...credits, credits: [tier] }] })] } });
     expect(html).not.toContain('<img src="null"');
-    expect(html).toContain('aria-label="Enigmatic Dreamwatcher’s Robe (Chest), tier: catalyst a chest drop from this dungeon"');
+    expect(html).toContain('aria-label="Enigmatic Dreamwatcher’s Robe (Chest), catalyst into tier, stats unverified"');
     expect(html).toContain('>T</span>');
   });
 
