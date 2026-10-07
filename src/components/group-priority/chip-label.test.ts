@@ -9,7 +9,7 @@ describe('chipLabel', () => {
   });
 
   it('names the tier piece and how it is earned', () => {
-    expect(chipLabel({ kind: 'tier', slotLabel: 'Shoulders', weight: 5, item: item('Enigmatic Dreamwatcher’s Plumage') }))
+    expect(chipLabel({ kind: 'tier', slotLabel: 'Shoulders', weight: 5, fit: 'unverified', dropStats: null, targetName: 'BiS', targetStats: null, item: item('Enigmatic Dreamwatcher’s Plumage') }))
       .toBe('Enigmatic Dreamwatcher’s Plumage (Shoulders), tier: catalyst a shoulders drop from this dungeon');
   });
 

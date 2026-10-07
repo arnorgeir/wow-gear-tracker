@@ -1,6 +1,7 @@
 import type { GearRow } from '../gear/evaluate';
+import { compareStats } from '../gear/stat-pair';
 import { decodeTrack } from '../raidbots/tracks';
-import type { ArmorType, BisRow, GearItem, SeasonLoot, SlotType, Track } from '../types';
+import type { ArmorType, BisItemRow, BisRow, GearItem, LootItem, SeasonLoot, SlotType, StatMatch, TierTarget, Track } from '../types';
 import { ARMOR_SLOTS, armorTypeForClass, slotsForInventoryType } from './slots';
 
 export interface PriorityCharacter {
@@ -11,11 +12,16 @@ export interface PriorityCharacter {
   rows: GearRow[];
   equipped: GearItem[];
   tracks: ReadonlyMap<number, Track>;
+  targets: ReadonlyMap<number, TierTarget>;
 }
+
+export type TierFit = 'bis' | 'unverified' | 'alternative';
 
 export type Credit =
   | { kind: 'item'; slotLabel: string; weight: number; itemId: number; name: string; bonusIds: number[] }
-  | { kind: 'tier'; slotLabel: string; weight: number; itemId: number; name: string; bonusIds: number[] }
+  /** The dungeon's own drop, to catalyze; the target fields describe Method's row. */
+  | { kind: 'tier'; slotLabel: string; weight: number; fit: TierFit; itemId: number; name: string; bonusIds: number[];
+      dropStats: string[] | null; targetName: string; targetStats: string[] | null }
   | { kind: 'any'; slotLabel: string; weight: number; minItemLevel: number };
 
 export interface CharacterCredits { characterId: number; characterName: string; credits: Credit[] }
@@ -39,18 +45,45 @@ function weightOf(row: GearRow, bySlot: ReadonlyMap<SlotType, GearItem>, matched
   return base + tierBonus;
 }
 
-/** Whether a dungeon's loot can fill this row: the exact item, or for tier and Any rows, a slot drop in the right armor type. */
-function dropsFor(row: BisRow, armor: ArmorType | null, dungeon: SeasonLoot): boolean {
-  if (row.kind === 'item' && !row.isTier) return dungeon.loot.some((l) => l.itemId === row.itemId);
+interface Need { row: BisRow; weight: number; wrongStats: boolean }
+
+const FIT: Record<StatMatch, TierFit> = { same: 'bis', unknown: 'unverified', different: 'alternative' };
+const MATCH_RANK: Record<StatMatch, number> = { same: 1, unknown: 2, different: 3 };
+
+/** A drop for one of the row's slots, in the character's armor type where the slot has one. */
+function fitsSlot(row: BisRow, armor: ArmorType | null, l: LootItem): boolean {
   const armorSlot = row.slots.some((s) => ARMOR_SLOTS.has(s));
-  if (armorSlot && !armor) return false;
-  return dungeon.loot.some((l) =>
-    slotsForInventoryType(l.inventoryType).some((s) => row.slots.includes(s)) && (!armorSlot || l.armorType === armor));
+  return slotsForInventoryType(l.inventoryType).some((s) => row.slots.includes(s)) && (!armorSlot || (armor !== null && l.armorType === armor));
+}
+
+/** Whether a dungeon's loot can fill a named or Any row: the exact item, or for Any rows a slot drop. */
+function dropsFor(row: BisRow, armor: ArmorType | null, dungeon: SeasonLoot): boolean {
+  if (row.kind === 'item') return dungeon.loot.some((l) => l.itemId === row.itemId);
+  return dungeon.loot.some((l) => fitsSlot(row, armor, l));
+}
+
+/**
+ * A tier row's credit from one dungeon: its best compatible drop by stat pair, never another dungeon's item.
+ * A tier piece with the wrong stats only wants drops with Method's stats, at weight 1.
+ */
+function tierCredit(row: BisItemRow, need: Need, armor: ArmorType | null, dungeon: SeasonLoot, targets: ReadonlyMap<number, TierTarget>): Credit | null {
+  const targetStats = targets.get(row.itemId)?.secondaryStats ?? null;
+  const best = dungeon.loot
+    .filter((l) => fitsSlot(row, armor, l))
+    .map((l) => {
+      const match = compareStats({ itemId: row.itemId, stats: targetStats }, { itemId: l.itemId, stats: l.secondaryStats });
+      return { l, match, rank: match === 'same' && l.itemId === row.itemId ? 0 : MATCH_RANK[match] };
+    })
+    .sort((a, b) => a.rank - b.rank || a.l.itemId - b.l.itemId)[0];
+  if (!best || (need.wrongStats && best.match !== 'same')) return null;
+  const fit = FIT[best.match];
+  const weight = fit === 'alternative' ? Math.max(1, need.weight - 1) : need.weight;
+  return { kind: 'tier', slotLabel: row.slotLabel, weight, fit, itemId: best.l.itemId, name: best.l.name, bonusIds: [],
+    dropStats: best.l.secondaryStats ?? null, targetName: row.name, targetStats };
 }
 
 function creditFor(row: BisRow, weight: number): Credit {
   if (row.kind === 'any') return { kind: 'any', slotLabel: row.slotLabel, weight, minItemLevel: row.minItemLevel };
-  if (row.isTier) return { kind: 'tier', slotLabel: row.slotLabel, weight, itemId: row.itemId, name: row.name, bonusIds: row.bonusIds };
   return { kind: 'item', slotLabel: row.slotLabel, weight, itemId: row.itemId, name: row.name, bonusIds: row.bonusIds };
 }
 
@@ -63,8 +96,10 @@ export function rankDungeons(characters: PriorityCharacter[], dungeons: SeasonLo
     return {
       character,
       armor: armorTypeForClass(character.className),
-      missing: character.rows.filter((r) => r.state === 'missing')
-        .map((r) => ({ row: r.row, weight: weightOf(r, bySlot, matchedSlots, tierCount, character.tracks) })),
+      missing: character.rows.filter((r) => r.state === 'missing' || r.state === 'wrongStats')
+        .map((r): Need => r.state === 'wrongStats'
+          ? { row: r.row, weight: 1, wrongStats: true }
+          : { row: r.row, weight: weightOf(r, bySlot, matchedSlots, tierCount, character.tracks), wrongStats: false }),
     };
   });
   return dungeons.map((dungeon) => {
@@ -72,7 +107,10 @@ export function rankDungeons(characters: PriorityCharacter[], dungeons: SeasonLo
       .map(({ character, armor, missing }) => ({
         characterId: character.id,
         characterName: character.name,
-        credits: missing.filter((m) => dropsFor(m.row, armor, dungeon)).map((m) => creditFor(m.row, m.weight)),
+        credits: missing.flatMap((m) => {
+          if (m.row.kind === 'item' && m.row.isTier) return tierCredit(m.row, m, armor, dungeon, character.targets) ?? [];
+          return dropsFor(m.row, armor, dungeon) ? [creditFor(m.row, m.weight)] : [];
+        }),
       }))
       .filter((c) => c.credits.length > 0);
     const score = perCharacter.reduce((sum, c) => sum + c.credits.reduce((s, credit) => s + credit.weight, 0), 0);

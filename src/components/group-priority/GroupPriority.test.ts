@@ -12,7 +12,7 @@ const credits = { key: 'eu.argent-dawn.birkibjörn', name: 'Birkibjörn', classN
 const AH = 'https://cdn.raiderio.net/images/dungeons/alpha-hollow.jpg';
 const dungeon = (over: Partial<GroupDungeonView>): GroupDungeonView => ({
   challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: AH, score: 5, split: false,
-  members: [{ ...credits, credits: [{ kind: 'tier', slotLabel: 'Chest', weight: 5, item: { itemId: 80, name: 'Tier Robe', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } }] }], ...over,
+  members: [{ ...credits, credits: [{ kind: 'tier', slotLabel: 'Chest', weight: 5, fit: 'unverified', dropStats: null, targetName: 'BiS', targetStats: null, item: { itemId: 80, name: 'Tier Robe', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } }] }], ...over,
 });
 const band: PriorityCreditView = { kind: 'item', slotLabel: 'Ring 1', weight: 4,
   item: { itemId: 101, name: 'Vanished Band', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } };
@@ -22,7 +22,7 @@ const plumage = { itemId: 271526, name: 'Enigmatic Dreamwatcher’s Plumage', it
 describe('GroupPriority', () => {
   it('ranks dungeons with each member’s needs, and marks only split ones', () => {
     const html = render({ ...base, ranking: { nothingFrom: ['Delta Deep'], dungeons: [
-      { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: null, score: 5, split: false, members: [{ ...credits, credits: [{ kind: 'tier', slotLabel: 'Chest', weight: 5, item: { itemId: 80, name: 'Tier Robe', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } }] }] },
+      { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: null, score: 5, split: false, members: [{ ...credits, credits: [{ kind: 'tier', slotLabel: 'Chest', weight: 5, fit: 'unverified', dropStats: null, targetName: 'BiS', targetStats: null, item: { itemId: 80, name: 'Tier Robe', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } }] }] },
       { challengeModeId: 502, name: 'Streets of Beta', shortName: 'STRT', imageUrl: null, score: 3, split: true, members: [{ ...credits, credits: [{ kind: 'any', slotLabel: 'Boots', weight: 3, minItemLevel: 334 }] }] },
     ] } });
     expect(html).toContain('Alpha Hollow');
@@ -109,7 +109,7 @@ describe('GroupPriority', () => {
   });
 
   it('shows a tier need as the tier piece with a T badge and its short slot, labeled in full', () => {
-    const tier: PriorityCreditView = { kind: 'tier', slotLabel: 'Shoulders', weight: 5, item: plumage };
+    const tier: PriorityCreditView = { kind: 'tier', slotLabel: 'Shoulders', weight: 5, fit: 'unverified', dropStats: null, targetName: 'BiS', targetStats: null, item: plumage };
     const html = render({ ...base, ranking: { nothingFrom: [], dungeons: [dungeon({ members: [{ ...credits, credits: [tier] }] })] } });
     expect(html).toContain('href="https://www.wowhead.com/item=271526"');
     expect(html).toContain('aria-label="Enigmatic Dreamwatcher’s Plumage (Shoulders), tier: catalyst a shoulders drop from this dungeon"');
@@ -119,7 +119,7 @@ describe('GroupPriority', () => {
   });
 
   it('falls back to a labeled T tile for a tier piece without an icon', () => {
-    const tier: PriorityCreditView = { kind: 'tier', slotLabel: 'Chest', weight: 5, item: { ...plumage, iconUrl: null, name: 'Enigmatic Dreamwatcher’s Robe' } };
+    const tier: PriorityCreditView = { kind: 'tier', slotLabel: 'Chest', weight: 5, fit: 'unverified', dropStats: null, targetName: 'BiS', targetStats: null, item: { ...plumage, iconUrl: null, name: 'Enigmatic Dreamwatcher’s Robe' } };
     const html = render({ ...base, ranking: { nothingFrom: [], dungeons: [dungeon({ members: [{ ...credits, credits: [tier] }] })] } });
     expect(html).not.toContain('<img src="null"');
     expect(html).toContain('aria-label="Enigmatic Dreamwatcher’s Robe (Chest), tier: catalyst a chest drop from this dungeon"');

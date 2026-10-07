@@ -2,18 +2,20 @@ import { getCharacter } from '@/core/db/queries/characters';
 import { crestCostsByGroup } from '@/core/gear/crests';
 import type { GearRow } from '@/core/gear/evaluate';
 import { rankDungeons } from '@/core/priority/rank';
-import { ensureBisLists, ensureClassIcons, ensureItemIcons, ensureTracks } from '@/core/sync/reference-sync';
+import { ensureClassIcons, ensureItemIcons, ensureTracks } from '@/core/sync/reference-sync';
 import { readSeason } from '@/core/sync/season-sync';
 import { LIST_TYPES, type ListType } from '@/core/types';
 import type { Services } from '../services';
 import type { CharacterPageView } from './types';
+import { createBisLookup } from './bis-lookup';
 import { crestView } from './summarize';
 import { creditView, loadMember, priorityCharacter, rowView, vaultChoicesFor } from './member';
 
-const bisCount = (rows: GearRow[]) => rows.filter((r) => r.matched).length;
+// A tier piece with the wrong stats fills the set but isn't BiS, as on the character card.
+const bisCount = (rows: GearRow[]) => rows.filter((r) => r.matched && r.state !== 'wrongStats').length;
 
 export async function getCharacterPage(services: Services, id: number, listType?: ListType): Promise<CharacterPageView | null> {
-  const { db, blizzard, bisSource, fetchRaidbots, now } = services;
+  const { db, blizzard, fetchRaidbots, now } = services;
   const character = await getCharacter(db, id);
   if (!character) return null;
   const time = now();
@@ -25,7 +27,7 @@ export async function getCharacterPage(services: Services, id: number, listType?
     .catch(() => [fallbackSpec]);
   // Database work runs in sequence: an in-memory libsql database can't serve a read while a write transaction is open.
   const { tracks, error: tracksError } = await ensureTracks({ db, fetchRaidbots, now: time });
-  const member = await loadMember({ db, tracks, bisFor: (slug) => ensureBisLists({ db, source: bisSource, now: time }, slug) }, character);
+  const member = await loadMember({ db, tracks, bisFor: createBisLookup(services, time) }, character);
   const { summary, gear, bis, choice } = member;
   const specs = await specsPromise;
   const classIcons = await ensureClassIcons({ db, blizzard, now: time }, character.region);
@@ -39,7 +41,7 @@ export async function getCharacterPage(services: Services, id: number, listType?
   const iconIds = [...gear.equipped.map((g) => g.itemId), ...gearRows.flatMap((r) => (r.row.kind === 'item' ? [r.row.itemId] : [])), ...member.vaultItems.map((i) => i.itemId), ...creditItemIds];
   const icons = await ensureItemIcons({ db, blizzard, now: time }, character.region, iconIds);
 
-  const rows = gearRows.map((r) => rowView(r, icons, costs, gear.balances));
+  const rows = gearRows.map((r) => rowView(r, icons, costs, gear.balances, bis.targets));
   const counts = Object.fromEntries(LIST_TYPES.map((l) => {
     const evaluated = l === list ? gearRows : member.evaluate(l);
     return [l, { bis: bisCount(evaluated), total: evaluated.length }];

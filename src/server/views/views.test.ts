@@ -4,6 +4,7 @@ import { getCharacterCards } from './character-cards';
 import { getCharacterPage } from './character-page';
 import type { Services } from '../services';
 import { upgradeFor } from './summarize';
+import { creditView, rowView } from './member';
 import type { GearRow } from '@/core/gear/evaluate';
 import { gearToSnapshotItems, saveSnapshotIfChanged } from '@/core/db/queries/snapshots';
 import { insertCharacter, updateCharacter } from '@/core/db/queries/characters';
@@ -37,6 +38,7 @@ async function services(bisLists: BisLists = lists): Promise<Services> {
     getItemIconUrl: async (_r: string, id: number) => `https://i/${id}.jpg`,
     getClasses: async () => [{ id: 11, name: 'Druid', specs: ['Balance', 'Feral', 'Guardian', 'Restoration'] }],
     getClassIconUrl: async (_r: string, id: number) => `https://i/class-${id}.jpg`,
+    getItemDetails: async () => null,
   } as unknown as BlizzardClient;
   return {
     db, blizzard,
@@ -83,6 +85,17 @@ describe('getCharacterPage', () => {
     expect(page!.tracksError).toMatch(/Upgrade track data/);
     const [card] = await getCharacterCards(s);
     expect(card!.tracksError).toMatch(/Upgrade track data/);
+  });
+
+  it('leaves a tier piece with the wrong stats out of the BiS count', async () => {
+    const s = await services();
+    Object.assign(s.blizzard, { getItemDetails: async () => ({ quality: 'EPIC', isTier: false, inventoryType: 'HEAD', armorType: 'leather', secondaryStats: ['HASTE_RATING', 'MASTERY_RATING'] }) });
+    const { id } = await insertCharacter(s.db, { region: 'eu', realmId: 1, realmSlug: 'test-realm', realmName: 'Test Realm', name: 'Birkibjörn', className: 'Druid', specName: 'Guardian' }, 1);
+    const wrong = gear.map((g) => (g.slot === 'HEAD' ? { ...g, secondaryStats: ['CRIT_RATING', 'MASTERY_RATING'] } : g));
+    await saveSnapshotIfChanged(s.db, id, 'blizzard', gearToSnapshotItems(wrong), 500);
+    const page = await getCharacterPage(s, id);
+    expect(page!.rows[0]).toMatchObject({ state: 'wrongStats', equippedStats: ['CRIT_RATING', 'MASTERY_RATING'], bis: { targetStats: ['HASTE_RATING', 'MASTERY_RATING'] } });
+    expect(page!.counts.mythicPlus).toEqual({ bis: 1, total: 2 });
   });
 
   it('returns null for an unknown character', async () => {
@@ -201,7 +214,7 @@ describe('dungeon priority', () => {
     }]);
   });
 
-  it('credits a tier need with the tier piece and its icon', async () => {
+  it('credits a tier need with each dungeon’s own drop and its icon', async () => {
     const tierNeeds: BisLists = {
       overall: [], raid: [],
       mythicPlus: [{ kind: 'item', slotLabel: 'Chest', slots: ['CHEST'], itemId: 12, name: 'Tier Catalyst Robe', bonusIds: [], isTier: true, isCatalyst: true, source: 'Alpha Hollow' }],
@@ -210,14 +223,23 @@ describe('dungeon priority', () => {
     const id = await seed(s);
     await replaceSeason(s.db, {
       slug: 'season-test-2',
-      dungeons: [{ challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11, imageUrl: null }],
-      loot: [{ challengeModeId: 501, encounterId: 1, encounterName: 'Hollow King', itemId: 40, itemName: 'Hollow Jerkin', inventoryType: 'CHEST', armorType: 'leather' }],
+      dungeons: [
+        { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11, imageUrl: null },
+        { challengeModeId: 502, name: 'Beta Spire', shortName: 'BS', journalInstanceId: 902, mapId: 22, imageUrl: null },
+      ],
+      loot: [
+        { challengeModeId: 501, encounterId: 1, encounterName: 'Hollow King', itemId: 40, itemName: 'Hollow Jerkin', inventoryType: 'CHEST', armorType: 'leather' },
+        { challengeModeId: 502, encounterId: 2, encounterName: 'Spire Warden', itemId: 41, itemName: 'Spire Vest', inventoryType: 'CHEST', armorType: 'leather' },
+      ],
     });
     await setMeta(s.db, SEASON_META_KEY, 'season-test-2', 1000);
     const page = await getCharacterPage(s, id);
-    expect(page!.priority.dungeons[0]!.credits).toEqual([
-      { kind: 'tier', slotLabel: 'Chest', weight: expect.any(Number), item: expect.objectContaining({ itemId: 12, name: 'Tier Catalyst Robe', iconUrl: 'https://i/12.jpg' }) },
-    ]);
+    const credits = (name: string) => page!.priority.dungeons.find((d) => d.name === name)!.credits;
+    expect(credits('Alpha Hollow')).toEqual([{
+      kind: 'tier', slotLabel: 'Chest', weight: expect.any(Number), fit: expect.any(String), dropStats: null, targetStats: null,
+      item: expect.objectContaining({ itemId: 40, name: 'Hollow Jerkin', iconUrl: 'https://i/40.jpg' }), targetName: 'Tier Catalyst Robe',
+    }]);
+    expect(credits('Beta Spire')[0]).toMatchObject({ item: { itemId: 41, name: 'Spire Vest', iconUrl: 'https://i/41.jpg' }, targetName: 'Tier Catalyst Robe' });
   });
 
   it('asks for a sync and says loading before any season is stored', async () => {
@@ -265,5 +287,36 @@ describe('upgradeFor', () => {
     const below = upgradeFor(base, costs, balances);
     expect(below).toMatchObject({ steps: 2, currencyId: 3500 });
     expect(upgradeFor({ ...base, stats: 'different', state: 'wrongStats' }, costs, balances)).toEqual(below);
+  });
+});
+
+describe('rowView stat pairs', () => {
+  const HM = ['HASTE_RATING', 'MASTERY_RATING'];
+  const tierRow: GearRow = {
+    row: { kind: 'item', slotLabel: 'Chest', slots: ['CHEST'], itemId: 273785, name: 'Primordial Robe of Rites', bonusIds: [], isTier: true, isCatalyst: false, source: 'Altar of Fangs' },
+    slot: 'CHEST', equipped: { slot: 'CHEST', itemId: 271531, name: 'Lunar Raiment', itemLevel: 321, quality: 'EPIC', bonusIds: [], isTier: true, secondaryStats: ['CRIT_RATING', 'MASTERY_RATING'] },
+    track: null, matched: true, stats: 'different', state: 'wrongStats',
+  };
+
+  it('carries the equipped and target pairs and the tier-token flag', () => {
+    const view = rowView(tierRow, new Map(), new Map(), new Map(), new Map([[273785, { secondaryStats: HM, isTier: false }]]));
+    expect(view.equippedStats).toEqual(['CRIT_RATING', 'MASTERY_RATING']);
+    expect(view.bis).toMatchObject({ kind: 'item', targetStats: HM, targetIsTierPiece: false });
+  });
+
+  it('renders without pairs when the target lookup failed', () => {
+    const view = rowView({ ...tierRow, stats: 'unknown', state: 'done', equipped: { ...tierRow.equipped!, secondaryStats: null } }, new Map(), new Map(), new Map(), new Map());
+    expect(view.equippedStats).toBeNull();
+    expect(view.bis).toMatchObject({ targetStats: null, targetIsTierPiece: false });
+  });
+});
+
+describe('creditView', () => {
+  it('shows a tier credit as the dungeon’s drop with its own icon', () => {
+    const view = creditView({
+      kind: 'tier', slotLabel: 'Chest', weight: 4, fit: 'alternative', itemId: 251147, name: 'Hoarded Harvest Wrap', bonusIds: [],
+      dropStats: ['MASTERY_RATING', 'VERSATILITY'], targetName: 'Primordial Robe of Rites', targetStats: ['HASTE_RATING', 'MASTERY_RATING'],
+    }, new Map([[251147, 'https://i/251147.jpg']]));
+    expect(view).toMatchObject({ kind: 'tier', fit: 'alternative', targetName: 'Primordial Robe of Rites', item: { itemId: 251147, iconUrl: 'https://i/251147.jpg' } });
   });
 });

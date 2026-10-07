@@ -3,8 +3,8 @@ import type { GearRowView } from '@/server/views/types';
 import { cellNote, needText } from './cell-note';
 
 const row = (bis: GearRowView['bis'], state: GearRowView['state'] = 'missing'): GearRowView =>
-  ({ slotLabel: 'Head', slot: 'HEAD', state, equipped: null, upgrade: null, bis });
-const named = { kind: 'item' as const, itemId: 1, name: 'Greathelm', itemLevel: null, quality: 'EPIC' as const, bonusIds: [], iconUrl: null, trackLabel: null, isTier: false, isCatalyst: false, source: '' };
+  ({ slotLabel: 'Head', slot: 'HEAD', state, equipped: null, equippedStats: null, upgrade: null, bis });
+const named = { kind: 'item' as const, itemId: 1, name: 'Greathelm', itemLevel: null, quality: 'EPIC' as const, bonusIds: [], iconUrl: null, trackLabel: null, isTier: false, isCatalyst: false, source: '', targetStats: null, targetIsTierPiece: false };
 
 describe('cellNote', () => {
   it('fills cells for members without rows, dimming the ones still waiting', () => {
