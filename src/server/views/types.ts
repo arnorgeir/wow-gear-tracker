@@ -1,3 +1,4 @@
+import type { TierFit } from '@/core/priority/rank';
 import { type CrestBalance, type UpgradeOption } from '@/core/gear/crests';
 import { type Faction, type ItemState, type ListType, type Quality, type Region, type SlotType, type SnapshotSource } from '@/core/types';
 
@@ -12,7 +13,7 @@ export interface ItemView {
 }
 
 export type BisView =
-  | (ItemView & { kind: 'item'; isTier: boolean; isCatalyst: boolean; source: string })
+  | (ItemView & { kind: 'item'; isTier: boolean; isCatalyst: boolean; source: string; targetStats: string[] | null; targetIsTierPiece: boolean })
   | { kind: 'any'; minItemLevel: number; source: string };
 
 export interface GearRowView {
@@ -20,6 +21,8 @@ export interface GearRowView {
   slot: SlotType;
   state: ItemState;
   equipped: ItemView | null;
+  /** The equipped item's secondary stat types; null when unknown. */
+  equippedStats: string[] | null;
   bis: BisView;
   upgrade: UpgradeOption | null;
 }
@@ -70,7 +73,7 @@ export interface CharacterCardView extends CharacterSummary {
 
 export type PriorityCreditView =
   | { kind: 'item'; slotLabel: string; weight: number; item: ItemView }
-  | { kind: 'tier'; slotLabel: string; weight: number; item: ItemView }
+  | { kind: 'tier'; slotLabel: string; weight: number; fit: TierFit; item: ItemView; dropStats: string[] | null; targetName: string; targetStats: string[] | null }
   | { kind: 'any'; slotLabel: string; weight: number; minItemLevel: number };
 export interface DungeonPriorityView { challengeModeId: number; name: string; score: number; split: boolean; credits: PriorityCreditView[] }
 export interface PriorityView {

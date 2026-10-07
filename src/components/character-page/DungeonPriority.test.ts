@@ -14,7 +14,7 @@ describe('DungeonPriority', () => {
     const html = render({
       ...base,
       dungeons: [{ challengeModeId: 501, name: 'Alpha Hollow', score: 7, split: false, credits: [
-        { kind: 'tier', slotLabel: 'Chest', weight: 4,
+        { kind: 'tier', slotLabel: 'Chest', weight: 4, fit: 'unverified', dropStats: null, targetName: 'BiS', targetStats: null,
           item: { itemId: 80, name: 'Enigmatic Dreamwatcher’s Robe', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } },
         { kind: 'any', slotLabel: 'Shoulders', weight: 3, minItemLevel: 334 },
       ] }],

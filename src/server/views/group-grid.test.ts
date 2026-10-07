@@ -3,8 +3,8 @@ import type { GearRowView } from './types';
 import { alignGrid, exclusionReason, memberState } from './group-grid';
 
 const cell = (slot: GearRowView['slot'], slotLabel: string, itemId: number): GearRowView => ({
-  slotLabel, slot, state: 'missing', equipped: null, upgrade: null,
-  bis: { kind: 'item', itemId, name: `Item ${itemId}`, itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null, isTier: false, isCatalyst: false, source: '' },
+  slotLabel, slot, state: 'missing', equipped: null, equippedStats: null, upgrade: null,
+  bis: { kind: 'item', itemId, name: `Item ${itemId}`, itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null, isTier: false, isCatalyst: false, source: '', targetStats: null, targetIsTierPiece: false },
 });
 
 describe('alignGrid', () => {

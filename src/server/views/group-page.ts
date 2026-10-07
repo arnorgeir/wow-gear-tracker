@@ -3,9 +3,10 @@ import { listCharacters, type CharacterRow } from '@/core/db/queries/characters'
 import { crestCostsByGroup } from '@/core/gear/crests';
 import { rankDungeons } from '@/core/priority/rank';
 import { isStale } from '@/core/sync/character-sync';
-import { ensureBisLists, ensureClassIcons, ensureItemIcons, ensureTracks, type BisResult } from '@/core/sync/reference-sync';
+import { ensureClassIcons, ensureItemIcons, ensureTracks } from '@/core/sync/reference-sync';
 import { readSeason } from '@/core/sync/season-sync';
 import type { Services } from '../services';
+import { createBisLookup } from './bis-lookup';
 import { alignGrid, exclusionReason, memberState } from './group-grid';
 import { dungeonArt } from './dungeon-art';
 import { creditView, loadMember, priorityCharacter, rowView, vaultChoicesFor, type MemberData } from './member';
@@ -15,7 +16,7 @@ import type { GroupMemberView, GroupPageView } from './types';
 interface Loaded { character: CharacterRow | null; data: MemberData | null; view: GroupMemberView; reason: string | null }
 
 export async function getGroupPage(services: Services, keys: MemberKey[]): Promise<GroupPageView> {
-  const { db, blizzard, bisSource, fetchRaidbots, now } = services;
+  const { db, blizzard, fetchRaidbots, now } = services;
   const time = now();
   const { members: selected, dropped } = selectGroup(keys);
   const region = selected[0]?.region ?? null;
@@ -25,12 +26,8 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
   const costs = crestCostsByGroup(tracks.values());
   const all = await listCharacters(db);
   const classIcons = await ensureClassIcons({ db, blizzard, now: time }, region ?? 'eu');
-  const bisBySlug = new Map<string, BisResult>();
-  // ponytail: one Method request per distinct spec, in sequence; parallel needs reads kept apart from the cache writes.
-  const bisFor = async (slug: string) => {
-    if (!bisBySlug.has(slug)) bisBySlug.set(slug, await ensureBisLists({ db, source: bisSource, now: time }, slug));
-    return bisBySlug.get(slug)!;
-  };
+  // ponytail: one Method request per distinct spec; members load in sequence, so reads stay apart from the cache writes.
+  const bisFor = createBisLookup(services, time);
 
   const loaded: Loaded[] = [];
   for (const key of selected) {
@@ -77,7 +74,7 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
     keys: loaded.map((l) => l.view.key),
     members: loaded.map((l) => l.view),
     grid: alignGrid(loaded.map(({ data, view }) => (data && view.state === 'ready' && view.hasRows
-      ? data.priorityRows.map((r) => rowView(r, icons, costs, data.gear.balances))
+      ? data.priorityRows.map((r) => rowView(r, icons, costs, data.gear.balances, data.bis.targets))
       : null))),
     tracksKnown: tracksError === null,
     priority: {

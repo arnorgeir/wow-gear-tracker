@@ -22,8 +22,8 @@ const render = (members: GroupMemberView[], grid: GroupGridRow[], tracksKnown = 
 
 const equipped = { itemId: 271528, name: 'Enigmatic Dreamwatcher’s Somnolent Stare', itemLevel: 321, quality: 'EPIC' as const, bonusIds: [12], iconUrl: 'https://render.worldofwarcraft.com/icons/56/stare.jpg', trackLabel: 'Myth 2/6' };
 const cell = (over: Partial<GearRowView>): GearRowView => ({
-  slotLabel: 'Head', slot: 'HEAD', state: 'mythUpgradable', equipped, upgrade: null,
-  bis: { kind: 'item', ...equipped, isTier: false, isCatalyst: false, source: '' }, ...over,
+  slotLabel: 'Head', slot: 'HEAD', state: 'mythUpgradable', equipped, equippedStats: null, upgrade: null,
+  bis: { kind: 'item', ...equipped, isTier: false, isCatalyst: false, source: '', targetStats: null, targetIsTierPiece: false }, ...over,
 });
 
 describe('GroupGrid', () => {
@@ -100,14 +100,14 @@ describe('GroupGrid', () => {
   });
 
   it('shows what is needed when hovering a cell that still needs something', () => {
-    const missing = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'missing', bis: { kind: 'item', ...equipped, name: 'Greathelm of Temptation', isTier: false, isCatalyst: false, source: 'Kings’ Rest' } })] }]);
+    const missing = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'missing', bis: { kind: 'item', ...equipped, name: 'Greathelm of Temptation', isTier: false, isCatalyst: false, source: 'Kings’ Rest', targetStats: null, targetIsTierPiece: false } })] }]);
     expect(missing).toMatch(/<button[^>]*title="Need: Greathelm of Temptation"/);
     const done = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'done' })] }]);
     expect(done).not.toMatch(/<button[^>]*title=/);
   });
 
   it('shows the needed item as a card in the details, like the gear overview, and not when nothing is needed', () => {
-    const bis = { kind: 'item' as const, ...equipped, itemId: 251126, name: 'Greathelm of Temptation', isTier: false, isCatalyst: false, source: 'Kings’ Rest' };
+    const bis = { kind: 'item' as const, ...equipped, itemId: 251126, name: 'Greathelm of Temptation', isTier: false, isCatalyst: false, source: 'Kings’ Rest', targetStats: null, targetIsTierPiece: false };
     const missing = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'missing', bis })] }]);
     expect(missing).toContain('Needed');
     expect(missing).toContain('href="https://www.wowhead.com/item=251126"');
@@ -117,7 +117,7 @@ describe('GroupGrid', () => {
   });
 
   it('lets the needed item’s name wrap in the details card instead of clipping', () => {
-    const bis = { kind: 'item' as const, ...equipped, name: 'Enigmatic Dreamwatcher’s Somnolent Stare of the Endless Night', isTier: true, isCatalyst: true, source: 'Kings’ Rest' };
+    const bis = { kind: 'item' as const, ...equipped, name: 'Enigmatic Dreamwatcher’s Somnolent Stare of the Endless Night', isTier: true, isCatalyst: true, source: 'Kings’ Rest', targetStats: null, targetIsTierPiece: false };
     const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'missing', bis })] }]);
     const needed = html.slice(html.indexOf('>Needed<'));
     expect(needed).toContain('Tier piece (catalyst Enigmatic Dreamwatcher’s Somnolent Stare of the Endless Night)');
@@ -131,7 +131,7 @@ describe('GroupGrid', () => {
   });
 
   it('says Need tier for a missing tier piece, and the card names the piece', () => {
-    const bis = { kind: 'item' as const, ...equipped, name: 'Enigmatic Dreamwatcher’s Plumage', isTier: true, isCatalyst: true, source: '' };
+    const bis = { kind: 'item' as const, ...equipped, name: 'Enigmatic Dreamwatcher’s Plumage', isTier: true, isCatalyst: true, source: '', targetStats: null, targetIsTierPiece: false };
     const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'SHOULDER', label: 'Shoulders', cells: [cell({ state: 'missing', slot: 'SHOULDER', bis })] }]);
     expect(html).toContain('>Need tier<');
     expect(html).toContain('Need: Enigmatic Dreamwatcher’s Plumage (tier, via catalyst)');

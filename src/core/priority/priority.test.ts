@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { evaluateGear } from '../gear/evaluate';
-import type { ArmorType, BisLists, BisRow, GearItem, LootItem, SeasonLoot, SlotType, Track } from '../types';
+import type { ArmorType, BisLists, BisRow, GearItem, LootItem, SeasonLoot, SlotType, TierTarget, Track } from '../types';
 import { choosePriorityList } from './list';
 import { rankDungeons, type PriorityCharacter } from './rank';
 
@@ -17,8 +17,8 @@ const loot = (itemId: number, inventoryType: string | null = null, armorType: Ar
 const dungeon = (challengeModeId: number, name: string, items: LootItem[], split = false): SeasonLoot =>
   ({ challengeModeId, name, shortName: '', imageUrl: null, split, loot: items });
 
-const character = (rows: BisRow[], equipped: GearItem[], className = 'Druid', id = 1, name = 'Birkibjörn'): PriorityCharacter =>
-  ({ id, name, className, rows: evaluateGear({ equipped, bisRows: rows, tracks }), equipped, tracks });
+const character = (rows: BisRow[], equipped: GearItem[], className = 'Druid', id = 1, name = 'Birkibjörn', targets: ReadonlyMap<number, TierTarget> = new Map()): PriorityCharacter =>
+  ({ id, name, className, rows: evaluateGear({ equipped, bisRows: rows, tracks, targets }), equipped, tracks, targets });
 const scores = (ranks: ReturnType<typeof rankDungeons>) => ranks.map((r) => [r.name, r.score]);
 
 describe('rankDungeons', () => {
@@ -62,7 +62,10 @@ describe('rankDungeons', () => {
     ];
     const ranks = rankDungeons([three], dungeons);
     expect(scores(ranks)).toEqual([['Alpha Hollow', 4], ['Beta Spire', 0], ['Gamma Deep', 0]]);
-    expect(ranks[0]!.characters[0]!.credits).toEqual([{ kind: 'tier', slotLabel: 'CHEST', weight: 4, itemId: 80, name: 'BiS 80', bonusIds: [] }]);
+    expect(ranks[0]!.characters[0]!.credits).toEqual([{
+      kind: 'tier', slotLabel: 'CHEST', weight: 4, fit: 'unverified',
+      itemId: 900, name: 'Loot 900', bonusIds: [], dropStats: null, targetName: 'BiS 80', targetStats: null,
+    }]);
     const four = character([named(['CHEST'], 80, true)], [gear('CHEST', 81, 3), ...tierPieces, gear('LEGS', 93, undefined, true)]);
     expect(rankDungeons([four], dungeons)[0]!.score).toBe(2);
   });
@@ -131,5 +134,67 @@ describe('choosePriorityList', () => {
   it('keeps the choice when there is nothing to fall back to', () => {
     expect(choosePriorityList(null, 'mythicPlus')).toEqual({ listType: 'mythicPlus', fellBack: false });
     expect(choosePriorityList(lists(0, 0), 'mythicPlus')).toEqual({ listType: 'mythicPlus', fellBack: false });
+  });
+});
+
+describe('tier credits by stat pair', () => {
+  const HM = ['HASTE_RATING', 'MASTERY_RATING'];
+  const MV = ['MASTERY_RATING', 'VERSATILITY'];
+  const chestRow = named(['CHEST'], 273785, true);
+  const mage = (equipped: GearItem[] = [], stats: string[] | null = HM) =>
+    character([chestRow], equipped, 'Mage', 1, 'Birkibjörn', new Map([[273785, { secondaryStats: stats, isTier: false }]]));
+  const credit = (ranks: ReturnType<typeof rankDungeons>, dungeonName: string) =>
+    ranks.find((d) => d.name === dungeonName)!.characters[0]?.credits[0];
+
+  it('credits each dungeon with its own drop, never Method’s item from elsewhere', () => {
+    const ranks = rankDungeons([mage()], [
+      dungeon(501, 'Altar of Fangs', [loot(273785, 'ROBE', 'cloth', HM)]),
+      dungeon(502, 'Den of Nalorakk', [loot(251147, 'CHEST', 'cloth', MV)]),
+      dungeon(503, 'Murder Row', [loot(251139, 'ROBE', 'cloth', HM)]),
+    ]);
+    expect(credit(ranks, 'Altar of Fangs')).toMatchObject({ fit: 'bis', itemId: 273785, weight: 5, targetName: 'BiS 273785', targetStats: HM });
+    expect(credit(ranks, 'Murder Row')).toMatchObject({ fit: 'bis', itemId: 251139, weight: 5 });
+    expect(credit(ranks, 'Den of Nalorakk')).toMatchObject({ fit: 'alternative', itemId: 251147, weight: 4, dropStats: MV });
+  });
+
+  it('floors an alternative at weight 1', () => {
+    const fourPieces = ['HEAD', 'SHOULDER', 'HANDS', 'LEGS'].map((s, i) => gear(s as SlotType, 90 + i, undefined, true));
+    // Hero chest: weight 1, no tier bonus at four pieces.
+    const c = mage([gear('CHEST', 81, 2), ...fourPieces]);
+    expect(credit(rankDungeons([c], [dungeon(502, 'Den of Nalorakk', [loot(251147, 'CHEST', 'cloth', MV)])]), 'Den of Nalorakk')).toMatchObject({ fit: 'alternative', weight: 1 });
+  });
+
+  it('credits unknown pairs as unverified at full weight', () => {
+    expect(credit(rankDungeons([mage()], [dungeon(504, 'Temple of Sethraliss', [loot(159257, 'ROBE', 'cloth', null)])]), 'Temple of Sethraliss'))
+      .toMatchObject({ fit: 'unverified', weight: 5, dropStats: null });
+    expect(credit(rankDungeons([mage([], null)], [dungeon(502, 'Den of Nalorakk', [loot(251147, 'CHEST', 'cloth', MV)])]), 'Den of Nalorakk'))
+      .toMatchObject({ fit: 'unverified', weight: 5 });
+  });
+
+  it('picks the best of several drops: exact, then same pair, unknown, different, then lowest ID', () => {
+    const many = [loot(300, 'CHEST', 'cloth', MV), loot(301, 'CHEST', 'cloth', null), loot(299, 'ROBE', 'cloth', HM), loot(298, 'ROBE', 'cloth', HM)];
+    expect(credit(rankDungeons([mage()], [dungeon(505, 'Alpha Hollow', many)]), 'Alpha Hollow')).toMatchObject({ itemId: 298, fit: 'bis' });
+    expect(credit(rankDungeons([mage()], [dungeon(505, 'Alpha Hollow', [...many, loot(273785, 'ROBE', 'cloth', HM)])]), 'Alpha Hollow')).toMatchObject({ itemId: 273785 });
+    expect(credit(rankDungeons([mage()], [dungeon(505, 'Alpha Hollow', many.slice(0, 2))]), 'Alpha Hollow')).toMatchObject({ itemId: 301, fit: 'unverified' });
+  });
+
+  it('gives no credit without a compatible drop', () => {
+    const ranks = rankDungeons([mage()], [dungeon(506, 'Beta Spire', [loot(400, 'CHEST', 'plate', HM), loot(401, 'HEAD', 'cloth', HM)])]);
+    expect(ranks[0]!.score).toBe(0);
+  });
+
+  it('credits a wrongStats piece only from drops with Method’s stats, at weight 1', () => {
+    const c = mage([{ ...gear('CHEST', 271531, 1, true), secondaryStats: MV }]);
+    const ranks = rankDungeons([c], [
+      dungeon(501, 'Altar of Fangs', [loot(273785, 'ROBE', 'cloth', HM)]),
+      dungeon(502, 'Den of Nalorakk', [loot(251147, 'CHEST', 'cloth', MV)]),
+      dungeon(504, 'Temple of Sethraliss', [loot(159257, 'ROBE', 'cloth', null)]),
+    ]);
+    expect(scores(ranks)).toEqual([['Altar of Fangs', 1], ['Den of Nalorakk', 0], ['Temple of Sethraliss', 0]]);
+  });
+
+  it('keeps the split flag on a split dungeon’s tier credit', () => {
+    const [half] = rankDungeons([mage()], [dungeon(507, 'Streets of Beta', [loot(251139, 'ROBE', 'cloth', HM)], true)]);
+    expect(half).toMatchObject({ split: true, score: 5 });
   });
 });

@@ -3,8 +3,8 @@ import type { GearRowView } from '@/server/views/types';
 import { cellLabel } from './cell-label';
 
 const equipped = { itemId: 1, name: 'Enigmatic Dreamwatcher’s Somnolent Stare', itemLevel: 321, quality: 'EPIC' as const, bonusIds: [], iconUrl: null, trackLabel: 'Myth 2/6' };
-const bis = { kind: 'item' as const, ...equipped, isTier: false, isCatalyst: false, source: '' };
-const cell = (over: Partial<GearRowView>): GearRowView => ({ slotLabel: 'Head', slot: 'HEAD', state: 'mythUpgradable', equipped, upgrade: null, bis, ...over });
+const bis = { kind: 'item' as const, ...equipped, isTier: false, isCatalyst: false, source: '', targetStats: null, targetIsTierPiece: false };
+const cell = (over: Partial<GearRowView>): GearRowView => ({ slotLabel: 'Head', slot: 'HEAD', state: 'mythUpgradable', equipped, equippedStats: null, upgrade: null, bis, ...over });
 
 describe('cellLabel', () => {
   it('reads member, slot, item, item level and state in full', () => {
