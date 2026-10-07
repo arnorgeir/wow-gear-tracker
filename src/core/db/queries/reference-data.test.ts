@@ -53,7 +53,7 @@ describe('item details cache', () => {
   it('stores only quality and tier, even when handed slot info', async () => {
     const db = await openTestDb();
     // A typed variable, not a fresh literal: this is what the loader passes, and TypeScript allows the extra fields.
-    const info: ItemInfo & { itemId: number } = { itemId: 100, quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather' };
+    const info: ItemInfo & { itemId: number } = { itemId: 100, quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather', secondaryStats: null };
     await upsertItemDetails(db, [info], 1);
     expect((await getItemDetailsMap(db, [100])).get(100)).toEqual({ quality: 'EPIC', isTier: false });
   });

@@ -12,7 +12,19 @@ export interface RawEquipment {
     quality?: { type: string };
     bonus_list?: number[];
     set?: unknown;
+    stats?: RawStat[];
   }[];
+}
+
+export interface RawStat { type: { type: string }; is_negated?: boolean }
+
+// The stats the catalyst carries over from its input item. Primaries, stamina and tertiaries are not part of a pair.
+const SECONDARY_STATS = new Set(['CRIT_RATING', 'HASTE_RATING', 'MASTERY_RATING', 'VERSATILITY']);
+
+/** An item's secondary stat types, sorted. Null when the response carries no stats at all. */
+export function secondaryStatsOf(stats: RawStat[] | undefined): string[] | null {
+  if (!stats) return null;
+  return [...new Set(stats.filter((s) => !s.is_negated && SECONDARY_STATS.has(s.type.type)).map((s) => s.type.type))].sort();
 }
 
 export interface RawProfile {
@@ -51,6 +63,7 @@ export function parseEquipment(raw: RawEquipment): GearItem[] {
       quality: (item.quality?.type ?? 'COMMON') as Quality,
       bonusIds: item.bonus_list ?? [],
       isTier: Boolean(item.set),
+      secondaryStats: secondaryStatsOf(item.stats),
     }));
 }
 
@@ -59,7 +72,7 @@ const ARMOR_SUBCLASS: Record<number, ArmorType> = { 1: 'cloth', 2: 'leather', 3:
 
 export interface RawItem {
   quality?: { type: string };
-  preview_item?: { set?: unknown };
+  preview_item?: { set?: unknown; stats?: RawStat[] };
   inventory_type?: { type: string };
   item_class?: { id: number };
   item_subclass?: { id: number };
@@ -71,6 +84,7 @@ export function parseItemInfo(raw: RawItem): ItemInfo {
     quality: (raw.quality?.type as Quality | undefined) ?? null,
     isTier: Boolean(raw.preview_item?.set),
     inventoryType: raw.inventory_type?.type ?? null,
+    secondaryStats: secondaryStatsOf(raw.preview_item?.stats),
     armorType: raw.item_class?.id === ARMOR_CLASS_ID ? (ARMOR_SUBCLASS[raw.item_subclass?.id ?? -1] ?? null) : null,
   };
 }
