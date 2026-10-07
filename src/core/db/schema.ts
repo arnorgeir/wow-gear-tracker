@@ -41,6 +41,8 @@ export const snapshotItems = sqliteTable('snapshot_items', {
   quality: text('quality').$type<Quality>().notNull(),
   bonusIds: text('bonus_ids', { mode: 'json' }).$type<number[]>().notNull(),
   isTier: integer('is_tier', { mode: 'boolean' }).notNull(),
+  /** Sorted secondary stat types joined by commas, '' for none, null when unknown. */
+  secondaryStats: text('secondary_stats'),
 }, (t) => [index('snapshot_items_snapshot').on(t.snapshotId)]);
 
 export const snapshotCurrencies = sqliteTable('snapshot_currencies', {
@@ -86,6 +88,9 @@ export const itemDetails = sqliteTable('item_details', {
   quality: text('quality').$type<Quality>(),
   isTier: integer('is_tier', { mode: 'boolean' }).notNull(),
   fetchedAt: integer('fetched_at').notNull(),
+  secondaryStats: text('secondary_stats'),
+  /** Set by the tier target lookup; null until it ran for this item. */
+  statsFetchedAt: integer('stats_fetched_at'),
 });
 
 export const classMedia = sqliteTable('class_media', {
@@ -138,4 +143,5 @@ export const dungeonLoot = sqliteTable('dungeon_loot', {
   itemName: text('item_name').notNull(),
   inventoryType: text('inventory_type'),
   armorType: text('armor_type').$type<ArmorType>(),
+  secondaryStats: text('secondary_stats'),
 }, (t) => [primaryKey({ columns: [t.challengeModeId, t.encounterId, t.itemId] })]);

@@ -63,6 +63,8 @@ export async function importSimc({ db, blizzard, qualities, now }: Deps, charact
     quality: qualityFromBonuses(item.bonusIds, qualities) ?? details.get(item.itemId)?.quality ?? 'COMMON',
     bonusIds: item.bonusIds,
     isTier: details.get(item.itemId)?.isTier ?? false,
+    // SimC exports carry no item stats.
+    secondaryStats: null,
   }));
 
   const { changed } = await saveSnapshotIfChanged(db, characterId, 'simc', items, time, profile.currencies);

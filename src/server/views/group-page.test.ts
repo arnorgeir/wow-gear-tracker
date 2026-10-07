@@ -177,11 +177,11 @@ describe('getGroupPage', () => {
     const { s } = await services();
     await track(s, 'Birkibjörn', 'Druid', 'Guardian', [worn('MAIN_HAND', 60)]);
     const pasted = await track(s, 'Sólrún', 'Druid', 'Guardian', null);
-    await saveSnapshotIfChanged(s.db, pasted, 'simc', [{ location: 'equipped', slot: 'MAIN_HAND', itemId: 60, name: 'Worn 60', itemLevel: 300, quality: 'EPIC', bonusIds: [], isTier: false }], 700);
+    await saveSnapshotIfChanged(s.db, pasted, 'simc', [{ location: 'equipped', slot: 'MAIN_HAND', itemId: 60, name: 'Worn 60', itemLevel: 300, quality: 'EPIC', bonusIds: [], isTier: false, secondaryStats: null }], 700);
     const chooser = await track(s, 'Gnúpur', 'Druid', 'Guardian', null);
     await saveSnapshotIfChanged(s.db, chooser, 'simc', [
-      { location: 'equipped', slot: 'MAIN_HAND', itemId: 60, name: 'Worn 60', itemLevel: 300, quality: 'EPIC', bonusIds: [], isTier: false },
-      { location: 'vault', slot: 'OFF_HAND', itemId: 61, name: 'Item 61', itemLevel: 330, quality: 'EPIC', bonusIds: [], isTier: false },
+      { location: 'equipped', slot: 'MAIN_HAND', itemId: 60, name: 'Worn 60', itemLevel: 300, quality: 'EPIC', bonusIds: [], isTier: false, secondaryStats: null },
+      { location: 'vault', slot: 'OFF_HAND', itemId: 61, name: 'Item 61', itemLevel: 330, quality: 'EPIC', bonusIds: [], isTier: false, secondaryStats: null },
     ], 800);
     const { vault } = await getGroupPage(s, keys('birkibjörn', 'sólrún', 'gnúpur'));
     expect(vault.map((v) => v.className)).toEqual(['Druid', 'Druid', 'Druid']);

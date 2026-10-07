@@ -105,9 +105,9 @@ describe('SimC data', () => {
   };
   const pasted = [
     ...gearToSnapshotItems(gear),
-    { location: 'bag' as const, slot: 'WAIST', itemId: 30, name: 'Best Belt', itemLevel: 300, quality: 'EPIC' as const, bonusIds: [], isTier: false },
-    { location: 'vault' as const, slot: 'NECK', itemId: 20, name: 'Best Neck', itemLevel: 330, quality: 'EPIC' as const, bonusIds: [], isTier: false },
-    { location: 'vault' as const, slot: 'BACK', itemId: 77, name: 'Other Cloak', itemLevel: 330, quality: 'EPIC' as const, bonusIds: [], isTier: false },
+    { location: 'bag' as const, slot: 'WAIST', itemId: 30, name: 'Best Belt', itemLevel: 300, quality: 'EPIC' as const, bonusIds: [], isTier: false, secondaryStats: null },
+    { location: 'vault' as const, slot: 'NECK', itemId: 20, name: 'Best Neck', itemLevel: 330, quality: 'EPIC' as const, bonusIds: [], isTier: false, secondaryStats: null },
+    { location: 'vault' as const, slot: 'BACK', itemId: 77, name: 'Other Cloak', itemLevel: 330, quality: 'EPIC' as const, bonusIds: [], isTier: false, secondaryStats: null },
   ];
   const crests = [{ kind: 'upgrade' as const, currencyId: 3445, quantity: 45 }];
 
@@ -158,9 +158,9 @@ describe('any rows on the character page', () => {
     const s = await services(anyLists);
     const id = await seed(s, false);
     await saveSnapshotIfChanged(s.db, id, 'simc', [
-      { location: 'equipped', slot: 'SHOULDER', itemId: 70, name: 'Worn Mantle', itemLevel: 321, quality: 'EPIC', bonusIds: [], isTier: false },
-      { location: 'vault', slot: 'SHOULDER', itemId: 71, name: 'Vault Mantle', itemLevel: 334, quality: 'EPIC', bonusIds: [], isTier: false },
-      { location: 'vault', slot: 'SHOULDER', itemId: 72, name: 'Low Mantle', itemLevel: 320, quality: 'EPIC', bonusIds: [], isTier: false },
+      { location: 'equipped', slot: 'SHOULDER', itemId: 70, name: 'Worn Mantle', itemLevel: 321, quality: 'EPIC', bonusIds: [], isTier: false, secondaryStats: null },
+      { location: 'vault', slot: 'SHOULDER', itemId: 71, name: 'Vault Mantle', itemLevel: 334, quality: 'EPIC', bonusIds: [], isTier: false, secondaryStats: null },
+      { location: 'vault', slot: 'SHOULDER', itemId: 72, name: 'Low Mantle', itemLevel: 320, quality: 'EPIC', bonusIds: [], isTier: false, secondaryStats: null },
     ], 500);
     const page = await getCharacterPage(s, id);
     expect(page!.rows[0]).toMatchObject({ state: 'missing', bis: { kind: 'any', minItemLevel: 334, source: '' } });
