@@ -54,8 +54,8 @@ function parseTable(html: string, tableId: string): BisRow[] {
       name: itemText.replace(/\s*\(Tier Set\)\s*$/i, ''),
       bonusIds: link![2] ? link![2].split(':').map(Number) : [],
       isTier: /\(Tier Set\)/i.test(itemText),
-      isCatalyst: /\(Catalyst\)/i.test(sourceText),
-      source: sourceText.replace(/\s*\(Catalyst\)\s*$/i, ''),
+      isCatalyst: /\(Catalyst\)|\/\s*Catalyst\s*$/i.test(sourceText),
+      source: sourceText.replace(/\s*(?:\(Catalyst\)|\/\s*Catalyst)\s*$/i, ''),
     });
   }
   return rows;

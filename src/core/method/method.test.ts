@@ -79,3 +79,18 @@ describe('createMethodSource', () => {
     await expect(createMethodSource(fn).fetchLists('nope-nope')).rejects.toMatchObject({ status: 404 });
   });
 });
+
+describe('catalyst sources', () => {
+  const table = (item: string, source: string) =>
+    `<table id="dungeon_table"><tr><td>Head</td><td><a href="https://www.wowhead.com/item=271875">${item}</a></td><td>${source}</td></tr></table>`;
+
+  it('reads "X / Catalyst" as a catalyst source and strips the suffix', () => {
+    const [row] = parseGearingHtml(table('Gaze of the Coiled Watcher (Tier Set)', 'Ula&#39;tek / Catalyst')).mythicPlus;
+    expect(row).toMatchObject({ kind: 'item', isTier: true, isCatalyst: true, source: "Ula'tek" });
+  });
+
+  it('keeps a Tier Set row with a plain source as tier but not catalyst', () => {
+    const [row] = parseGearingHtml(table('Primordial Robe of Rites (Tier Set)', 'Altar of Fangs')).mythicPlus;
+    expect(row).toMatchObject({ isTier: true, isCatalyst: false, source: 'Altar of Fangs' });
+  });
+});
