@@ -1,13 +1,13 @@
 import type { BlizzardClient } from '../blizzard/client';
-import type { ItemDetails } from '../blizzard/types';
+import type { ItemDetails, ItemInfo } from '../blizzard/types';
 import type { Db } from '../db/client';
 import { getBisLists, replaceBisLists } from '../db/queries/bis-lists';
-import { getClassIconMap, upsertClassIcons, getItemDetailsMap, upsertItemDetails, getItemIcons, upsertItemIcons } from '../db/queries/media';
+import { getClassIconMap, upsertClassIcons, getItemDetailsMap, upsertItemDetails, getItemIcons, upsertItemIcons, getTierTargetRows, upsertTierTargets } from '../db/queries/media';
 import { getBonusQualityMap, replaceBonusQualities, getTrackMap, replaceTracks } from '../db/queries/tracks';
 import { getMeta, setMeta } from '../db/queries/meta';
 import { isHttpError } from '../http';
 import type { RaidbotsData } from '../raidbots/tracks';
-import type { BisLists, BisSource, Quality, Region, Track } from '../types';
+import { LIST_TYPES, type BisLists, type BisSource, type Quality, type Region, type TierTarget, type Track } from '../types';
 
 export const DAY_MS = 86_400_000;
 // The version in the key marks the stored data's format. Bump it when Raidbots data gains fields,
@@ -116,6 +116,33 @@ export async function ensureItemDetails(
   const found = fetched.filter((entry): entry is { itemId: number } & ItemDetails => entry !== null);
   if (found.length > 0) await upsertItemDetails(db, found, now);
   return getItemDetailsMap(db, unique);
+}
+
+/**
+ * Stat pairs for the Method items of a spec's tier rows. Each item is fetched once; a lookup that found
+ * no stats (a 404, or no stats in the response) retries after a day, and a failed request stores nothing.
+ */
+export async function ensureTierTargets(
+  deps: { db: Db; blizzard: BlizzardClient; now: number }, region: Region, lists: BisLists | null,
+): Promise<Map<number, TierTarget>> {
+  const { db, blizzard, now } = deps;
+  const ids = lists ? [...new Set(LIST_TYPES.flatMap((l) => lists[l]).flatMap((r) => (r.kind === 'item' && r.isTier ? [r.itemId] : [])))] : [];
+  const known = await getTierTargetRows(db, ids);
+  const due = ids.filter((id) => {
+    const row = known.get(id);
+    return !row || row.statsFetchedAt === null || (row.secondaryStats === null && now - row.statsFetchedAt >= DAY_MS);
+  });
+  const fetched = await Promise.all(due.map(async (itemId) => {
+    try {
+      return { itemId, info: await blizzard.getItemDetails(region, itemId) };
+    } catch {
+      return null;
+    }
+  }));
+  const found = fetched.filter((entry): entry is { itemId: number; info: ItemInfo | null } => entry !== null);
+  if (found.length > 0) await upsertTierTargets(db, found, now);
+  const rows = found.length > 0 ? await getTierTargetRows(db, ids) : known;
+  return new Map([...rows].map(([id, r]) => [id, { secondaryStats: r.secondaryStats, isTier: r.isTier }]));
 }
 
 const CLASS_ICONS_META_KEY = 'classIcons.v1.fetchedAt';
