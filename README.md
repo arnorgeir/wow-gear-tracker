@@ -42,6 +42,10 @@ A paste also brings in bag items, Great Vault choices and crest counts, which Bl
 
 Run `npm run build`, then `npm start -- -H 0.0.0.0`. That opens the app to your network, so a phone on the same Wi-Fi can use `http://<your-pc-ip>:3000`. `npm run dev` won't do here: Next's dev server blocks its own scripts for any address but localhost, so the page loads but buttons do nothing. Use the IP address: the app refuses other host names. The app has no login, so anyone on that network can add, change and remove characters while it runs this way. Do not do it on public Wi-Fi.
 
+### Claude Code mod
+
+`.claude/skills/dev-build-guard` is a Claude Code mod that loads by itself when you run Claude Code in this folder, once you trust the folder. While a server answers on port 3000 it puts a warning in the status line, and it stops Claude from running `npm run build` in the same folder, which would wedge the dev server. Its tests run with `claude plugin test .claude/skills/dev-build-guard`, not `npm test`.
+
 ## How it's built
 
 All logic lives in `src/core` as plain TypeScript with no Next.js or React imports. Pages and API routes in `src/app` stay thin and call into `src/core` through `src/server`. The design spec is in `docs/superpowers/specs/`.

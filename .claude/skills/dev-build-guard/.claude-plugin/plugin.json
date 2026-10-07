@@ -1,0 +1,8 @@
+{
+  "name": "dev-build-guard",
+  "version": "0.1.0",
+  "description": "Warns while a dev server holds :3000 and stops builds that would wedge it",
+  "author": {
+    "name": "arnorgeir"
+  }
+}
