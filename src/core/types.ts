@@ -56,8 +56,8 @@ export interface Track {
   costPerStep: number | null;
 }
 
-export type ItemState = 'missing' | 'inBags' | 'belowMyth' | 'mythUpgradable' | 'done';
-export const ITEM_STATES: readonly ItemState[] = ['done', 'mythUpgradable', 'belowMyth', 'inBags', 'missing'];
+export type ItemState = 'missing' | 'inBags' | 'wrongStats' | 'belowMyth' | 'mythUpgradable' | 'done';
+export const ITEM_STATES: readonly ItemState[] = ['done', 'mythUpgradable', 'wrongStats', 'belowMyth', 'inBags', 'missing'];
 
 export type StatMatch = 'same' | 'different' | 'unknown';
 /** A tier row's Method item: its secondary stat pair, and whether it is the tier piece itself (bought with a tier token). */

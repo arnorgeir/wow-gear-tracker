@@ -14,4 +14,8 @@ describe('stateWord', () => {
     expect(stateWord('missing', true).word).toBe('Need tier');
     expect(stateWord('done', true).word).toBe('Done');
   });
+
+  it('says Stats for a tier piece with the wrong stats', () => {
+    expect(stateWord('wrongStats', true)).toEqual({ word: 'Stats', className: 'text-stats' });
+  });
 });

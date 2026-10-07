@@ -48,7 +48,7 @@ export function summarize(c: CharacterRow, snapshot: Snapshot | null, classIcons
 
 /** Only BiS items the character already wears on a track get a flag; crests spent elsewhere are wasted. */
 export const upgradeFor = (row: GearRow, costs: ReadonlyMap<number, CrestCost>, balances: ReadonlyMap<number, number>) =>
-  row.matched && (row.state === 'mythUpgradable' || row.state === 'belowMyth') ? affordableUpgrade(row.track, costs, balances) : null;
+  row.matched && (row.state === 'mythUpgradable' || row.state === 'belowMyth' || row.state === 'wrongStats') ? affordableUpgrade(row.track, costs, balances) : null;
 
 export const crestView = (gear: GearContext, costs: ReadonlyMap<number, CrestCost>): CrestView | null =>
   gear.simc ? { balances: summarizeCrests(gear.balances, costs), pastedAt: gear.simc.createdAt } : null;

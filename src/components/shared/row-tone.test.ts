@@ -20,4 +20,9 @@ describe('rowTone', () => {
     expect(rowTone('done', false)).toBeNull();
     expect(rowTone('mythUpgradable', false)).toBeNull();
   });
+
+  it('marks a tier piece with the wrong stats with the stats tone', () => {
+    expect(rowTone('wrongStats', true)).toBe('stats');
+    expect(rowTone('wrongStats', false)).toBeNull();
+  });
 });

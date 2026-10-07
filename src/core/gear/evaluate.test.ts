@@ -82,7 +82,7 @@ describe('evaluateGear', () => {
 describe('countStates', () => {
   it('counts every state, including zeros', () => {
     const rows = evaluateGear({ equipped: [item('HEAD', 1, [1])], bisRows: [row(['HEAD'], 1), row(['NECK'], 2)], tracks });
-    expect(countStates(rows)).toEqual({ done: 1, mythUpgradable: 0, belowMyth: 0, inBags: 0, missing: 1 });
+    expect(countStates(rows)).toEqual({ done: 1, mythUpgradable: 0, wrongStats: 0, belowMyth: 0, inBags: 0, missing: 1 });
   });
 });
 
@@ -108,5 +108,44 @@ describe('any rows', () => {
     });
     expect(noLevel!.state).toBe('missing');
     expect(empty).toMatchObject({ state: 'missing', equipped: null });
+  });
+});
+
+describe('tier stat pairs', () => {
+  const HM = ['HASTE_RATING', 'MASTERY_RATING'];
+  const CM = ['CRIT_RATING', 'MASTERY_RATING'];
+  const target = (secondaryStats: string[] | null, isTier = false) => new Map([[777, { secondaryStats, isTier }]]);
+  const tierHead = (bonus: number, secondaryStats?: string[] | null) => ({ ...item('HEAD', 555, [bonus], true), secondaryStats });
+
+  it('flags a tier piece with other stats as wrongStats, over Myth 6/6 and over Hero', () => {
+    for (const bonus of [1, 3]) {
+      const [head] = evaluateGear({ equipped: [tierHead(bonus, CM)], bisRows: [row(['HEAD'], 777, true)], tracks, targets: target(HM) });
+      expect(head).toMatchObject({ matched: true, state: 'wrongStats', stats: 'different' });
+    }
+  });
+
+  it('flags a same-ID tier piece with other stats for a tier-token row', () => {
+    const [head] = evaluateGear({ equipped: [{ ...item('HEAD', 777, [1], true), secondaryStats: CM }], bisRows: [row(['HEAD'], 777, true)], tracks, targets: target(HM, true) });
+    expect(head).toMatchObject({ state: 'wrongStats', stats: 'different' });
+  });
+
+  it('keeps track states for the same pair and for unknown pairs (SimC items have none)', () => {
+    const same = evaluateGear({ equipped: [tierHead(2, HM)], bisRows: [row(['HEAD'], 777, true)], tracks, targets: target(HM) })[0];
+    expect(same).toMatchObject({ state: 'mythUpgradable', stats: 'same' });
+    const simc = evaluateGear({ equipped: [item('HEAD', 555, [1], true)], bisRows: [row(['HEAD'], 777, true)], tracks, targets: target(HM) })[0];
+    expect(simc).toMatchObject({ state: 'done', stats: 'unknown' });
+    const noTarget = evaluateGear({ equipped: [tierHead(1, CM)], bisRows: [row(['HEAD'], 777, true)], tracks })[0];
+    expect(noTarget).toMatchObject({ state: 'done', stats: 'unknown' });
+  });
+
+  it('sets stats only on matched tier rows', () => {
+    const [neck, head] = evaluateGear({ equipped: [item('NECK', 10, [1])], bisRows: [row(['NECK'], 10), row(['HEAD'], 777, true)], tracks, targets: target(HM) });
+    expect(neck!.stats).toBeNull();
+    expect(head).toMatchObject({ state: 'missing', stats: null });
+  });
+
+  it('counts wrongStats rows in countStates', () => {
+    const rows = evaluateGear({ equipped: [tierHead(1, CM)], bisRows: [row(['HEAD'], 777, true)], tracks, targets: target(HM) });
+    expect(countStates(rows).wrongStats).toBe(1);
   });
 });
