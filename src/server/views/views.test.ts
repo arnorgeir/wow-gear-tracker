@@ -3,6 +3,8 @@ import { openTestDb } from '@/test/db';
 import { getCharacterCards } from './character-cards';
 import { getCharacterPage } from './character-page';
 import type { Services } from '../services';
+import { upgradeFor } from './summarize';
+import type { GearRow } from '@/core/gear/evaluate';
 import { gearToSnapshotItems, saveSnapshotIfChanged } from '@/core/db/queries/snapshots';
 import { insertCharacter, updateCharacter } from '@/core/db/queries/characters';
 import { replaceSeason } from '@/core/db/queries/season';
@@ -248,5 +250,20 @@ describe('identity', () => {
 
     const [card] = await getCharacterCards(s);
     expect(card).toMatchObject({ identity: 'Troll Feral Druid', avatarUrl: 'https://render/a.jpg', classIconUrl: 'https://i/class-11.jpg' });
+  });
+});
+
+describe('upgradeFor', () => {
+  const myth: Track = { bonusId: 1, name: 'Myth', step: 2, max: 6, group: 700, currencyId: 3500, currencyName: 'Myth Crest', costPerStep: 20 };
+  const costs = new Map([[700, { group: 700, currencyId: 3500, currencyName: 'Myth Crest', costPerStep: 20, iconUrl: null }]]);
+  const balances = new Map([[3500, 50]]);
+  const base: GearRow = {
+    row: lists.mythicPlus[0]!, slot: 'HEAD', equipped: { ...gear[0]!, bonusIds: [1] }, track: myth, matched: true, stats: 'same', state: 'belowMyth',
+  };
+
+  it('offers a crest upgrade on a tier piece with the wrong stats, as on any matched tracked row', () => {
+    const below = upgradeFor(base, costs, balances);
+    expect(below).toMatchObject({ steps: 2, currencyId: 3500 });
+    expect(upgradeFor({ ...base, stats: 'different', state: 'wrongStats' }, costs, balances)).toEqual(below);
   });
 });

@@ -4,6 +4,7 @@ import type { ItemState } from '@/core/types';
 export const STATE_LABELS: Record<ItemState, { text: string; className: string }> = {
   done: { text: 'Done', className: 'text-gold' },
   mythUpgradable: { text: 'Upgrade with crests', className: 'text-crest' },
+  wrongStats: { text: 'Wrong stats', className: 'text-stats' },
   belowMyth: { text: 'Great Vault target', className: 'text-vault' },
   inBags: { text: 'BiS in bags', className: 'text-bags' },
   missing: { text: 'Missing', className: 'text-missing' },
