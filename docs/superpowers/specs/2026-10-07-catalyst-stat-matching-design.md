@@ -65,7 +65,7 @@ The target pair is the Method row item's pair. For the tier-token shape, that pa
 | Item | Source | Stored on |
 |---|---|---|
 | Equipped, from Blizzard | `stats` in the equipment response | new `snapshot_items.secondary_stats` |
-| Equipped, from SimC | none | `null` (unknown) |
+| Equipped, from SimC | the latest Blizzard snapshot's copy of the same item ID and bonus IDs, applied when gear loads | `null` (unknown) when no copy matches |
 | Method row item, tier rows only | item endpoint, `preview_item.stats` | new `item_details.secondary_stats` and `item_details.stats_fetched_at` |
 | Dungeon loot | the item endpoint call season sync already makes for inventory and armor type | new `dungeon_loot.secondary_stats` |
 
@@ -109,8 +109,8 @@ Words:
 
 Tone. Today `rowTone` highlights only `done` (gold) and `mythUpgradable` (green), and `belowMyth` has no tone.
 - `RowTone` gains `'stats'`, returned for `wrongStats` when tracks are known, as the other tones are.
-- `ROW_TONE_STYLES.stats` is `{ background: 'var(--color-stats-bg)', outline: '2px dashed var(--color-stats)', outlineOffset: '-2px' }`. The dashed outline differs from the solid gold and green rings in shape, not just hue, and the word always sits beside it.
-- New tokens in `globals.css` `@theme`: `--color-stats: #f08fc0` and `--color-stats-bg: #2e1a26`. `text-stats` and `bg-stats` come from the first.
+- `ROW_TONE_STYLES.stats` is `{ background: '#2e2513', outline: '2px dashed var(--color-gold)', outlineOffset: '-2px' }`: done's colors, because the piece is done apart from its stats (owner's choice, 2026-10-07). The dashed outline differs from the solid gold and green rings in shape, not just hue, and the word always sits beside it.
+- New token in `globals.css` `@theme`: `--color-stats: #f08fc0`, for `text-stats` and `bg-stats`.
 
 Character cards (`character-card/CharacterCard.tsx`). The owner's choice: `wrongStats` gets its own bar segment and does not count as BiS.
 - The BiS total stays `done + mythUpgradable + belowMyth`.
@@ -262,6 +262,6 @@ Hand checks: on the group page, hover a tier chip in two dungeons and confirm th
 Each of these has an idea issue on the board:
 
 - **Stat weights.** No stat values or weights, so a better pair never outranks Method's. Weights entered by hand, or from a Pawn string or a SimC export, belong to a separate feature (#95).
-- **SimC stats.** SimC tier pieces stay `unknown`. Borrowing the pair from a Blizzard snapshot of the same item and bonus IDs is a separate change (#96).
+- **SimC stats.** Equipped SimC pieces borrow the pair from the latest Blizzard snapshot of the same item and bonus IDs (owner's request, 2026-10-07). Bag and Great Vault items, and pieces Blizzard hasn't seen yet, stay `unknown` (#96).
 - **Manual confirmation.** No "this piece has the right stats" override for unknown pieces (#97).
 - **Tertiary stats, sockets and cantrips.** These also carry over through the catalyst; this design ignores them (#98).
