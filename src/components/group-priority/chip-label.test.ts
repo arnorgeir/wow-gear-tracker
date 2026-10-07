@@ -8,9 +8,16 @@ describe('chipLabel', () => {
     expect(chipLabel({ kind: 'item', slotLabel: 'Cloak', weight: 3, item: item('Cloak of the Restless Tribes') })).toBe('Cloak of the Restless Tribes (Cloak)');
   });
 
-  it('names the tier piece and how it is earned', () => {
-    expect(chipLabel({ kind: 'tier', slotLabel: 'Shoulders', weight: 5, fit: 'unverified', dropStats: null, targetName: 'BiS', targetStats: null, item: item('Enigmatic Dreamwatcher’s Plumage') }))
-      .toBe('Enigmatic Dreamwatcher’s Plumage (Shoulders), tier: catalyst a shoulders drop from this dungeon');
+  const tier = (fit: 'bis' | 'unverified' | 'alternative', name: string, targetStats: string[] | null, dropStats: string[] | null) =>
+    ({ kind: 'tier' as const, slotLabel: 'Chest', weight: 5, fit, item: item(name), dropStats, targetName: 'Primordial Robe of Rites', targetStats });
+  const HM = ['HASTE_RATING', 'MASTERY_RATING'];
+  const MV = ['MASTERY_RATING', 'VERSATILITY'];
+
+  it('labels each tier fit by the drop’s own name', () => {
+    expect(chipLabel(tier('bis', 'Primordial Robe of Rites', HM, HM))).toBe('Primordial Robe of Rites (Chest), Method BiS stats Haste/Mastery: catalyst into tier');
+    expect(chipLabel(tier('bis', 'Primordial Robe of Rites', null, null))).toBe('Primordial Robe of Rites (Chest), Method BiS item: catalyst into tier');
+    expect(chipLabel(tier('alternative', 'Hoarded Harvest Wrap', HM, MV))).toBe('Hoarded Harvest Wrap (Chest), catalyst alternative: Mastery/Vers, Method BiS wants Haste/Mastery');
+    expect(chipLabel(tier('unverified', 'Hoarded Harvest Wrap', HM, null))).toBe('Hoarded Harvest Wrap (Chest), catalyst into tier, stats unverified');
   });
 
   it('describes an Any need by slot and level', () => {

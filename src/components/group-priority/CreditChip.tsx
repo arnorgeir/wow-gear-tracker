@@ -7,9 +7,10 @@ import { creditSlot } from './credit-slot';
 const TILE = 'relative flex size-8 shrink-0 items-center justify-center rounded-md border-2';
 const DASHED = `${TILE} border-dashed border-[#a335ee] bg-surface-2 text-[#c58cf5]`;
 
-/** One need: a 32 px tile with its slot under it. Items and tier pieces link to Wowhead. */
+/** One need: a 32 px tile with its slot under it. Items and tier drops link to Wowhead; a catalyst alternative is dashed and says "alt". */
 export function CreditChip({ credit }: { credit: PriorityCreditView }) {
   const label = chipLabel(credit);
+  const alternative = credit.kind === 'tier' && credit.fit === 'alternative';
   return (
     <span title={`${label} · weight ${credit.weight}`} className="flex w-11 flex-col items-center gap-0.5">
       {credit.kind === 'any' ? (
@@ -22,7 +23,7 @@ export function CreditChip({ credit }: { credit: PriorityCreditView }) {
           target="_blank" rel="noreferrer" aria-label={label}
           className="rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold">
           {credit.item.iconUrl ? (
-            <span className={TILE} style={{ borderColor: (QUALITY_STYLES[credit.item.quality] ?? QUALITY_STYLES.EPIC).ring }}>
+            <span className={alternative ? `${TILE} border-dashed` : TILE} style={{ borderColor: (QUALITY_STYLES[credit.item.quality] ?? QUALITY_STYLES.EPIC).ring }}>
               <img src={credit.item.iconUrl} alt="" width={28} height={28} className="size-7 rounded-sm" />
               {credit.kind === 'tier' && <TierBadge />}
             </span>
@@ -31,7 +32,7 @@ export function CreditChip({ credit }: { credit: PriorityCreditView }) {
           )}
         </a>
       )}
-      <span aria-hidden="true" className="max-w-full truncate text-[10px] text-muted">{creditSlot(credit.slotLabel)}</span>
+      <span aria-hidden="true" className="max-w-full truncate text-[10px] text-muted">{alternative ? 'alt' : creditSlot(credit.slotLabel)}</span>
     </span>
   );
 }

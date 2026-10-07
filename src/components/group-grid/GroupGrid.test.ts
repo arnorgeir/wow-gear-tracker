@@ -120,7 +120,7 @@ describe('GroupGrid', () => {
     const bis = { kind: 'item' as const, ...equipped, name: 'Enigmatic Dreamwatcher’s Somnolent Stare of the Endless Night', isTier: true, isCatalyst: true, source: 'Kings’ Rest', targetStats: null, targetIsTierPiece: false };
     const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'missing', bis })] }]);
     const needed = html.slice(html.indexOf('>Needed<'));
-    expect(needed).toContain('Tier piece (catalyst Enigmatic Dreamwatcher’s Somnolent Stare of the Endless Night)');
+    expect(needed).toContain('Tier (catalyst Enigmatic Dreamwatcher’s Somnolent Stare of the Endless Night)');
     expect(needed).toContain('wrap-anywhere');
     expect(needed).not.toContain('truncate');
   });
@@ -134,7 +134,7 @@ describe('GroupGrid', () => {
     const bis = { kind: 'item' as const, ...equipped, name: 'Enigmatic Dreamwatcher’s Plumage', isTier: true, isCatalyst: true, source: '', targetStats: null, targetIsTierPiece: false };
     const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'SHOULDER', label: 'Shoulders', cells: [cell({ state: 'missing', slot: 'SHOULDER', bis })] }]);
     expect(html).toContain('>Need tier<');
-    expect(html).toContain('Need: Enigmatic Dreamwatcher’s Plumage (tier, via catalyst)');
+    expect(html).toContain('Need: tier (catalyst Enigmatic Dreamwatcher’s Plumage)');
     expect(html).toContain('>Shldr<');
   });
 
