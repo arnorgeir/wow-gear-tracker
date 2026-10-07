@@ -38,6 +38,16 @@ describe('live services', () => {
       region: (env.LIVE_TEST_REGION as Region) || 'eu', realmSlug: env.LIVE_TEST_REALM!, name: env.LIVE_TEST_CHARACTER!,
     });
     expect(gear.length).toBeGreaterThan(5);
+    // Equipped pieces carry a sorted secondary pair; null means the response had no stats field.
+    expect(gear.some((g) => g.secondaryStats != null && g.secondaryStats.length <= 2)).toBe(true);
+  });
+
+  it('Blizzard item endpoint still returns secondary stats in preview_item.stats', async () => {
+    const config = readConfig();
+    const blizzard = createBlizzardClient({ clientId: config.blizzardClientId, clientSecret: config.blizzardClientSecret });
+    const region = (env.LIVE_TEST_REGION as Region) || 'eu';
+    expect((await blizzard.getItemDetails(region, 273785))?.secondaryStats).toEqual(['HASTE_RATING', 'MASTERY_RATING']);
+    expect((await blizzard.getItemDetails(region, 251147))?.secondaryStats).toEqual(['MASTERY_RATING', 'VERSATILITY']);
   });
 
   it('this season’s dungeons still join to Encounter Journal loot by map ID', async () => {
