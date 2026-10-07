@@ -3,6 +3,7 @@ import { equippedGear, getLatestSnapshot, type Snapshot } from '@/core/db/querie
 import { type CharacterRow } from '@/core/db/queries/characters';
 import { affordableUpgrade, summarizeCrests, type CrestCost } from '@/core/gear/crests';
 import { type GearRow } from '@/core/gear/evaluate';
+import { borrowStats } from '@/core/gear/stat-pair';
 import { methodSpecSlug } from '@/core/method/method';
 import { identityLine } from '@/core/characters/identity';
 import { type GearItem } from '@/core/types';
@@ -19,10 +20,13 @@ export interface GearContext {
 export async function loadGear(db: Db, characterId: number): Promise<GearContext> {
   const current = await getLatestSnapshot(db, characterId);
   const simc = current?.source === 'simc' ? current : await getLatestSnapshot(db, characterId, 'simc');
+  // Pastes carry no stats; the Blizzard snapshot knows them for pieces that haven't changed since.
+  const blizzard = current?.source === 'simc' ? await getLatestSnapshot(db, characterId, 'blizzard') : null;
+  const equipped = current ? equippedGear(current) : [];
   return {
     current,
     simc,
-    equipped: current ? equippedGear(current) : [],
+    equipped: blizzard ? borrowStats(equipped, blizzard.items) : equipped,
     // Bag contents are only known while the current gear comes from a paste.
     bagItemIds: new Set(current?.source === 'simc' ? current.items.filter((i) => i.location === 'bag').map((i) => i.itemId) : []),
     // Crests only come from pastes, so the latest paste's balances stay useful after Blizzard takes over.
