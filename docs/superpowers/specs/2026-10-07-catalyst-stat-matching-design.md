@@ -1,6 +1,6 @@
 # Catalyst stat matching and honest tier credits
 
-Status: design approved by the owner on 2026-10-07; written spec awaiting the owner's review.
+Status: approved by the owner on 2026-10-07. Spec review findings resolved on 2026-10-07: the pair comparison now puts known pairs before item IDs, target pairs are fetched only for tier rows with a retry backoff, view fields, tone, card counts and labels are named, and the vault rule is dropped. The owner chose how character cards count the new state (decision 3).
 Date: 2026-10-07
 Issue: #79. Correct dungeon catalyst item attribution and distinguish preferred BiS bases
 
@@ -27,7 +27,11 @@ Checked on 2026-10-07 against live APIs and the local cache.
 - **The origin of a catalyzed item is not recorded.** An equipped tier piece carries the tier item ID, such as 271528, plus bonus IDs. Its only per-piece variations, 13696, 13697 and 13698, are `serverside` in Raidbots `bonuses.json`, with no decode. No base item ID survives.
 - **Blizzard's equipment endpoint returns each equipped item's stats.** The `stats` entries have `type.type` values such as `HASTE_RATING`. Three tier pieces on one character carried Haste/Mastery, Crit/Haste and Crit/Mastery, so retention shows in the data.
 - **Blizzard's item endpoint returns base stats in `preview_item.stats`.** Primordial Robe of Rites (273785) is Haste/Mastery. Hoarded Harvest Wrap (251147) is Vers/Mastery. Values scale with item level; the stat types don't.
+- **A tier piece's own item endpoint also returns `preview_item.stats`,** with the stats a tier token gives. Examples: 271529 Enigmatic Dreamwatcher's Gauntlets is Vers/Mastery, 271528 Enigmatic Dreamwatcher's Somnolent Stare is Haste/Vers, and 271463 Pauldrons of the Consecrated Flame is Crit/Mastery. Each also lists an off-class primary with `is_negated: true`. A catalyzed piece with the same item ID can carry a different pair, so an equal item ID proves nothing once both pairs are known.
+- **An unknown item ID answers 404,** and `getItemDetails` returns `null` for it.
 - **SimC pastes carry no stats.** A SimC item's stat pair is unknown.
+- **Great Vault items come only from SimC pastes,** so their pairs are always unknown.
+- **The Blizzard client already caps parallel requests at 4** (`createLimiter(4)` in `src/core/blizzard/client.ts`), shared by every caller through `Services`.
 - **Method tier rows take three shapes:**
   - a base item marked `(Tier Set)` with a plain source, such as Primordial Robe of Rites from Altar of Fangs;
   - a base item with the source `Ula'tek / Catalyst`;
@@ -43,13 +47,18 @@ Origin can't be known, but stats can. A **stat pair** is an item's set of second
 
 A pure function in `src/core/gear/` compares two items for a tier row:
 
+Checked in this order:
+
 | Result | When |
 |---|---|
-| `same` | Item IDs are equal, or both pairs are known and equal |
-| `different` | Both pairs are known and differ |
-| `unknown` | Either pair is unknown |
+| `same` | Both pairs are known and equal |
+| `different` | Both pairs are known and differ, even when the item IDs are equal |
+| `same` | Either pair is unknown, and the item IDs are equal |
+| `unknown` | Either pair is unknown, and the item IDs differ |
 
-The target pair is the Method row item's pair. For the tier-token shape, that item is the tier piece itself, and its pair is still the right target.
+Known pairs always win over item IDs. For the tier-token shape, the Method row names the tier piece itself, and a catalyzed piece with that item ID can still carry another base's stats.
+
+The target pair is the Method row item's pair. For the tier-token shape, that pair comes from the tier piece's own item endpoint, which gives the stats the token gives.
 
 ### 2. Where stat pairs come from
 
@@ -57,15 +66,29 @@ The target pair is the Method row item's pair. For the tier-token shape, that it
 |---|---|---|
 | Equipped, from Blizzard | `stats` in the equipment response | new `snapshot_items.secondary_stats` |
 | Equipped, from SimC | none | `null` (unknown) |
-| Method row item | item endpoint, `preview_item.stats` | new `item_details.secondary_stats` |
-| Dungeon loot | item endpoint, during season sync | new `dungeon_loot.secondary_stats` |
+| Method row item, tier rows only | item endpoint, `preview_item.stats` | new `item_details.secondary_stats` and `item_details.stats_fetched_at` |
+| Dungeon loot | the item endpoint call season sync already makes for inventory and armor type | new `dungeon_loot.secondary_stats` |
 
-- **`null` means unknown, and `''` means the item has no secondaries.** `ensureItemDetails` refetches rows whose `secondary_stats` is `null`, so rows from before this change fill in once. After a failed lookup the value stays `null`, and the next page load retries, as today's details lookups do.
-- **`ensureItemDetails` must cover the priority list's Method item IDs,** not only SimC items, so the engine gets target pairs. Every loader that evaluates gear passes them.
-- **One migration** adds the three nullable text columns: `npm run db:generate -- --name catalyst-stat-pairs`.
-- **The season cache is versioned.** `dungeon_loot` gains a column, so bump `SEASON_META_KEY` in `src/core/sync/season-sync.ts`.
+**Encoding.** `null` means unknown, and `''` means the item has no secondaries. A response without a `stats` field gives `null`.
+
+**Target pairs.** A new core function, `ensureTierTargets(deps, region, lists)` in `src/core/sync/reference-sync.ts`, takes `{ db, blizzard, now }` and a spec's `BisLists`. It collects the item IDs of tier rows across all three lists, about five per list, and returns `Map<number, { secondaryStats: string[] | null; isTier: boolean }>`.
+- **When it fetches.** It reads `item_details` and calls the item endpoint for IDs that have no row, or whose `stats_fetched_at` is `null`. That second case covers rows written before this change.
+- **Backoff.** A row whose `secondary_stats` is still `null`, after a 404 or a response without stats, is retried only when `stats_fetched_at` is older than `DAY_MS`. A thrown error stores nothing, as in today's `ensureItemDetails`. No page load repeats a lookup that just failed.
+- **Concurrency.** Fetches run through the Blizzard client, whose shared `createLimiter(4)` caps them. Only tier rows are fetched, about 15 IDs per spec on a cold cache, so the home page needs no limiter of its own.
+- **Callers.** The three loaders that call `ensureBisLists` (`character-cards.ts`, `character-page.ts`, `group-page.ts`) also call `ensureTierTargets` once per spec, cached alongside the BiS result, using the character's region. `BisResult` is unchanged. `MemberContext.bisFor` returns the BiS result plus the target map.
+- **Write path.** `upsertItemDetails` writes the two new columns; `ensureItemDetails` keeps its current fields and doesn't touch them.
+
+**Schema and cache.**
+- **One migration** adds the nullable columns: `npm run db:generate -- --name catalyst-stat-pairs`.
+- **The season cache is versioned.** `dungeon_loot` gains a column, so bump `SEASON_META_KEY` in `src/core/sync/season-sync.ts` from `season.v2` to `season.v3`.
 - **A snapshot changes when its stats change.** The snapshot-change key in `snapshots.ts` includes the stat pair, so a re-catalyzed piece with the same item ID and bonus IDs still produces a new snapshot.
-- **The types:** `GearItem`, `LootItem` and `ItemDetails` gain `secondaryStats: string[] | null`. `BisItemRow` has no column for it. Loaders join the target pair from `item_details` and pass it to the logic functions as a map keyed by item ID. Logic functions stay free of database access.
+
+**Types.**
+- `GearItem`, `SnapshotItemInput` and `LootItem` gain `secondaryStats: string[] | null`. `ItemInfo` gains it from `parseItemInfo`. SimC import sets it to `null`.
+- `SeasonLoot.loot` entries gain `name`, from `dungeon_loot.item_name`.
+- `BisItemRow` doesn't change. `evaluateGear` and `rankDungeons` take the target map as a parameter (`targets: ReadonlyMap<number, TierTarget>`). Logic functions stay free of database access.
+- `GearRow` gains `stats: 'same' | 'different' | 'unknown' | null`, the comparison result for a matched tier row, and `null` otherwise.
+- `GearRowView` gains `equippedStats: string[] | null`. The `kind: 'item'` `BisView` gains `targetStats: string[] | null` and `targetIsTierPiece: boolean`, which comes from the target map's `isTier`: true for the tier-token shape.
 
 ### 3. A new state, `wrongStats`
 
@@ -76,26 +99,36 @@ The target pair is the Method row item's pair. For the tier-token shape, that it
 
 `ITEM_STATES` order becomes `done, mythUpgradable, wrongStats, belowMyth, inBags, missing`.
 
-Words and tone:
-- The state badge says "Wrong stats".
-- The group grid's state word says "Wrong stats".
-- The row tone sits between `mythUpgradable` and `belowMyth`. It differs from both in lightness, not just hue, and gets a new semantic token in `globals.css`, not a hardcoded hex.
-- Character card counts include the new state.
+Words:
+- `state-badge/state-labels.ts`: `wrongStats: { text: 'Wrong stats', className: 'text-stats' }`.
+- `group-grid/state-word.ts`: the word "Stats". "Wrong stats" doesn't fit the 57 px column at 390 px, where "Need tier" is the longest word today. The cell note gives the full sentence (decision 5).
 
-The word always appears beside the color.
+Tone. Today `rowTone` highlights only `done` (gold) and `mythUpgradable` (green), and `belowMyth` has no tone.
+- `RowTone` gains `'stats'`, returned for `wrongStats` when tracks are known, as the other tones are.
+- `ROW_TONE_STYLES.stats` is `{ background: 'var(--color-stats-bg)', outline: '2px dashed var(--color-stats)', outlineOffset: '-2px' }`. The dashed outline differs from the solid gold and green rings in shape, not just hue, and the word always sits beside it.
+- New tokens in `globals.css` `@theme`: `--color-stats: #f08fc0` and `--color-stats-bg: #2e1a26`. `text-stats` and `bg-stats` come from the first.
+
+Character cards (`character-card/CharacterCard.tsx`). The owner's choice: `wrongStats` gets its own bar segment and does not count as BiS.
+- The BiS total stays `done + mythUpgradable + belowMyth`.
+- A `bg-stats` segment sits between `belowMyth` and the missing remainder.
+- Words: `, N wrong stats` after the vault targets, shown only when N > 0, as the bags count is.
+
+Crest upgrades. `upgradeFor` in `src/server/views/summarize.ts` offers an affordable upgrade for `wrongStats` too, beside `mythUpgradable` and `belowMyth`, because the piece is matched and its track still upgrades.
 
 ### 4. Tier credits name the local drop
 
 `rankDungeons` rewrites tier crediting. Non-tier item rows, Any rows, ring and trinket weighting, the Overall fallback and split dungeons keep today's behavior.
 
-**Which drop.** For a tier row, a dungeon's compatible drops are its loot in one of the row's slots and in the character's armor type, as today. The dungeon contributes at most one credit per row, from its best drop:
+**Which drop.** For a tier row, a dungeon's compatible drops are its loot in one of the row's slots and in the character's armor type, as today. Each drop is compared with the target by decision 1. The dungeon contributes at most one credit per row, from its best drop:
 
-1. the Method row's exact item;
-2. a drop with a `same` pair;
-3. a drop with an `unknown` pair;
-4. a drop with a `different` pair.
+1. a `same` drop that is the Method row's exact item;
+2. any other `same` drop;
+3. an `unknown` drop;
+4. a `different` drop.
 
 The lowest item ID breaks ties within a rank. A dungeon with no compatible drop gives no credit.
+
+"Exact" in the table below means a `same` drop, so the exact item and a same-pair base share a fit. An exact item whose known pair differs from the target can't happen for loot, because both pairs come from the same item endpoint. If it ever did, the drop would rank as `different`.
 
 **Fit and weight.** "Today's weight" is `weightOf`: the track weight plus the tier bonus of 2 while the character has fewer than 4 tier pieces.
 
@@ -131,7 +164,8 @@ All stat words come from one helper, `src/components/shared/stat-pair.ts`, with 
 
 | Fit | Label |
 |---|---|
-| `bis` | `Hoarded Harvest Wrap (Chest), Method BiS stats Haste/Mastery: catalyst into tier` |
+| `bis`, pair known | `Primordial Robe of Rites (Chest), Method BiS stats Haste/Mastery: catalyst into tier` |
+| `bis`, pair unknown (the exact item, with no stats on either side) | `Primordial Robe of Rites (Chest), Method BiS item: catalyst into tier` |
 | `alternative` | `Hoarded Harvest Wrap (Chest), catalyst alternative: Vers/Mastery, Method BiS wants Haste/Mastery` |
 | `unverified` | `Hoarded Harvest Wrap (Chest), catalyst into tier, stats unverified` |
 
@@ -139,12 +173,20 @@ An `alternative` tile gets a dashed border, and its slot line under the tile rea
 
 **Character page** (`character-page/DungeonPriority.tsx`). An `ItemCard` for the drop, with one of these detail lines:
 - `Chest · Method BiS stats · weight 5`
+- `Chest · Method BiS item · weight 5` (a `bis` credit with no known pair)
 - `Chest · catalyst alternative (Vers/Mastery, BiS Haste/Mastery) · weight 4`
 - `Chest · stats unverified · weight 5`
 
-**Need lines** (`group-grid/cell-note.ts`, `bis-target/BisTarget.tsx`). A tier need names the target pair and the base: `Need: tier, Haste/Mastery (catalyst Primordial Robe of Rites)`. The pair is left out when unknown. A `wrongStats` cell's note reads `Tier, Crit/Mastery; Method BiS wants Haste/Mastery`.
+**Need lines** (`group-grid/cell-note.ts`, `bis-target/BisTarget.tsx`). These come from `targetStats` and `targetIsTierPiece` on the `BisView`. "(pair)" means the target pair, as in Haste/Mastery.
 
-**Vault choices** (`vaultChoicesFor`). A tier vault item is flagged BiS only when its pair is `same` or `unknown`. SimC vault items have no stats, so they stay `unknown` and are flagged as today.
+| Method row shape | Pair known | Pair unknown |
+|---|---|---|
+| Base to catalyze (`targetIsTierPiece` false) | `Need: tier, Haste/Mastery (catalyst Primordial Robe of Rites)` | `Need: tier (catalyst Primordial Robe of Rites)` |
+| Tier piece itself (`targetIsTierPiece` true) | `Need: Enigmatic Dreamwatcher's Gauntlets (tier, Vers/Mastery)` | `Need: Enigmatic Dreamwatcher's Gauntlets (tier)` |
+
+A `wrongStats` cell's note reads `Tier, Crit/Mastery; Method BiS wants Haste/Mastery`, with the equipped pair from `equippedStats`. Both pairs are always known in that state, because `wrongStats` requires them.
+
+**Vault choices** (`vaultChoicesFor`) don't change. Vault items come only from SimC pastes, so their pairs are always unknown, and a stat rule there would never fire. #96 revisits this when SimC items gain pairs.
 
 ### 6. Parser fix
 
@@ -165,8 +207,13 @@ Write the failing test first. Fixtures use made-up characters and trimmed respon
 
 - **Blizzard parsers:** `parseEquipment` reads secondary stats and skips primaries, stamina and negated stats. `parseItemInfo` reads `preview_item.stats`. A missing `stats` field gives `null`, and one with no secondaries gives `[]`.
 - **Method parser:** `Ula'tek / Catalyst` gives `isCatalyst: true` and source `Ula'tek`. `(Tier Set)` with a plain source still gives `isTier: true, isCatalyst: false`.
-- **Pair compare:** `same` on equal pairs regardless of order, `same` on equal IDs with unknown pairs, `different`, and `unknown` when either side is unknown.
+- **Pair compare:**
+  - `same` on equal pairs regardless of order;
+  - `different` on known pairs that differ, **including equal item IDs**, the token-shape case;
+  - `same` on equal IDs when either pair is unknown;
+  - `unknown` on different IDs when either pair is unknown.
 - **`evaluateGear`:**
+  - a token-shape row (the Method item is the tier piece) with an equipped piece of the same item ID but a different known pair gives `wrongStats`;
   - a different-pair tier piece at Myth 6/6 gives `wrongStats`;
   - so does one on Hero;
   - an unknown pair keeps the track state;
@@ -186,13 +233,21 @@ Write the failing test first. Fixtures use made-up characters and trimmed respon
   - `creditView` uses the drop's item, never the target's;
   - `chipLabel` and the character-page detail cover each fit;
   - the `stat-pair` helper;
-  - the need line with and without a known pair;
-  - the `wrongStats` state word, badge and tone.
+  - the `bis` label and detail with no known pair;
+  - the need line for both row shapes, each with and without a known pair;
+  - the `wrongStats` state word, badge, tone and cell note;
+  - `rowTone` returns `stats` for `wrongStats` and `null` while tracks are unknown;
+  - character card: a `wrongStats` row is outside the BiS total, and its words appear only when N > 0;
+  - `upgradeFor` offers an affordable upgrade on a `wrongStats` row.
 - **Sync:**
   - a Blizzard sync stores equipped pairs;
+  - a SimC import stores `null` pairs;
   - a stat change alone produces a new snapshot;
-  - `ensureItemDetails` refetches `null` rows and stores `''` for no secondaries;
-  - season sync stores loot pairs, and the bumped meta key forces a refetch.
+  - `ensureTierTargets` fetches only tier row item IDs;
+  - it fetches rows whose `stats_fetched_at` is `null`;
+  - a 404 stores `null` stats and isn't retried within `DAY_MS`, but is retried after it;
+  - no secondaries store `''`;
+  - season sync stores loot pairs and names, and `season.v3` forces a refetch.
 
 Hand checks: on the group page, hover a tier chip in two dungeons and confirm the two tooltips name different items. Then find a character whose tier piece has stats other than Method's, and confirm "Wrong stats" in the grid and on the character page.
 
