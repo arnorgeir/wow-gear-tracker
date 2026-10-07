@@ -6,7 +6,7 @@ Issue: #79. Correct dungeon catalyst item attribution and distinguish preferred 
 
 ## Goal
 
-In Midnight Season 2 the catalyst keeps the input item's secondary stats, so a tier piece made from a Haste/Mastery chest differs from one made from a Vers/Mastery chest. The app ignores this in two places:
+In Midnight Season 2 the catalyst keeps the input item's secondary stats, so a tier piece made from a Haste/Mastery chest differs from one made from a Mastery/Vers chest. The app ignores this in two places:
 
 1. **Dungeon credits show the wrong item.** A tier row credits every dungeon that drops a chest in the right armor type, and each credit copies Method's item from the BiS row. Den of Nalorakk, Murder Row and Temple of Sethraliss all show Primordial Robe of Rites, which only Altar of Fangs drops.
 2. **Any tier piece counts as BiS.** `evaluateGear` matches a tier row on `item.isTier` alone, so a tier piece with the wrong stats is `done` and its dungeon credits vanish.
@@ -26,8 +26,8 @@ Checked on 2026-10-07 against live APIs and the local cache.
 
 - **The origin of a catalyzed item is not recorded.** An equipped tier piece carries the tier item ID, such as 271528, plus bonus IDs. Its only per-piece variations, 13696, 13697 and 13698, are `serverside` in Raidbots `bonuses.json`, with no decode. No base item ID survives.
 - **Blizzard's equipment endpoint returns each equipped item's stats.** The `stats` entries have `type.type` values such as `HASTE_RATING`. Three tier pieces on one character carried Haste/Mastery, Crit/Haste and Crit/Mastery, so retention shows in the data.
-- **Blizzard's item endpoint returns base stats in `preview_item.stats`.** Primordial Robe of Rites (273785) is Haste/Mastery. Hoarded Harvest Wrap (251147) is Vers/Mastery. Values scale with item level; the stat types don't.
-- **A tier piece's own item endpoint also returns `preview_item.stats`,** with the stats a tier token gives. Examples: 271529 Enigmatic Dreamwatcher's Gauntlets is Vers/Mastery, 271528 Enigmatic Dreamwatcher's Somnolent Stare is Haste/Vers, and 271463 Pauldrons of the Consecrated Flame is Crit/Mastery. Each also lists an off-class primary with `is_negated: true`. A catalyzed piece with the same item ID can carry a different pair, so an equal item ID proves nothing once both pairs are known.
+- **Blizzard's item endpoint returns base stats in `preview_item.stats`.** Primordial Robe of Rites (273785) is Haste/Mastery. Hoarded Harvest Wrap (251147) is Mastery/Vers. Values scale with item level; the stat types don't.
+- **A tier piece's own item endpoint also returns `preview_item.stats`,** with the stats a tier token gives. Examples: 271529 Enigmatic Dreamwatcher's Gauntlets is Mastery/Vers, 271528 Enigmatic Dreamwatcher's Somnolent Stare is Haste/Vers, and 271463 Pauldrons of the Consecrated Flame is Crit/Mastery. Each also lists an off-class primary with `is_negated: true`. A catalyzed piece with the same item ID can carry a different pair, so an equal item ID proves nothing once both pairs are known.
 - **An unknown item ID answers 404,** and `getItemDetails` returns `null` for it.
 - **SimC pastes carry no stats.** A SimC item's stat pair is unknown.
 - **Great Vault items come only from SimC pastes,** so their pairs are always unknown.
@@ -81,7 +81,11 @@ The target pair is the Method row item's pair. For the tier-token shape, that pa
 **Schema and cache.**
 - **One migration** adds the nullable columns: `npm run db:generate -- --name catalyst-stat-pairs`.
 - **The season cache is versioned.** `dungeon_loot` gains a column, so bump `SEASON_META_KEY` in `src/core/sync/season-sync.ts` from `season.v2` to `season.v3`.
-- **A snapshot changes when its stats change.** The snapshot-change key in `snapshots.ts` includes the stat pair, so a re-catalyzed piece with the same item ID and bonus IDs still produces a new snapshot.
+- **A snapshot changes when its stats change, but not because stats became known.** The content hash in `snapshots.ts` keeps its current format, without stats. If adding stats changed every hash, the first Blizzard sync after this change would save a new snapshot for every character, and that snapshot would displace any newer SimC paste.
+  - When the hash matches the previous snapshot from the same source, `saveSnapshotIfChanged` compares the stored stat pairs with the new ones.
+  - Equal pairs: unchanged, as today.
+  - Every stored pair `null` (a snapshot from before this change): the new pairs are written onto the stored rows, and the result is still unchanged.
+  - Otherwise, a new snapshot. This is the re-catalyzed piece with the same item ID and bonus IDs but other stats.
 
 **Types.**
 - `GearItem`, `SnapshotItemInput` and `LootItem` gain `secondaryStats: string[] | null`. `ItemInfo` gains it from `parseItemInfo`. SimC import sets it to `null`.
@@ -112,6 +116,7 @@ Character cards (`character-card/CharacterCard.tsx`). The owner's choice: `wrong
 - The BiS total stays `done + mythUpgradable + belowMyth`.
 - A `bg-stats` segment sits between `belowMyth` and the missing remainder.
 - Words: `, N wrong stats` after the vault targets, shown only when N > 0, as the bags count is.
+- The character page's per-list BiS counts (`bisCount` in `character-page.ts`) leave `wrongStats` rows out the same way, so the card and the page agree.
 
 Crest upgrades. `upgradeFor` in `src/server/views/summarize.ts` offers an affordable upgrade for `wrongStats` too, beside `mythUpgradable` and `belowMyth`, because the piece is matched and its track still upgrades.
 
@@ -158,7 +163,7 @@ The −1 is an ordinal preference, not a stat weight. An alternative still fills
 
 ### 5. Presentation
 
-All stat words come from one helper, `src/components/shared/stat-pair.ts`, with unit tests. It maps types to Crit, Haste, Mastery and Vers, and joins them with `/`, for example "Haste/Mastery".
+All stat words come from one helper, `src/components/shared/stat-pair.ts`, with unit tests. It maps types to Crit, Haste, Mastery and Vers, and joins them with `/` in the stored sorted order, for example "Haste/Mastery" or "Mastery/Vers".
 
 **Group chips** (`group-priority/CreditChip.tsx`, `chip-label.ts`). The drop's icon and Wowhead link, with the gold "T" badge.
 
@@ -166,7 +171,7 @@ All stat words come from one helper, `src/components/shared/stat-pair.ts`, with 
 |---|---|
 | `bis`, pair known | `Primordial Robe of Rites (Chest), Method BiS stats Haste/Mastery: catalyst into tier` |
 | `bis`, pair unknown (the exact item, with no stats on either side) | `Primordial Robe of Rites (Chest), Method BiS item: catalyst into tier` |
-| `alternative` | `Hoarded Harvest Wrap (Chest), catalyst alternative: Vers/Mastery, Method BiS wants Haste/Mastery` |
+| `alternative` | `Hoarded Harvest Wrap (Chest), catalyst alternative: Mastery/Vers, Method BiS wants Haste/Mastery` |
 | `unverified` | `Hoarded Harvest Wrap (Chest), catalyst into tier, stats unverified` |
 
 An `alternative` tile gets a dashed border, and its slot line under the tile reads "alt". The difference never relies on color alone.
@@ -174,7 +179,7 @@ An `alternative` tile gets a dashed border, and its slot line under the tile rea
 **Character page** (`character-page/DungeonPriority.tsx`). An `ItemCard` for the drop, with one of these detail lines:
 - `Chest · Method BiS stats · weight 5`
 - `Chest · Method BiS item · weight 5` (a `bis` credit with no known pair)
-- `Chest · catalyst alternative (Vers/Mastery, BiS Haste/Mastery) · weight 4`
+- `Chest · catalyst alternative (Mastery/Vers, BiS Haste/Mastery) · weight 4`
 - `Chest · stats unverified · weight 5`
 
 **Need lines** (`group-grid/cell-note.ts`, `bis-target/BisTarget.tsx`). These come from `targetStats` and `targetIsTierPiece` on the `BisView`. "(pair)" means the target pair, as in Haste/Mastery.
@@ -182,7 +187,7 @@ An `alternative` tile gets a dashed border, and its slot line under the tile rea
 | Method row shape | Pair known | Pair unknown |
 |---|---|---|
 | Base to catalyze (`targetIsTierPiece` false) | `Need: tier, Haste/Mastery (catalyst Primordial Robe of Rites)` | `Need: tier (catalyst Primordial Robe of Rites)` |
-| Tier piece itself (`targetIsTierPiece` true) | `Need: Enigmatic Dreamwatcher's Gauntlets (tier, Vers/Mastery)` | `Need: Enigmatic Dreamwatcher's Gauntlets (tier)` |
+| Tier piece itself (`targetIsTierPiece` true) | `Need: Enigmatic Dreamwatcher's Gauntlets (tier, Mastery/Vers)` | `Need: Enigmatic Dreamwatcher's Gauntlets (tier)` |
 
 A `wrongStats` cell's note reads `Tier, Crit/Mastery; Method BiS wants Haste/Mastery`, with the equipped pair from `equippedStats`. Both pairs are always known in that state, because `wrongStats` requires them.
 
@@ -243,6 +248,7 @@ Write the failing test first. Fixtures use made-up characters and trimmed respon
   - a Blizzard sync stores equipped pairs;
   - a SimC import stores `null` pairs;
   - a stat change alone produces a new snapshot;
+  - a Blizzard snapshot stored without pairs is backfilled in place on the next unchanged sync, and a newer SimC paste stays current;
   - `ensureTierTargets` fetches only tier row item IDs;
   - it fetches rows whose `stats_fetched_at` is `null`;
   - a 404 stores `null` stats and isn't retried within `DAY_MS`, but is retried after it;
