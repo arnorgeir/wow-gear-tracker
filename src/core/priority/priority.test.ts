@@ -12,7 +12,8 @@ const gear = (slot: SlotType, itemId: number, bonus?: number, isTier = false, it
 const named = (slots: SlotType[], itemId: number, isTier = false): BisRow =>
   ({ kind: 'item', slotLabel: slots[0]!, slots, itemId, name: `BiS ${itemId}`, bonusIds: [], isTier, isCatalyst: isTier, source: '' });
 const anyRow = (slots: SlotType[], minItemLevel: number): BisRow => ({ kind: 'any', slotLabel: slots[0]!, slots, minItemLevel, source: '' });
-const loot = (itemId: number, inventoryType: string | null = null, armorType: ArmorType | null = null): LootItem => ({ itemId, inventoryType, armorType });
+const loot = (itemId: number, inventoryType: string | null = null, armorType: ArmorType | null = null, secondaryStats?: string[] | null): LootItem =>
+  ({ itemId, name: `Loot ${itemId}`, inventoryType, armorType, secondaryStats });
 const dungeon = (challengeModeId: number, name: string, items: LootItem[], split = false): SeasonLoot =>
   ({ challengeModeId, name, shortName: '', imageUrl: null, split, loot: items });
 

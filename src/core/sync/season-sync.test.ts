@@ -77,8 +77,8 @@ describe('syncSeason', () => {
     expect(state).toMatchObject({ status: 'ready', needsSync: false });
     expect(state.dungeons.map((x) => [x.name, x.split])).toEqual([['Alpha Hollow', false], ['Beta Gambit', true], ['Streets of Beta', true]]);
     expect(state.dungeons[0]!.loot).toEqual([
-      { itemId: 100, inventoryType: 'ROBE', armorType: 'leather' },
-      { itemId: 101, inventoryType: null, armorType: null },
+      { itemId: 100, name: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather' },
+      { itemId: 101, name: 'Vanished Band', inventoryType: null, armorType: null },
     ]);
     // Split halves share instance 902 but keep their own artwork.
     expect(state.dungeons.map((x) => [x.challengeModeId, x.shortName, x.imageUrl])).toEqual([

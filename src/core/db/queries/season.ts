@@ -37,7 +37,7 @@ export async function getSeasonLoot(db: Db): Promise<SeasonLoot[]> {
     imageUrl: d.imageUrl,
     split: dungeons.some((x) => x !== d && x.journalInstanceId === d.journalInstanceId),
     loot: loot.filter((l) => l.challengeModeId === d.challengeModeId)
-      .map((l) => ({ itemId: l.itemId, inventoryType: l.inventoryType, armorType: l.armorType })),
+      .map((l) => ({ itemId: l.itemId, name: l.itemName, inventoryType: l.inventoryType, armorType: l.armorType })),
   }));
 }
 

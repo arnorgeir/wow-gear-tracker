@@ -26,6 +26,8 @@ export interface GearItem {
   quality: Quality;
   bonusIds: number[];
   isTier: boolean;
+  /** Secondary stat types, sorted. Null or absent when unknown, as for SimC items. */
+  secondaryStats?: string[] | null;
 }
 
 interface BisRowBase { slotLabel: string; slots: SlotType[]; source: string }
@@ -57,6 +59,10 @@ export interface Track {
 export type ItemState = 'missing' | 'inBags' | 'belowMyth' | 'mythUpgradable' | 'done';
 export const ITEM_STATES: readonly ItemState[] = ['done', 'mythUpgradable', 'belowMyth', 'inBags', 'missing'];
 
-export interface LootItem { itemId: number; inventoryType: string | null; armorType: ArmorType | null }
+export type StatMatch = 'same' | 'different' | 'unknown';
+/** A tier row's Method item: its secondary stat pair, and whether it is the tier piece itself (bought with a tier token). */
+export interface TierTarget { secondaryStats: string[] | null; isTier: boolean }
+
+export interface LootItem { itemId: number; name: string; inventoryType: string | null; armorType: ArmorType | null; secondaryStats?: string[] | null }
 /** One season dungeon and what it drops. `split` marks half of a dungeon credited with the whole instance's loot. */
 export interface SeasonLoot { challengeModeId: number; name: string; shortName: string; imageUrl: string | null; split: boolean; loot: LootItem[] }

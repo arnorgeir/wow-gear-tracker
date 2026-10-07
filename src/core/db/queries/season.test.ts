@@ -25,11 +25,11 @@ describe('season storage', () => {
     await replaceSeason(db, data);
     expect(await getSeasonLoot(db)).toEqual([
       { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: AH, split: false, loot: [
-        { itemId: 100, inventoryType: 'ROBE', armorType: 'leather' },
-        { itemId: 101, inventoryType: null, armorType: null },
+        { itemId: 100, name: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather' },
+        { itemId: 101, name: 'Vanished Band', inventoryType: null, armorType: null },
       ] },
-      { challengeModeId: 503, name: 'Beta Gambit', shortName: 'GMBT', imageUrl: null, split: true, loot: [{ itemId: 200, inventoryType: 'HEAD', armorType: 'plate' }] },
-      { challengeModeId: 502, name: 'Streets of Beta', shortName: 'STRT', imageUrl: STRT, split: true, loot: [{ itemId: 200, inventoryType: 'HEAD', armorType: 'plate' }] },
+      { challengeModeId: 503, name: 'Beta Gambit', shortName: 'GMBT', imageUrl: null, split: true, loot: [{ itemId: 200, name: 'Warden Helm', inventoryType: 'HEAD', armorType: 'plate' }] },
+      { challengeModeId: 502, name: 'Streets of Beta', shortName: 'STRT', imageUrl: STRT, split: true, loot: [{ itemId: 200, name: 'Warden Helm', inventoryType: 'HEAD', armorType: 'plate' }] },
     ]);
   });
 
