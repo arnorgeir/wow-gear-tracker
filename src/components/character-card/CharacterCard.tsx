@@ -5,12 +5,13 @@ import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { classTextColor } from '@/components/shared/class-colors';
 import { RemoveCharacterButton } from '@/components/remove-character-button/RemoveCharacterButton';
 import { CrestChip } from '@/components/crest-chip/CrestChip';
+import { bisSummary } from './bis-summary';
 import { crestLine } from './crest-line';
 
 export function CharacterCard({ card, now }: { card: CharacterCardView; now: number }) {
   const color = classTextColor(card.className);
   const counts = card.counts;
-  const bis = counts ? counts.done + counts.mythUpgradable + counts.belowMyth : 0;
+  const { bis, text: summary } = bisSummary(counts);
   const source = card.snapshot && card.sourceAt !== null
     ? `${card.snapshot.source === 'simc' ? 'SimC, pasted' : 'Blizzard, synced'} ${formatAge(card.sourceAt, now)}`
     : 'Not synced yet';
@@ -46,11 +47,7 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
             <div className="bg-stats" style={{ flexGrow: counts.wrongStats }} />
             <div style={{ flexGrow: counts.missing + counts.inBags }} />
           </div>
-          <span className="text-sm text-muted">
-            {counts.done} done, {counts.mythUpgradable} need crests, {counts.belowMyth} vault targets
-            {counts.wrongStats > 0 ? `, ${counts.wrongStats} wrong stats` : ''}
-            {counts.inBags > 0 ? `, ${counts.inBags} in bags` : ''}
-          </span>
+          <span className="text-sm text-muted">{summary}</span>
           <span className="flex flex-wrap items-center gap-1.5">
             {crests.balances.map((b) => <CrestChip key={b.currencyId} balance={b} />)}
             <span className={`text-sm ${crests.tone}`}>{crests.text}</span>
