@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { setMeta } from '../db/queries/meta';
-import { BIS_RETRY_MS, DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons } from './reference-sync';
+import { BIS_RETRY_MS, DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons, ensureTierTargets } from './reference-sync';
 import { HttpError } from '../http';
 import type { BisLists, BisSource, Track } from '../types';
 import type { BlizzardClient } from '../blizzard/client';
@@ -222,5 +222,60 @@ describe('ensureClassIcons', () => {
     await ensureClassIcons({ db, blizzard: blizzardWith().blizzard, now: 1 }, 'eu');
     const icons = await ensureClassIcons({ db, blizzard: blizzardWith(true).blizzard, now: 1 + 31 * DAY_MS }, 'eu');
     expect(icons.get('Druid')).toBe('https://i/druid.jpg');
+  });
+});
+
+describe('ensureTierTargets', () => {
+  const tierRow = (itemId: number, isTier = true) =>
+    ({ kind: 'item' as const, slotLabel: 'Chest', slots: ['CHEST' as const], itemId, name: `BiS ${itemId}`, bonusIds: [], isTier, isCatalyst: false, source: '' });
+  const lists = (rows: ReturnType<typeof tierRow>[]): BisLists => ({ overall: rows, raid: [], mythicPlus: rows });
+  const HM = ['HASTE_RATING', 'MASTERY_RATING'];
+
+  function blizzardWith(answer: (id: number) => unknown) {
+    const asked: number[] = [];
+    const blizzard = { getItemDetails: async (_r: string, id: number) => { asked.push(id); return answer(id); } } as unknown as BlizzardClient;
+    return { blizzard, asked };
+  }
+
+  it('fetches only tier rows’ items, once, and returns their pairs', async () => {
+    const db = await openTestDb();
+    const { blizzard, asked } = blizzardWith(() => ({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'cloth', secondaryStats: HM }));
+    const targets = await ensureTierTargets({ db, blizzard, now: 1 }, 'eu', lists([tierRow(10), tierRow(11, false)]));
+    expect(targets.get(10)).toEqual({ secondaryStats: HM, isTier: false });
+    expect(targets.has(11)).toBe(false);
+    await ensureTierTargets({ db, blizzard, now: 2 }, 'eu', lists([tierRow(10)]));
+    expect(asked).toEqual([10]);
+  });
+
+  it('stores no secondaries as [] and marks a tier-token piece', async () => {
+    const db = await openTestDb();
+    const { blizzard } = blizzardWith(() => ({ quality: 'EPIC', isTier: true, inventoryType: 'HAND', armorType: 'leather', secondaryStats: [] }));
+    expect((await ensureTierTargets({ db, blizzard, now: 1 }, 'eu', lists([tierRow(20)]))).get(20)).toEqual({ secondaryStats: [], isTier: true });
+  });
+
+  it('retries a 404 only after a day, and skips a thrown error', async () => {
+    const db = await openTestDb();
+    const { blizzard, asked } = blizzardWith((id) => { if (id === 31) throw new Error('down'); return null; });
+    const first = await ensureTierTargets({ db, blizzard, now: 1 }, 'eu', lists([tierRow(30), tierRow(31)]));
+    expect(first.get(30)).toEqual({ secondaryStats: null, isTier: false });
+    expect(first.has(31)).toBe(false);
+    await ensureTierTargets({ db, blizzard, now: 2 }, 'eu', lists([tierRow(30)]));
+    await ensureTierTargets({ db, blizzard, now: 1 + DAY_MS }, 'eu', lists([tierRow(30)]));
+    expect(asked.filter((id) => id === 30)).toEqual([30, 30]);
+  });
+
+  it('fills in rows that ensureItemDetails wrote without stats', async () => {
+    const db = await openTestDb();
+    const simc = { getItemDetails: async () => ({ quality: 'EPIC', isTier: true }) } as unknown as BlizzardClient;
+    await ensureItemDetails({ db, blizzard: simc, now: 1 }, 'eu', [40]);
+    const { blizzard, asked } = blizzardWith(() => ({ quality: 'EPIC', isTier: true, inventoryType: 'HEAD', armorType: 'plate', secondaryStats: HM }));
+    expect((await ensureTierTargets({ db, blizzard, now: 2 }, 'eu', lists([tierRow(40)]))).get(40)).toEqual({ secondaryStats: HM, isTier: true });
+    expect(asked).toEqual([40]);
+  });
+
+  it('returns an empty map without lists', async () => {
+    const db = await openTestDb();
+    const { blizzard } = blizzardWith(() => null);
+    expect((await ensureTierTargets({ db, blizzard, now: 1 }, 'eu', null)).size).toBe(0);
   });
 });
