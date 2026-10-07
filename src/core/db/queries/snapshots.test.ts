@@ -1,6 +1,8 @@
+import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import type { GearItem } from '../../types';
+import { snapshotItems } from '../schema';
 import { type NewCharacter, insertCharacter } from './characters';
 import { gearToSnapshotItems, saveSnapshotIfChanged, getLatestSnapshot, equippedGear } from './snapshots';
 
@@ -40,7 +42,7 @@ describe('snapshots', () => {
 });
 
 describe('snapshot sources', () => {
-  const bagBelt = { location: 'bag' as const, slot: 'WAIST', itemId: 9, name: 'Belt', itemLevel: 300, quality: 'EPIC' as const, bonusIds: [], isTier: false };
+  const bagBelt = { location: 'bag' as const, slot: 'WAIST', itemId: 9, name: 'Belt', itemLevel: 300, quality: 'EPIC' as const, bonusIds: [], isTier: false, secondaryStats: null };
   const crests = [{ kind: 'upgrade' as const, currencyId: 3446, quantity: 85 }];
 
   it('keeps a newer SimC paste current until Blizzard’s own data changes', async () => {
@@ -85,5 +87,45 @@ describe('snapshot sources', () => {
     await saveSnapshotIfChanged(db, id, 'simc', gearToSnapshotItems(gear), 10, crests);
     const more = [{ kind: 'upgrade' as const, currencyId: 3446, quantity: 105 }];
     expect(await saveSnapshotIfChanged(db, id, 'simc', gearToSnapshotItems(gear), 20, more)).toMatchObject({ changed: true });
+  });
+});
+
+const HM = ['HASTE_RATING', 'MASTERY_RATING'];
+const statGear: GearItem[] = gear.map((g) => (g.slot === 'HEAD' ? { ...g, secondaryStats: HM } : { ...g, secondaryStats: [] }));
+
+describe('snapshot stat pairs', () => {
+  it('stores and reads back pairs, keeping unknown apart from no secondaries', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    await saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(statGear), 10);
+    const [head, neck] = equippedGear((await getLatestSnapshot(db, id))!);
+    expect(head!.secondaryStats).toEqual(HM);
+    expect(neck!.secondaryStats).toEqual([]);
+    const { id: other } = await insertCharacter(db, { ...newCharacter, realmId: 1307 }, 1);
+    await saveSnapshotIfChanged(db, other, 'blizzard', gearToSnapshotItems(gear), 10);
+    expect(equippedGear((await getLatestSnapshot(db, other))!)[0]!.secondaryStats).toBeNull();
+  });
+
+  it('saves a new snapshot when only a stat pair changed', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    const first = await saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(statGear), 10);
+    const recatalyzed = statGear.map((g) => (g.slot === 'HEAD' ? { ...g, secondaryStats: ['CRIT_RATING', 'VERSATILITY'] } : g));
+    const second = await saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(recatalyzed), 20);
+    expect(second.changed).toBe(true);
+    expect(second.snapshotId).not.toBe(first.snapshotId);
+    expect(await saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(recatalyzed), 30)).toEqual({ snapshotId: second.snapshotId, changed: false });
+  });
+
+  it('backfills pairs onto a snapshot saved before pairs existed, and a newer paste stays current', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    const old = await saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(gear), 10);
+    const paste = await saveSnapshotIfChanged(db, id, 'simc', gearToSnapshotItems(gear).map((i) => ({ ...i, itemLevel: 330 })), 20);
+    const sync = await saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(statGear), 30);
+    expect(sync).toEqual({ snapshotId: old.snapshotId, changed: false });
+    expect((await getLatestSnapshot(db, id))!.id).toBe(paste.snapshotId);
+    const rows = await db.select().from(snapshotItems).where(eq(snapshotItems.snapshotId, old.snapshotId));
+    expect(rows.find((r) => r.slot === 'HEAD')!.secondaryStats).toBe('HASTE_RATING,MASTERY_RATING');
   });
 });

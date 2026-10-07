@@ -3,6 +3,7 @@ import { and, asc, desc, eq } from 'drizzle-orm';
 import type { Db } from '../client';
 import { gearSnapshots, snapshotItems, snapshotCurrencies } from '../schema';
 import { type GearItem, type ItemLocation, type Quality, type SlotType, type SnapshotSource } from '../../types';
+import { decodeStats, encodeStats } from '../../gear/stat-pair';
 import { withWriteLock } from './write-lock';
 
 export interface SnapshotItemInput {
@@ -14,6 +15,8 @@ export interface SnapshotItemInput {
   quality: Quality;
   bonusIds: number[];
   isTier: boolean;
+  /** Null when unknown: SimC items carry no stats. */
+  secondaryStats: string[] | null;
 }
 
 export interface SnapshotCurrency {
@@ -31,7 +34,12 @@ export interface Snapshot {
 }
 
 export const gearToSnapshotItems = (gear: GearItem[]): SnapshotItemInput[] =>
-  gear.map((g) => ({ location: 'equipped', slot: g.slot, itemId: g.itemId, name: g.name, itemLevel: g.itemLevel, quality: g.quality, bonusIds: g.bonusIds, isTier: g.isTier }));
+  gear.map((g) => ({ location: 'equipped', slot: g.slot, itemId: g.itemId, name: g.name, itemLevel: g.itemLevel, quality: g.quality, bonusIds: g.bonusIds, isTier: g.isTier, secondaryStats: g.secondaryStats ?? null }));
+
+// Stats stay out of the content hash: adding them would change every stored hash, and the first sync after that would save
+// a Blizzard snapshot that displaces a newer SimC paste. saveSnapshotIfChanged compares stats separately.
+const statsKey = (list: { location: string; slot: string; itemId: number; secondaryStats: string | null }[]) =>
+  list.map((i) => [i.location, i.slot, i.itemId, i.secondaryStats ?? '?'].join('|')).sort().join('\n');
 
 function hashSnapshot(list: SnapshotItemInput[], currencies: SnapshotCurrency[]): string {
   const items = list
@@ -62,10 +70,25 @@ export async function saveSnapshotIfChanged(
   return withWriteLock(db, async () => {
     const contentHash = hashSnapshot(list, currencies);
     const previous = await latestSnapshotRow(db, characterId, source === 'blizzard' ? 'blizzard' : undefined);
-    if (previous && previous.contentHash === contentHash && previous.source === source) return { snapshotId: previous.id, changed: false };
+    if (previous && previous.contentHash === contentHash && previous.source === source) {
+      const stored = await db.select().from(snapshotItems).where(eq(snapshotItems.snapshotId, previous.id));
+      const incoming = list.map((i) => ({ ...i, secondaryStats: encodeStats(i.secondaryStats) }));
+      if (statsKey(stored) === statsKey(incoming)) return { snapshotId: previous.id, changed: false };
+      if (stored.every((r) => r.secondaryStats === null)) {
+        // Saved before stat pairs existed: fill them in rather than saving the same gear again.
+        await db.transaction(async (tx) => {
+          for (const i of incoming) {
+            await tx.update(snapshotItems).set({ secondaryStats: i.secondaryStats }).where(and(
+              eq(snapshotItems.snapshotId, previous.id), eq(snapshotItems.location, i.location),
+              eq(snapshotItems.slot, i.slot), eq(snapshotItems.itemId, i.itemId)));
+          }
+        });
+        return { snapshotId: previous.id, changed: false };
+      }
+    }
     return db.transaction(async (tx) => {
       const [snapshot] = await tx.insert(gearSnapshots).values({ characterId, source, createdAt: now, contentHash }).returning({ id: gearSnapshots.id });
-      if (list.length > 0) await tx.insert(snapshotItems).values(list.map((i) => ({ ...i, snapshotId: snapshot!.id })));
+      if (list.length > 0) await tx.insert(snapshotItems).values(list.map((i) => ({ ...i, secondaryStats: encodeStats(i.secondaryStats), snapshotId: snapshot!.id })));
       if (currencies.length > 0) await tx.insert(snapshotCurrencies).values(currencies.map((c) => ({ ...c, snapshotId: snapshot!.id })));
       return { snapshotId: snapshot!.id, changed: true };
     });
@@ -81,8 +104,8 @@ export async function getLatestSnapshot(db: Db, characterId: number, source?: Sn
     id: latest.id,
     source: latest.source,
     createdAt: latest.createdAt,
-    items: rows.map(({ location, slot, itemId, name, itemLevel, quality, bonusIds, isTier }) =>
-      ({ location, slot, itemId, name, itemLevel, quality, bonusIds, isTier })),
+    items: rows.map(({ location, slot, itemId, name, itemLevel, quality, bonusIds, isTier, secondaryStats }) =>
+      ({ location, slot, itemId, name, itemLevel, quality, bonusIds, isTier, secondaryStats: decodeStats(secondaryStats) })),
     currencies: money.map(({ kind, currencyId, quantity }) => ({ kind, currencyId, quantity })),
   };
 }
@@ -90,4 +113,4 @@ export async function getLatestSnapshot(db: Db, characterId: number, source?: Sn
 export const equippedGear = (snapshot: Snapshot): GearItem[] =>
   snapshot.items
     .filter((i) => i.location === 'equipped')
-    .map((i) => ({ slot: i.slot as SlotType, itemId: i.itemId, name: i.name, itemLevel: i.itemLevel, quality: i.quality, bonusIds: i.bonusIds, isTier: i.isTier }));
+    .map((i) => ({ slot: i.slot as SlotType, itemId: i.itemId, name: i.name, itemLevel: i.itemLevel, quality: i.quality, bonusIds: i.bonusIds, isTier: i.isTier, secondaryStats: i.secondaryStats }));
