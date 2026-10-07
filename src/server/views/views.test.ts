@@ -98,6 +98,17 @@ describe('getCharacterPage', () => {
     expect(page!.counts.mythicPlus).toEqual({ bis: 1, total: 2 });
   });
 
+  it('borrows a pasted piece’s stats from the Blizzard snapshot of the same piece', async () => {
+    const s = await services();
+    Object.assign(s.blizzard, { getItemDetails: async () => ({ quality: 'EPIC', isTier: false, inventoryType: 'HEAD', armorType: 'leather', secondaryStats: ['HASTE_RATING', 'MASTERY_RATING'] }) });
+    const { id } = await insertCharacter(s.db, { region: 'eu', realmId: 1, realmSlug: 'test-realm', realmName: 'Test Realm', name: 'Birkibjörn', className: 'Druid', specName: 'Guardian' }, 1);
+    const wrong = gear.map((g) => (g.slot === 'HEAD' ? { ...g, secondaryStats: ['CRIT_RATING', 'MASTERY_RATING'] } : g));
+    await saveSnapshotIfChanged(s.db, id, 'blizzard', gearToSnapshotItems(wrong), 500);
+    await saveSnapshotIfChanged(s.db, id, 'simc', gearToSnapshotItems(gear.map((g) => ({ ...g, secondaryStats: null }))), 600);
+    const page = await getCharacterPage(s, id);
+    expect(page!.rows[0]).toMatchObject({ state: 'wrongStats', equippedStats: ['CRIT_RATING', 'MASTERY_RATING'] });
+  });
+
   it('returns null for an unknown character', async () => {
     expect(await getCharacterPage(await services(), 404)).toBeNull();
   });

@@ -17,3 +17,16 @@ export function compareStats(target: Side, item: Side): StatMatch {
   if (target.stats != null && item.stats != null) return encodeStats(target.stats) === encodeStats(item.stats) ? 'same' : 'different';
   return target.itemId === item.itemId ? 'same' : 'unknown';
 }
+
+interface Statted { itemId: number; bonusIds: number[]; secondaryStats?: string[] | null }
+
+const itemKey = (i: Statted) => `${i.itemId}:${[...i.bonusIds].sort((a, b) => a - b).join(':')}`;
+
+/**
+ * Fills unknown pairs from another snapshot's copy of the same item: same item ID and bonus IDs. SimC pastes
+ * carry no stats, but the Blizzard snapshot of the same piece does.
+ */
+export function borrowStats<T extends Statted>(items: T[], from: readonly Statted[]): T[] {
+  const known = new Map(from.filter((i) => i.secondaryStats != null).map((i) => [itemKey(i), i.secondaryStats!]));
+  return items.map((i) => (i.secondaryStats == null && known.has(itemKey(i)) ? { ...i, secondaryStats: known.get(itemKey(i))! } : i));
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareStats, decodeStats, encodeStats } from './stat-pair';
+import { borrowStats, compareStats, decodeStats, encodeStats } from './stat-pair';
 
 const HM = ['HASTE_RATING', 'MASTERY_RATING'];
 const MV = ['MASTERY_RATING', 'VERSATILITY'];
@@ -38,5 +38,19 @@ describe('compareStats', () => {
   it('treats no secondaries as a known pair', () => {
     expect(compareStats({ itemId: 1, stats: [] }, { itemId: 2, stats: [] })).toBe('same');
     expect(compareStats({ itemId: 1, stats: [] }, { itemId: 2, stats: HM })).toBe('different');
+  });
+});
+
+describe('borrowStats', () => {
+  const item = (itemId: number, bonusIds: number[], secondaryStats: string[] | null) => ({ itemId, bonusIds, secondaryStats });
+
+  it('fills unknown pairs from an item with the same ID and bonus IDs, in any bonus order', () => {
+    const pasted = [item(271528, [13696, 13698], null), item(271531, [13690], null)];
+    const synced = [item(271528, [13698, 13696], HM), item(271531, [13691], MV)];
+    expect(borrowStats(pasted, synced).map((i) => i.secondaryStats)).toEqual([HM, null]);
+  });
+
+  it('keeps a known pair', () => {
+    expect(borrowStats([item(1, [], MV)], [item(1, [], HM)])[0]!.secondaryStats).toEqual(MV);
   });
 });
