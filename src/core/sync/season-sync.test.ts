@@ -42,10 +42,10 @@ const ENCOUNTERS: Record<number, { id: number; name: string; items: { itemId: nu
   2: { id: 2, name: 'Market Warden', items: [{ itemId: 200, name: 'Warden Helm' }] },
   3: { id: 3, name: 'Gambit Queen', items: [{ itemId: 300, name: 'Queen’s Charm' }] },
 };
-const ITEMS: Record<number, { inventoryType: string; armorType: 'leather' | 'plate' | null } | null> = {
-  100: { inventoryType: 'ROBE', armorType: 'leather' },
+const ITEMS: Record<number, { inventoryType: string; armorType: 'leather' | 'plate' | null; secondaryStats?: string[] | null } | null> = {
+  100: { inventoryType: 'ROBE', armorType: 'leather', secondaryStats: ['CRIT_RATING', 'VERSATILITY'] },
   101: null,
-  200: { inventoryType: 'HEAD', armorType: 'plate' },
+  200: { inventoryType: 'HEAD', armorType: 'plate', secondaryStats: null },
   300: { inventoryType: 'TRINKET', armorType: null },
 };
 
@@ -69,6 +69,10 @@ function fakeBlizzard(overrides: Partial<Record<string, unknown>> = {}) {
 const deps = async (blizzard: BlizzardClient, fetchFn = raiderIo().fn) => ({ db: await openTestDb(), blizzard, fetchFn, now: T, region: 'eu' as const });
 
 describe('syncSeason', () => {
+  it('stores the season under season.v3', () => {
+    expect(SEASON_META_KEY).toBe('season.v3');
+  });
+
   it('joins each dungeon to its journal instance by map ID and stores the loot with slots', async () => {
     const { blizzard, calls } = fakeBlizzard();
     const d = await deps(blizzard);
@@ -77,9 +81,10 @@ describe('syncSeason', () => {
     expect(state).toMatchObject({ status: 'ready', needsSync: false });
     expect(state.dungeons.map((x) => [x.name, x.split])).toEqual([['Alpha Hollow', false], ['Beta Gambit', true], ['Streets of Beta', true]]);
     expect(state.dungeons[0]!.loot).toEqual([
-      { itemId: 100, name: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather' },
-      { itemId: 101, name: 'Vanished Band', inventoryType: null, armorType: null },
+      { itemId: 100, name: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather', secondaryStats: ['CRIT_RATING', 'VERSATILITY'] },
+      { itemId: 101, name: 'Vanished Band', inventoryType: null, armorType: null, secondaryStats: null },
     ]);
+    expect(state.dungeons[1]!.loot[0]!.secondaryStats).toBeNull();
     // Split halves share instance 902 but keep their own artwork.
     expect(state.dungeons.map((x) => [x.challengeModeId, x.shortName, x.imageUrl])).toEqual([
       [501, 'AH', ART[501]], [503, 'GMBT', null], [502, 'STRT', ART[502]],
@@ -173,14 +178,13 @@ describe('syncSeason', () => {
     expect(state.dungeons[0]!.loot).toHaveLength(2);
   });
 
-  it('reloads a season stored under the v1 key even though its slug is unchanged', async () => {
+  it('reloads a season stored under an older key even though its slug is unchanged', async () => {
     const { blizzard, calls } = fakeBlizzard();
     const d = await deps(blizzard);
     await replaceSeason(d.db, { slug: 'season-test-2', dungeons: [
       { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11, imageUrl: null },
     ], loot: [] });
-    await setMeta(d.db, 'season.v1', 'season-test-2', T - 1000);
-    expect(SEASON_META_KEY).toBe('season.v2');
+    await setMeta(d.db, 'season.v2', 'season-test-2', T - 1000);
     expect(await syncSeason(d)).toBe('loaded');
     expect(calls.index).toBe(1);
     expect((await getMeta(d.db, SEASON_META_KEY))?.value).toBe('season-test-2');

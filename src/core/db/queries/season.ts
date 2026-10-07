@@ -3,6 +3,7 @@ import type { Db } from '../client';
 import { dungeonLoot, seasonDungeons } from '../schema';
 import type { ArmorType, SeasonLoot } from '../../types';
 import { withWriteLock } from './write-lock';
+import { decodeStats } from '../../gear/stat-pair';
 
 export interface SeasonDungeonRow { challengeModeId: number; name: string; shortName: string; journalInstanceId: number; mapId: number; imageUrl: string | null }
 export interface DungeonLootRow {
@@ -13,6 +14,8 @@ export interface DungeonLootRow {
   itemName: string;
   inventoryType: string | null;
   armorType: ArmorType | null;
+  /** Encoded as in snapshot_items; absent or null when unknown. */
+  secondaryStats?: string | null;
 }
 export interface SeasonData { slug: string; dungeons: SeasonDungeonRow[]; loot: DungeonLootRow[] }
 
@@ -37,7 +40,7 @@ export async function getSeasonLoot(db: Db): Promise<SeasonLoot[]> {
     imageUrl: d.imageUrl,
     split: dungeons.some((x) => x !== d && x.journalInstanceId === d.journalInstanceId),
     loot: loot.filter((l) => l.challengeModeId === d.challengeModeId)
-      .map((l) => ({ itemId: l.itemId, name: l.itemName, inventoryType: l.inventoryType, armorType: l.armorType })),
+      .map((l) => ({ itemId: l.itemId, name: l.itemName, inventoryType: l.inventoryType, armorType: l.armorType, secondaryStats: decodeStats(l.secondaryStats) })),
   }));
 }
 

@@ -25,12 +25,20 @@ describe('season storage', () => {
     await replaceSeason(db, data);
     expect(await getSeasonLoot(db)).toEqual([
       { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: AH, split: false, loot: [
-        { itemId: 100, name: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather' },
-        { itemId: 101, name: 'Vanished Band', inventoryType: null, armorType: null },
+        { itemId: 100, name: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather', secondaryStats: null },
+        { itemId: 101, name: 'Vanished Band', inventoryType: null, armorType: null, secondaryStats: null },
       ] },
-      { challengeModeId: 503, name: 'Beta Gambit', shortName: 'GMBT', imageUrl: null, split: true, loot: [{ itemId: 200, name: 'Warden Helm', inventoryType: 'HEAD', armorType: 'plate' }] },
-      { challengeModeId: 502, name: 'Streets of Beta', shortName: 'STRT', imageUrl: STRT, split: true, loot: [{ itemId: 200, name: 'Warden Helm', inventoryType: 'HEAD', armorType: 'plate' }] },
+      { challengeModeId: 503, name: 'Beta Gambit', shortName: 'GMBT', imageUrl: null, split: true, loot: [{ itemId: 200, name: 'Warden Helm', inventoryType: 'HEAD', armorType: 'plate', secondaryStats: null }] },
+      { challengeModeId: 502, name: 'Streets of Beta', shortName: 'STRT', imageUrl: STRT, split: true, loot: [{ itemId: 200, name: 'Warden Helm', inventoryType: 'HEAD', armorType: 'plate', secondaryStats: null }] },
     ]);
+  });
+
+  it('reads back loot names and stat pairs, unknown when not stored', async () => {
+    const db = await openTestDb();
+    await replaceSeason(db, { ...data, loot: data.loot.map((l) => (l.itemId === 100 ? { ...l, secondaryStats: 'HASTE_RATING,MASTERY_RATING' } : l)) });
+    const alpha = (await getSeasonLoot(db)).find((d) => d.challengeModeId === 501)!;
+    expect(alpha.loot[0]).toEqual({ itemId: 100, name: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather', secondaryStats: ['HASTE_RATING', 'MASTERY_RATING'] });
+    expect(alpha.loot[1]!.secondaryStats).toBeNull();
   });
 
   it('replaces the previous season entirely', async () => {
