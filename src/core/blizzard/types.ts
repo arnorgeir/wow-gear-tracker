@@ -16,7 +16,7 @@ export interface PlayableClass { id: number; name: string; specs: string[] }
 
 export interface ItemDetails { quality: Quality | null; isTier: boolean }
 
-export interface ItemInfo extends ItemDetails { inventoryType: string | null; armorType: ArmorType | null }
+export interface ItemInfo extends ItemDetails { inventoryType: string | null; armorType: ArmorType | null; secondaryStats: string[] | null }
 export interface KeystoneDungeon { name: string; mapId: number; mapName: string }
 export interface JournalInstanceRef { id: number; name: string }
 export interface JournalInstance { id: number; name: string; mapId: number | null; encounterIds: number[] }

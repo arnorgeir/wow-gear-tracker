@@ -34,8 +34,8 @@ describe('Blizzard client', () => {
   it('maps equipment, skipping shirt and tabard', async () => {
     const { api } = client([on('/equipment', () => json(equipment))]);
     expect(await api.getEquipment(ref)).toEqual([
-      { slot: 'HEAD', itemId: 111, name: 'Test Helm', itemLevel: 321, quality: 'EPIC', bonusIds: [1, 2], isTier: true },
-      { slot: 'FINGER_1', itemId: 333, name: 'Test Ring', itemLevel: 311, quality: 'RARE', bonusIds: [], isTier: false },
+      { slot: 'HEAD', itemId: 111, name: 'Test Helm', itemLevel: 321, quality: 'EPIC', bonusIds: [1, 2], isTier: true, secondaryStats: null },
+      { slot: 'FINGER_1', itemId: 333, name: 'Test Ring', itemLevel: 311, quality: 'RARE', bonusIds: [], isTier: false, secondaryStats: null },
     ]);
   });
 
@@ -112,8 +112,8 @@ describe('Blizzard client', () => {
       on('/data/wow/item/222', () => json({ quality: { type: 'RARE' }, preview_item: {} })),
       on('/data/wow/item/999', () => new Response('', { status: 404 })),
     ]);
-    expect(await api.getItemDetails('eu', 111)).toEqual({ quality: 'EPIC', isTier: true, inventoryType: null, armorType: null });
-    expect(await api.getItemDetails('eu', 222)).toEqual({ quality: 'RARE', isTier: false, inventoryType: null, armorType: null });
+    expect(await api.getItemDetails('eu', 111)).toEqual({ quality: 'EPIC', isTier: true, inventoryType: null, armorType: null, secondaryStats: null });
+    expect(await api.getItemDetails('eu', 222)).toEqual({ quality: 'RARE', isTier: false, inventoryType: null, armorType: null, secondaryStats: null });
     expect(await api.getItemDetails('eu', 999)).toBeNull();
   });
 
@@ -133,7 +133,7 @@ describe('Blizzard client', () => {
       on('/data/wow/item/100', () => json({ quality: { type: 'EPIC' }, inventory_type: { type: 'ROBE' }, item_class: { id: 4 }, item_subclass: { id: 2 } })),
       on('/data/wow/item/404', () => new Response('nope', { status: 404 })),
     ]);
-    expect(await api.getItemDetails('eu', 100)).toEqual({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather' });
+    expect(await api.getItemDetails('eu', 100)).toEqual({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather', secondaryStats: null });
     expect(await api.getItemDetails('eu', 404)).toBeNull();
   });
 

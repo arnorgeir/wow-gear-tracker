@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   parseEquipment, parseProfile, parseItemInfo, parseKeystoneDungeon,
-  parseJournalInstance, parseJournalEncounter, parseJournalInstanceIndex,
+  parseJournalInstance, parseJournalEncounter, parseJournalInstanceIndex, secondaryStatsOf,
   type RawEquipment, type RawProfile,
 } from './parse';
 
@@ -48,7 +48,7 @@ describe('parseEquipment', () => {
 
   it('fills defaults for anything Blizzard leaves out', () => {
     const [item] = parseEquipment({ equipped_items: [{ slot: { type: 'NECK' }, item: { id: 9 }, name: 'Chain' }] });
-    expect(item).toEqual({ slot: 'NECK', itemId: 9, name: 'Chain', itemLevel: null, quality: 'COMMON', bonusIds: [], isTier: false });
+    expect(item).toEqual({ slot: 'NECK', itemId: 9, name: 'Chain', itemLevel: null, quality: 'COMMON', bonusIds: [], isTier: false, secondaryStats: null });
   });
 
   it('reads level, quality, bonus IDs and set membership when present', () => {
@@ -66,7 +66,7 @@ describe('parseEquipment', () => {
 describe('parseItemInfo', () => {
   it('reads slot and armor type for armor', () => {
     expect(parseItemInfo({ quality: { type: 'EPIC' }, inventory_type: { type: 'ROBE' }, item_class: { id: 4 }, item_subclass: { id: 2 } }))
-      .toEqual({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather' });
+      .toEqual({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather', secondaryStats: null });
   });
 
   it('gives no armor type to weapons and to armor without a known subclass', () => {
@@ -75,7 +75,7 @@ describe('parseItemInfo', () => {
   });
 
   it('fills nulls when Blizzard omits fields', () => {
-    expect(parseItemInfo({})).toEqual({ quality: null, isTier: false, inventoryType: null, armorType: null });
+    expect(parseItemInfo({})).toEqual({ quality: null, isTier: false, inventoryType: null, armorType: null, secondaryStats: null });
   });
 });
 
@@ -100,5 +100,38 @@ describe('journal parsers', () => {
     const robe = { item: { id: 100, name: 'Hollow Robe' } };
     expect(parseJournalEncounter({ id: 1, name: 'Hollow King', items: [robe, { item: { id: 101, name: 'Hollow Ring' } }, robe] }).items)
       .toEqual([{ itemId: 100, name: 'Hollow Robe' }, { itemId: 101, name: 'Hollow Ring' }]);
+  });
+});
+
+describe('secondaryStatsOf', () => {
+  it('keeps secondary types only, sorted, skipping primaries, stamina and negated stats', () => {
+    expect(secondaryStatsOf([
+      { type: { type: 'INTELLECT' } }, { type: { type: 'AGILITY' }, is_negated: true }, { type: { type: 'STAMINA' } },
+      { type: { type: 'VERSATILITY' } }, { type: { type: 'MASTERY_RATING' } },
+    ])).toEqual(['MASTERY_RATING', 'VERSATILITY']);
+  });
+
+  it('gives [] for stats without secondaries and null when stats are absent', () => {
+    expect(secondaryStatsOf([{ type: { type: 'STAMINA' } }])).toEqual([]);
+    expect(secondaryStatsOf(undefined)).toBeNull();
+  });
+});
+
+describe('parseEquipment stats', () => {
+  it('reads each equipped item’s secondary stats', () => {
+    const [head, neck] = parseEquipment({ equipped_items: [
+      { slot: { type: 'HEAD' }, item: { id: 271564 }, name: 'Crown', set: {}, stats: [{ type: { type: 'HASTE_RATING' } }, { type: { type: 'MASTERY_RATING' } }] },
+      { slot: { type: 'NECK' }, item: { id: 9 }, name: 'Chain' },
+    ] });
+    expect(head!.secondaryStats).toEqual(['HASTE_RATING', 'MASTERY_RATING']);
+    expect(neck!.secondaryStats).toBeNull();
+  });
+});
+
+describe('parseItemInfo stats', () => {
+  it('reads preview_item.stats', () => {
+    expect(parseItemInfo({ preview_item: { stats: [{ type: { type: 'HASTE_RATING' } }, { type: { type: 'MASTERY_RATING' } }] } }).secondaryStats)
+      .toEqual(['HASTE_RATING', 'MASTERY_RATING']);
+    expect(parseItemInfo({}).secondaryStats).toBeNull();
   });
 });
