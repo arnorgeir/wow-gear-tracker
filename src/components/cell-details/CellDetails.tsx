@@ -46,7 +46,8 @@ export function CellDetails({ id, tracksKnown, anchor, cell, slotLabel, characte
   };
   const eq = cell.equipped;
   const q = eq ? QUALITY_STYLES[eq.quality] ?? QUALITY_STYLES.COMMON : null;
-  const needed = needText(cell) !== null;
+  const note = needText(cell);
+  const needed = note !== null;
   const track = trackDisplay(eq ? eq.trackLabel : null, tracksKnown);
   return (
     <div ref={ref} id={id} popover="auto" onToggle={onToggle}
@@ -86,6 +87,7 @@ export function CellDetails({ id, tracksKnown, anchor, cell, slotLabel, characte
         <div className="mt-3 flex flex-col gap-1.5">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted">Needed</span>
           <BisTarget row={cell} wrap />
+          {cell.state === 'wrongStats' && <span className="text-sm text-muted">{note}</span>}
         </div>
       )}
     </div>
