@@ -7,7 +7,7 @@ import { DungeonPriority } from './DungeonPriority';
 // React 19 hoists <link rel="preload"> tags for images ahead of the markup.
 const render = (priority: PriorityView) =>
   renderToStaticMarkup(createElement(DungeonPriority, { priority, specLabel: 'Feral Druid' })).replace(/<link[^>]*\/>/g, '');
-const base: PriorityView = { listType: 'mythicPlus', fellBack: false, season: 'ready', needsSync: false, approximate: false, dungeons: [], nothingFrom: [] };
+const base: PriorityView = { listType: 'mythicPlus', fellBack: false, season: 'ready', needsSync: false, bisLoading: false, approximate: false, dungeons: [], nothingFrom: [] };
 
 describe('DungeonPriority', () => {
   it('ranks dungeons with their credits and lists the rest apart', () => {

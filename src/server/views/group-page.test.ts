@@ -7,6 +7,8 @@ import { gearToSnapshotItems, saveSnapshotIfChanged } from '@/core/db/queries/sn
 import { replaceSeason } from '@/core/db/queries/season';
 import { setMeta } from '@/core/db/queries/meta';
 import { SEASON_META_KEY } from '@/core/sync/season-sync';
+import { syncReference } from '@/core/sync/reference-run';
+import { DAY_MS, syncTracks } from '@/core/sync/reference-sync';
 import { parseMemberKeys } from '@/core/characters/member-key';
 import type { BisLists, BisRow, GearItem } from '@/core/types';
 import { getGroupPage } from './group-page';
@@ -72,6 +74,9 @@ async function season(s: Services) {
   await setMeta(s.db, SEASON_META_KEY, 'season-test', 10_000_000);
 }
 
+const prime = (s: Services) =>
+  syncReference({ db: s.db, bisSource: s.bisSource, fetchRaidbots: s.fetchRaidbots, blizzard: s.blizzard, now: s.now() });
+
 const keys = (...names: string[]) => parseMemberKeys(names.map((n) => `eu.argent-dawn.${n}`).join(','));
 
 describe('getGroupPage', () => {
@@ -79,6 +84,7 @@ describe('getGroupPage', () => {
     const { s } = await services();
     await track(s, 'Birkibjörn', 'Druid', 'Guardian', [worn('FINGER_1', 42), worn('FINGER_2', 40), worn('MAIN_HAND', 60)]);
     await track(s, 'Hrafnhildur', 'Warrior', 'Protection', [worn('MAIN_HAND', 71)]);
+    await prime(s);
     const page = await getGroupPage(s, keys('birkibjörn', 'hrafnhildur'));
     const row = (label: string) => page.grid.find((r) => r.label === label)!;
     expect(page.grid.map((r) => r.label)).toEqual(['Ring 1', 'Ring 2', 'Main Hand', 'Off Hand']);
@@ -97,6 +103,7 @@ describe('getGroupPage', () => {
     await track(s, 'Birkibjörn', 'Druid', 'Guardian', [worn('FINGER_1', 42), worn('FINGER_2', 40), worn('MAIN_HAND', 60)]);
     await track(s, 'Hrafnhildur', 'Warrior', 'Protection', [worn('MAIN_HAND', 71)]);
     await season(s);
+    await prime(s);
     const { priority } = await getGroupPage(s, keys('birkibjörn', 'hrafnhildur'));
     expect(priority).toMatchObject({ season: 'ready', covered: ['Birkibjörn', 'Hrafnhildur'], excluded: [], fellBack: ['Hrafnhildur'] });
     const [first, ...rest] = priority.ranking!.dungeons;
@@ -121,6 +128,7 @@ describe('getGroupPage', () => {
     const id = await track(s, 'Sólrún', 'Druid', 'Guardian', null);
     await updateCharacter(s.db, id, { lastSyncedAt: 5, lastSyncError: 'Blizzard returned 503' });
     await season(s);
+    await prime(s);
     const page = await getGroupPage(s, keys('sólrún', 'gnúpur'));
     expect(page.members.map((m) => [m.name, m.state, m.syncError])).toEqual([['Sólrún', 'noGear', 'Blizzard returned 503'], ['gnúpur', 'untracked', null]]);
     expect(page.priority.ranking).toBeNull();
@@ -132,6 +140,7 @@ describe('getGroupPage', () => {
     await track(s, 'Birkibjörn', 'Druid', 'Guardian', [worn('MAIN_HAND', 60)]);
     await track(s, 'Hrafnhildur', 'Mage', 'Frost', [worn('MAIN_HAND', 80)]);
     await season(s);
+    await prime(s);
     const page = await getGroupPage(s, keys('birkibjörn', 'hrafnhildur'));
     expect(page.members[1]).toMatchObject({ state: 'ready', hasRows: false, bisError: 'BiS list couldn’t be updated' });
     expect(page.priority.covered).toEqual(['Birkibjörn']);
@@ -143,6 +152,7 @@ describe('getGroupPage', () => {
     const { s } = await services();
     await track(s, 'Hrafnhildur', 'Warrior', 'Protection', [worn('MAIN_HAND', 70)]);
     await season(s);
+    await prime(s);
     const { priority } = await getGroupPage(s, keys('hrafnhildur'));
     expect(priority.ranking).toEqual({ dungeons: [], nothingFrom: ['Alpha Hollow', 'Delta Deep', 'Gambit of Beta', 'Streets of Beta'] });
   });
@@ -156,6 +166,7 @@ describe('getGroupPage', () => {
     await updateCharacter(s.db, stale, { lastSyncedAt: 1 });
     await track(s, 'Gnúpur', 'Warrior', 'Protection', null);
     await track(s, 'Ylfa', 'Warrior', 'Protection', null, 'us');
+    await prime(s);
     const page = await getGroupPage(s, parseMemberKeys('eu.argent-dawn.birkibjörn,us.argent-dawn.ylfa,eu.argent-dawn.sólrún,eu.argent-dawn.hrafnhildur'));
     expect(page.region).toBe('eu');
     expect(page.dropped).toEqual([{ name: 'Ylfa', region: 'us' }]);
@@ -165,12 +176,35 @@ describe('getGroupPage', () => {
     expect(page.available).toEqual([{ key: 'eu.argent-dawn.gnúpur', label: 'Gnúpur – Argent Dawn (Protection)' }]);
   });
 
-  it('asks Method once for two members of the same spec', async () => {
+  it('asks Method once for two members of the same spec, in the sync and not the render', async () => {
     const { s, fetched } = await services();
     await track(s, 'Birkibjörn', 'Druid', 'Guardian', [worn('MAIN_HAND', 60)]);
     await track(s, 'Sólrún', 'Druid', 'Guardian', [worn('MAIN_HAND', 60)]);
+    await prime(s);
+    expect(fetched).toEqual(['guardian-druid']);
     await getGroupPage(s, keys('birkibjörn', 'sólrún'));
     expect(fetched).toEqual(['guardian-druid']);
+  });
+
+  it('leaves out a member whose BiS list is still loading, without asking Method', async () => {
+    const { s, fetched } = await services();
+    await track(s, 'Birkibjörn', 'Druid', 'Guardian', [worn('MAIN_HAND', 60)]);
+    await season(s);
+    const page = await getGroupPage(s, keys('birkibjörn'));
+    expect(fetched).toEqual([]);
+    expect(page.members[0]).toMatchObject({ state: 'ready', hasRows: false, bisLoading: true, bisError: null });
+    expect(page.priority.excluded).toEqual([{ name: 'Birkibjörn', reason: 'BiS list loading' }]);
+    expect(page).toMatchObject({ tracksKnown: false, tracksLoading: true, referenceDue: 'bis:guardian-druid,tracks' });
+    expect(page.priority.approximate).toBe(true);
+  });
+
+  it('presents cached tracks as known after a failed refresh', async () => {
+    const { s } = await services();
+    const myth = { bonusId: 1, name: 'Myth', step: 1, max: 6, group: 618, currencyId: null, currencyName: null, costPerStep: null };
+    await syncTracks({ db: s.db, fetchRaidbots: async () => ({ tracks: [myth], qualities: [] }), now: 1 });
+    await syncTracks({ db: s.db, fetchRaidbots: async () => { throw new Error('down'); }, now: 1 + DAY_MS });
+    s.now = () => 2 + DAY_MS;
+    expect(await getGroupPage(s, [])).toMatchObject({ tracksKnown: true, tracksLoading: false, priority: { approximate: false } });
   });
 
   it('keeps the three vault states apart', async () => {
@@ -183,6 +217,7 @@ describe('getGroupPage', () => {
       { location: 'equipped', slot: 'MAIN_HAND', itemId: 60, name: 'Worn 60', itemLevel: 300, quality: 'EPIC', bonusIds: [], isTier: false, secondaryStats: null },
       { location: 'vault', slot: 'OFF_HAND', itemId: 61, name: 'Item 61', itemLevel: 330, quality: 'EPIC', bonusIds: [], isTier: false, secondaryStats: null },
     ], 800);
+    await prime(s);
     const { vault } = await getGroupPage(s, keys('birkibjörn', 'sólrún', 'gnúpur'));
     expect(vault.map((v) => v.className)).toEqual(['Druid', 'Druid', 'Druid']);
     expect(vault.every((v) => 'avatarUrl' in v && 'classIconUrl' in v)).toBe(true);

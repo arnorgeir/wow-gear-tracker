@@ -65,6 +65,9 @@ export interface CharacterSummary {
 export interface CharacterCardView extends CharacterSummary {
   counts: Record<ItemState, number> | null;
   tracksError: string | null;
+  /** False until Raidbots data is stored: states that depend on upgrade tracks can't be told apart. */
+  tracksKnown: boolean;
+  tracksLoading: boolean;
   total: number;
   bisError: string | null;
   crests: CrestView | null;
@@ -81,6 +84,7 @@ export interface PriorityView {
   fellBack: boolean;
   season: 'loading' | 'failed' | 'ready' | 'stale';
   needsSync: boolean;
+  bisLoading: boolean;
   approximate: boolean;
   dungeons: DungeonPriorityView[];
   nothingFrom: string[];
@@ -96,7 +100,11 @@ export interface CharacterPageView extends CharacterSummary {
   counts: Record<ListType, { bis: number; total: number }>;
   bisFetchedAt: number | null;
   bisError: string | null;
+  bisLoading: boolean;
   tracksError: string | null;
+  tracksKnown: boolean;
+  tracksLoading: boolean;
+  referenceDue: string | null;
   specs: string[];
   priority: PriorityView;
 }
@@ -112,6 +120,7 @@ export interface GroupMemberView {
   state: GroupMemberState;
   syncError: string | null;
   bisError: string | null;
+  bisLoading: boolean;
   /** Ready but without rows: no BiS list to compare against. */
   hasRows: boolean;
   listType: 'mythicPlus' | 'overall';
@@ -137,8 +146,10 @@ export interface GroupPageView {
   members: GroupMemberView[];
   grid: GroupGridRow[];
   tracksKnown: boolean;
+  tracksLoading: boolean;
   priority: GroupPriorityView;
   needsSeasonSync: boolean;
+  referenceDue: string | null;
   vault: GroupVaultView[];
   dropped: { name: string; region: Region }[];
   available: { key: string; label: string }[];

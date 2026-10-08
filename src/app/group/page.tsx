@@ -64,6 +64,7 @@ export default async function GroupPage({ searchParams }: Props) {
       <RememberGroup keys={view.keys} />
       <StaleSync ids={view.staleIds} />
       {view.region && <BackgroundSync url={`/api/season/sync?region=${view.region}`} due={view.needsSeasonSync ? 'season' : null} />}
+      <BackgroundSync url="/api/reference/sync" due={view.referenceDue} />
     </main>
   );
 }

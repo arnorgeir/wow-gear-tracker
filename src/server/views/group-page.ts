@@ -3,10 +3,10 @@ import { listCharacters, type CharacterRow } from '@/core/db/queries/characters'
 import { crestCostsByGroup } from '@/core/gear/crests';
 import { rankDungeons } from '@/core/priority/rank';
 import { isStale } from '@/core/sync/character-sync';
-import { ensureClassIcons, ensureItemIcons, ensureTracks } from '@/core/sync/reference-sync';
+import { ensureClassIcons, ensureItemIcons, readTracks } from '@/core/sync/reference-sync';
 import { readSeason } from '@/core/sync/season-sync';
 import type { Services } from '../services';
-import { createBisLookup } from './bis-lookup';
+import { createBisLookup, referenceDue } from './bis-lookup';
 import { alignGrid, exclusionReason, memberState } from './group-grid';
 import { dungeonArt } from './dungeon-art';
 import { creditView, loadMember, priorityCharacter, rowView, vaultChoicesFor, type MemberData } from './member';
@@ -16,18 +16,20 @@ import type { GroupMemberView, GroupPageView } from './types';
 interface Loaded { character: CharacterRow | null; data: MemberData | null; view: GroupMemberView; reason: string | null }
 
 export async function getGroupPage(services: Services, keys: MemberKey[]): Promise<GroupPageView> {
-  const { db, blizzard, fetchRaidbots, now } = services;
+  const { db, blizzard, now } = services;
   const time = now();
   const { members: selected, dropped } = selectGroup(keys);
   const region = selected[0]?.region ?? null;
 
   // Database work runs in sequence: an in-memory libsql database can't serve a read while a write transaction is open.
-  const { tracks, error: tracksError } = await ensureTracks({ db, fetchRaidbots, now: time });
+  const tracksRead = await readTracks(db, time);
+  const { tracks } = tracksRead;
+  const tracksKnown = tracks.size > 0;
   const costs = crestCostsByGroup(tracks.values());
   const all = await listCharacters(db);
   const classIcons = await ensureClassIcons({ db, blizzard, now: time }, region ?? 'eu');
-  // ponytail: one Method request per distinct spec; members load in sequence, so reads stay apart from the cache writes.
-  const bisFor = createBisLookup(services, time);
+  // Reads only: members load in sequence, and the lookup shares one read per spec.
+  const bisFor = createBisLookup(db, time);
 
   const loaded: Loaded[] = [];
   for (const key of selected) {
@@ -35,9 +37,10 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
     const data = character ? await loadMember({ db, tracks, bisFor }, character, classIcons) : null;
     const state = memberState(character, data?.gear.current != null);
     const hasRows = (data?.priorityRows.length ?? 0) > 0;
+    const bisLoading = data?.bis.status === 'loading';
     loaded.push({
       character, data,
-      reason: exclusionReason(state, hasRows),
+      reason: exclusionReason(state, hasRows, bisLoading),
       view: {
         key: formatMemberKey(key),
         name: character?.name ?? key.nameKey,
@@ -46,6 +49,7 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
         state,
         syncError: character?.lastSyncError ?? null,
         bisError: data?.bis.error ?? null,
+        bisLoading,
         hasRows,
         listType: data?.choice.listType ?? 'mythicPlus',
         fellBack: data?.choice.fellBack ?? false,
@@ -76,10 +80,11 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
     grid: alignGrid(loaded.map(({ data, view }) => (data && view.state === 'ready' && view.hasRows
       ? data.priorityRows.map((r) => rowView(r, icons, costs, data.gear.balances, data.bis.targets))
       : null))),
-    tracksKnown: tracksError === null,
+    tracksKnown,
+    tracksLoading: tracksRead.status === 'loading',
     priority: {
       season: season.status,
-      approximate: tracksError !== null,
+      approximate: !tracksKnown,
       covered: eligible.map((l) => l.view.name),
       excluded: loaded.filter((l) => l.reason !== null).map((l) => ({ name: l.view.name, reason: l.reason! })),
       fellBack: eligible.filter((l) => l.view.fellBack).map((l) => l.view.name),
@@ -103,6 +108,7 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
       },
     },
     needsSeasonSync: region !== null && season.needsSync,
+    referenceDue: referenceDue(tracksRead.due, loaded.flatMap(({ data }) => (data ? [data.bis] : []))),
     vault: loaded.flatMap(({ data, view }) => (data ? [{
       key: view.key,
       name: view.name,

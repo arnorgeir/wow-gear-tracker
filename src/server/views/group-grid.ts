@@ -33,10 +33,11 @@ export const EXCLUSION_REASONS = {
   syncing: 'syncing',
   noGear: 'no gear yet',
   noList: 'no BiS list',
+  bisLoading: 'BiS list loading',
 } as const;
 
 /** Why the ranking leaves a member out, or null when the member counts. */
-export function exclusionReason(state: GroupMemberState, hasRows: boolean): string | null {
-  if (state === 'ready') return hasRows ? null : EXCLUSION_REASONS.noList;
+export function exclusionReason(state: GroupMemberState, hasRows: boolean, bisLoading = false): string | null {
+  if (state === 'ready') return hasRows ? null : bisLoading ? EXCLUSION_REASONS.bisLoading : EXCLUSION_REASONS.noList;
   return EXCLUSION_REASONS[state];
 }

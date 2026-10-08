@@ -2,12 +2,12 @@ import { getCharacter } from '@/core/db/queries/characters';
 import { crestCostsByGroup } from '@/core/gear/crests';
 import type { GearRow } from '@/core/gear/evaluate';
 import { rankDungeons } from '@/core/priority/rank';
-import { ensureClassIcons, ensureItemIcons, ensureTracks } from '@/core/sync/reference-sync';
+import { ensureClassIcons, ensureItemIcons, readTracks } from '@/core/sync/reference-sync';
 import { readSeason } from '@/core/sync/season-sync';
 import { LIST_TYPES, type ListType } from '@/core/types';
 import type { Services } from '../services';
 import type { CharacterPageView } from './types';
-import { createBisLookup } from './bis-lookup';
+import { createBisLookup, referenceDue } from './bis-lookup';
 import { crestView } from './summarize';
 import { creditView, loadMember, priorityCharacter, rowView, vaultChoicesFor } from './member';
 
@@ -15,7 +15,7 @@ import { creditView, loadMember, priorityCharacter, rowView, vaultChoicesFor } f
 const bisCount = (rows: GearRow[]) => rows.filter((r) => r.matched && r.state !== 'wrongStats').length;
 
 export async function getCharacterPage(services: Services, id: number, listType?: ListType): Promise<CharacterPageView | null> {
-  const { db, blizzard, fetchRaidbots, now } = services;
+  const { db, blizzard, now } = services;
   const character = await getCharacter(db, id);
   if (!character) return null;
   const time = now();
@@ -26,8 +26,10 @@ export async function getCharacterPage(services: Services, id: number, listType?
     .then((classes) => classes.find((cls) => cls.name === character.className)?.specs ?? [fallbackSpec])
     .catch(() => [fallbackSpec]);
   // Database work runs in sequence: an in-memory libsql database can't serve a read while a write transaction is open.
-  const { tracks, error: tracksError } = await ensureTracks({ db, fetchRaidbots, now: time });
-  const member = await loadMember({ db, tracks, bisFor: createBisLookup(services, time) }, character);
+  const tracksRead = await readTracks(db, time);
+  const { tracks } = tracksRead;
+  const tracksKnown = tracks.size > 0;
+  const member = await loadMember({ db, tracks, bisFor: createBisLookup(db, time) }, character);
   const { summary, gear, bis, choice } = member;
   const specs = await specsPromise;
   const classIcons = await ensureClassIcons({ db, blizzard, now: time }, character.region);
@@ -59,14 +61,19 @@ export async function getCharacterPage(services: Services, id: number, listType?
     counts,
     bisFetchedAt: bis.fetchedAt,
     bisError: bis.error,
-    tracksError,
+    bisLoading: bis.status === 'loading',
+    tracksError: tracksRead.error,
+    tracksKnown,
+    tracksLoading: tracksRead.status === 'loading',
+    referenceDue: referenceDue(tracksRead.due, [bis]),
     specs,
     priority: {
       listType: choice.listType,
       fellBack: choice.fellBack,
       season: season.status,
       needsSync: season.needsSync,
-      approximate: tracksError !== null,
+      bisLoading: bis.status === 'loading',
+      approximate: !tracksKnown,
       dungeons: ranks.filter((d) => d.score > 0).map((d) => ({
         challengeModeId: d.challengeModeId,
         name: d.name,

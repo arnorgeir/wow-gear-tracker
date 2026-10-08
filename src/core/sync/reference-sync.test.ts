@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { setMeta } from '../db/queries/meta';
-import { BIS_RETRY_MS, DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons, ensureTierTargets, readBisLists, syncBisLists, readTracks, syncTracks, readTierTargets, syncTierTargets } from './reference-sync';
+import { BIS_RETRY_MS, DAY_MS, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons, readBisLists, syncBisLists, readTracks, syncTracks, readTierTargets, syncTierTargets } from './reference-sync';
 import { HttpError } from '../http';
 import type { BisLists, BisSource, Track } from '../types';
 import type { BlizzardClient } from '../blizzard/client';
@@ -17,66 +17,6 @@ function source(impl: () => Promise<BisLists>) {
   const s: BisSource = { name: 'Fake', fetchLists: async () => { calls++; return impl(); } };
   return { s, calls: () => calls };
 }
-
-describe('ensureBisLists', () => {
-  it('fetches once and serves the cache for a day', async () => {
-    const db = await openTestDb();
-    const { s, calls } = source(async () => lists);
-    expect(await ensureBisLists({ db, source: s, now: 1000 }, 'guardian-druid')).toEqual({ lists, fetchedAt: 1000, error: null });
-    await ensureBisLists({ db, source: s, now: 1000 + DAY_MS - 1 }, 'guardian-druid');
-    expect(calls()).toBe(1);
-    await ensureBisLists({ db, source: s, now: 1000 + DAY_MS }, 'guardian-druid');
-    expect(calls()).toBe(2);
-  });
-
-  it('keeps the previous list when the page has no BiS tables', async () => {
-    const db = await openTestDb();
-    await ensureBisLists({ db, source: source(async () => lists).s, now: 1000 }, 'guardian-druid');
-    const empty = source(async () => ({ overall: [], raid: [], mythicPlus: [] }));
-    const result = await ensureBisLists({ db, source: empty.s, now: 1000 + DAY_MS }, 'guardian-druid');
-    expect(result).toEqual({ lists, fetchedAt: 1000, error: 'BiS list couldn’t be updated' });
-  });
-
-  it('explains a missing Method page when nothing is cached', async () => {
-    const db = await openTestDb();
-    const missing = source(async () => { throw new HttpError(404, 'u', ''); });
-    expect(await ensureBisLists({ db, source: missing.s, now: 1 }, 'nope-nope')).toEqual({
-      lists: null, fetchedAt: null, error: 'Fake has no gearing page for "nope-nope"',
-    });
-  });
-
-  it('after a failure with a cache, serves the cache and the error for an hour without asking again', async () => {
-    const db = await openTestDb();
-    await ensureBisLists({ db, source: source(async () => lists).s, now: 1000 }, 'guardian-druid');
-    const down = source(async () => { throw new Error('down'); });
-    const expired = 1000 + DAY_MS;
-    const failed = { lists, fetchedAt: 1000, error: 'BiS list couldn’t be updated' };
-    expect(await ensureBisLists({ db, source: down.s, now: expired }, 'guardian-druid')).toEqual(failed);
-    expect(await ensureBisLists({ db, source: down.s, now: expired + BIS_RETRY_MS - 1 }, 'guardian-druid')).toEqual(failed);
-    expect(down.calls()).toBe(1);
-    await ensureBisLists({ db, source: down.s, now: expired + BIS_RETRY_MS }, 'guardian-druid');
-    expect(down.calls()).toBe(2);
-  });
-
-  it('keeps a cold-cache 404 message during the backoff, and recovers after it', async () => {
-    const db = await openTestDb();
-    const missing = source(async () => { throw new HttpError(404, 'u', ''); });
-    const noPage = { lists: null, fetchedAt: null, error: 'Fake has no gearing page for "nope-nope"' };
-    expect(await ensureBisLists({ db, source: missing.s, now: 1 }, 'nope-nope')).toEqual(noPage);
-    expect(await ensureBisLists({ db, source: missing.s, now: 2 }, 'nope-nope')).toEqual(noPage);
-    expect(missing.calls()).toBe(1);
-    const back = source(async () => lists);
-    expect(await ensureBisLists({ db, source: back.s, now: 1 + BIS_RETRY_MS }, 'nope-nope')).toEqual({ lists, fetchedAt: 1 + BIS_RETRY_MS, error: null });
-  });
-
-  it('backs off per spec, so one failing spec does not stop another', async () => {
-    const db = await openTestDb();
-    await ensureBisLists({ db, source: source(async () => { throw new Error('down'); }).s, now: 1 }, 'guardian-druid');
-    const other = source(async () => lists);
-    expect((await ensureBisLists({ db, source: other.s, now: 2 }, 'feral-druid')).error).toBeNull();
-    expect(other.calls()).toBe(1);
-  });
-});
 
 describe('readBisLists and syncBisLists', () => {
   const slug = 'guardian-druid';
@@ -320,61 +260,6 @@ describe('ensureClassIcons', () => {
     await ensureClassIcons({ db, blizzard: blizzardWith().blizzard, now: 1 }, 'eu');
     const icons = await ensureClassIcons({ db, blizzard: blizzardWith(true).blizzard, now: 1 + 31 * DAY_MS }, 'eu');
     expect(icons.get('Druid')).toBe('https://i/druid.jpg');
-  });
-});
-
-describe('ensureTierTargets', () => {
-  const tierRow = (itemId: number, isTier = true) =>
-    ({ kind: 'item' as const, slotLabel: 'Chest', slots: ['CHEST' as const], itemId, name: `BiS ${itemId}`, bonusIds: [], isTier, isCatalyst: false, source: '' });
-  const lists = (rows: ReturnType<typeof tierRow>[]): BisLists => ({ overall: rows, raid: [], mythicPlus: rows });
-  const HM = ['HASTE_RATING', 'MASTERY_RATING'];
-
-  function blizzardWith(answer: (id: number) => unknown) {
-    const asked: number[] = [];
-    const blizzard = { getItemDetails: async (_r: string, id: number) => { asked.push(id); return answer(id); } } as unknown as BlizzardClient;
-    return { blizzard, asked };
-  }
-
-  it('fetches only tier rows’ items, once, and returns their pairs', async () => {
-    const db = await openTestDb();
-    const { blizzard, asked } = blizzardWith(() => ({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'cloth', secondaryStats: HM }));
-    const targets = await ensureTierTargets({ db, blizzard, now: 1 }, 'eu', lists([tierRow(10), tierRow(11, false)]));
-    expect(targets.get(10)).toEqual({ secondaryStats: HM, isTier: false });
-    expect(targets.has(11)).toBe(false);
-    await ensureTierTargets({ db, blizzard, now: 2 }, 'eu', lists([tierRow(10)]));
-    expect(asked).toEqual([10]);
-  });
-
-  it('stores no secondaries as [] and marks a tier-token piece', async () => {
-    const db = await openTestDb();
-    const { blizzard } = blizzardWith(() => ({ quality: 'EPIC', isTier: true, inventoryType: 'HAND', armorType: 'leather', secondaryStats: [] }));
-    expect((await ensureTierTargets({ db, blizzard, now: 1 }, 'eu', lists([tierRow(20)]))).get(20)).toEqual({ secondaryStats: [], isTier: true });
-  });
-
-  it('retries a 404 only after a day, and skips a thrown error', async () => {
-    const db = await openTestDb();
-    const { blizzard, asked } = blizzardWith((id) => { if (id === 31) throw new Error('down'); return null; });
-    const first = await ensureTierTargets({ db, blizzard, now: 1 }, 'eu', lists([tierRow(30), tierRow(31)]));
-    expect(first.get(30)).toEqual({ secondaryStats: null, isTier: false });
-    expect(first.has(31)).toBe(false);
-    await ensureTierTargets({ db, blizzard, now: 2 }, 'eu', lists([tierRow(30)]));
-    await ensureTierTargets({ db, blizzard, now: 1 + DAY_MS }, 'eu', lists([tierRow(30)]));
-    expect(asked.filter((id) => id === 30)).toEqual([30, 30]);
-  });
-
-  it('fills in rows that ensureItemDetails wrote without stats', async () => {
-    const db = await openTestDb();
-    const simc = { getItemDetails: async () => ({ quality: 'EPIC', isTier: true }) } as unknown as BlizzardClient;
-    await ensureItemDetails({ db, blizzard: simc, now: 1 }, 'eu', [40]);
-    const { blizzard, asked } = blizzardWith(() => ({ quality: 'EPIC', isTier: true, inventoryType: 'HEAD', armorType: 'plate', secondaryStats: HM }));
-    expect((await ensureTierTargets({ db, blizzard, now: 2 }, 'eu', lists([tierRow(40)]))).get(40)).toEqual({ secondaryStats: HM, isTier: true });
-    expect(asked).toEqual([40]);
-  });
-
-  it('returns an empty map without lists', async () => {
-    const db = await openTestDb();
-    const { blizzard } = blizzardWith(() => null);
-    expect((await ensureTierTargets({ db, blizzard, now: 1 }, 'eu', null)).size).toBe(0);
   });
 });
 
