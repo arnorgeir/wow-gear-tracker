@@ -9,6 +9,10 @@ describe('crestLabel', () => {
     expect(crestLabel({ ...myth, quantity: 20, steps: 1 })).toBe('Myth Mistcrest: 20, 1 step');
   });
 
+  it('leaves the steps out when the upgrade cost is unknown', () => {
+    expect(crestLabel({ ...myth, steps: null })).toBe('Myth Mistcrest: 85');
+  });
+
   it('shortens the name to its first word for the fallback', () => {
     expect(crestShortName(myth)).toBe('Myth');
   });

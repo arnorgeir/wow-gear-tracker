@@ -28,6 +28,10 @@ describe('CrestChip', () => {
     expect(render(myth)).not.toContain('(4 steps)');
   });
 
+  it('shows no step count when the upgrade cost is unknown', () => {
+    expect(render({ ...myth, steps: null }, true)).not.toContain('step');
+  });
+
   it('falls back to the first word of the name without an icon', () => {
     const html = render({ ...myth, iconUrl: null });
     expect(html).not.toContain('<img');
