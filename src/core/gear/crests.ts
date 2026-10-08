@@ -21,7 +21,8 @@ export interface CrestBalance {
   currencyId: number;
   name: string;
   quantity: number;
-  steps: number;
+  /** Null while upgrade costs are unknown. */
+  steps: number | null;
   iconUrl: string | null;
 }
 
@@ -52,6 +53,11 @@ export function affordableUpgrade(
 }
 
 export function summarizeCrests(balances: ReadonlyMap<number, number>, costs: ReadonlyMap<number, CrestCost>): CrestBalance[] {
+  // No track rows yet: keep what the paste holds, unnamed and unpriced, until costs arrive.
+  if (costs.size === 0) {
+    return [...balances].sort((a, b) => b[0] - a[0])
+      .map(([currencyId, quantity]) => ({ currencyId, name: `Currency ${currencyId}`, quantity, steps: null, iconUrl: null }));
+  }
   const seen = new Set<number>();
   const summary: CrestBalance[] = [];
   // Higher groups are higher tracks within a season, so Myth comes before Hero.

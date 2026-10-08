@@ -51,4 +51,11 @@ describe('summarizeCrests', () => {
       { currencyId: 3445, name: 'Hero Mistcrest', quantity: 140, steps: 7, iconUrl: null },
     ]);
   });
+
+  it('keeps every held balance when no costs are known, with no step count', () => {
+    expect(summarizeCrests(new Map([[3445, 140], [3446, 85]]), new Map())).toEqual([
+      { currencyId: 3446, name: 'Currency 3446', quantity: 85, steps: null, iconUrl: null },
+      { currencyId: 3445, name: 'Currency 3445', quantity: 140, steps: null, iconUrl: null },
+    ]);
+  });
 });
