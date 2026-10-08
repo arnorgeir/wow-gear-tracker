@@ -7,7 +7,7 @@ import { GroupMembers } from '@/components/group-members/GroupMembers';
 import { GroupPriority } from '@/components/group-priority/GroupPriority';
 import { GroupVault } from '@/components/group-vault/GroupVault';
 import { RememberGroup } from '@/components/remember-group/RememberGroup';
-import { SeasonSync } from '@/components/season-sync/SeasonSync';
+import { BackgroundSync } from '@/components/background-sync/BackgroundSync';
 import { SetupNotice } from '@/components/setup-notice/SetupNotice';
 import { StaleSync } from '@/components/stale-sync/StaleSync';
 import { StateLegend } from '@/components/state-legend/StateLegend';
@@ -63,7 +63,7 @@ export default async function GroupPage({ searchParams }: Props) {
       </GroupEditsProvider>
       <RememberGroup keys={view.keys} />
       <StaleSync ids={view.staleIds} />
-      {view.region && <SeasonSync region={view.region} needed={view.needsSeasonSync} />}
+      {view.region && <BackgroundSync url={`/api/season/sync?region=${view.region}`} due={view.needsSeasonSync ? 'season' : null} />}
     </main>
   );
 }
