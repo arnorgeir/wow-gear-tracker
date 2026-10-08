@@ -1,5 +1,6 @@
 import { BrandIcon } from '@/components/brand-icon/BrandIcon';
 import { ItemCard } from '@/components/item-card/ItemCard';
+import { BIS_LOADING } from '@/components/shared/loading-copy';
 import { APPROXIMATE, SEASON_FAILED, SEASON_LOADING, SEASON_STALE, SPLIT_DUNGEON } from '@/components/shared/priority-copy';
 import type { PriorityCreditView, PriorityView } from '@/server/views/types';
 import { creditDetail } from './credit-detail';
@@ -23,6 +24,7 @@ function Credit({ credit }: { credit: PriorityCreditView }) {
 }
 
 function Ranking({ priority }: { priority: PriorityView }) {
+  if (priority.bisLoading) return <p role="status" className="text-muted">{BIS_LOADING}</p>;
   if (priority.season === 'loading') return <p role="status" className="text-muted">{SEASON_LOADING}</p>;
   if (priority.season === 'failed') {
     return <p role="alert" className="text-[#f3c9a2]">{SEASON_FAILED}</p>;

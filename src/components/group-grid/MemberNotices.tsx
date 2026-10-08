@@ -16,8 +16,8 @@ export function MemberNotices({ members }: { members: GroupMemberView[] }) {
         <li key={`${m.key}-${n.kind}`} className="flex flex-wrap items-center gap-2">
           {m.character && <CharacterAvatar name={m.character.name} className={m.character.className} avatarUrl={m.character.avatarUrl} classIconUrl={m.character.classIconUrl} size={20} />}
           <span className="font-semibold" style={m.character ? { color: classTextColor(m.character.className) } : undefined}>{m.name}</span>
-          <span role={n.kind === 'syncError' || n.kind === 'notFound' ? 'alert' : undefined}
-            className={n.kind === 'untracked' ? 'text-muted' : 'text-[#f3c9a2]'}>{n.text}</span>
+          <span role={n.kind === 'syncError' || n.kind === 'notFound' ? 'alert' : n.kind === 'bisLoading' ? 'status' : undefined}
+            className={n.kind === 'untracked' || n.kind === 'bisLoading' ? 'text-muted' : 'text-[#f3c9a2]'}>{n.text}</span>
           {n.kind === 'untracked' && <TrackButton memberKey={m.key} name={m.name} />}
           {n.kind === 'notFound' && <RemoveFromGroupButton memberKey={m.key} name={m.name} variant="text" />}
           {n.kind === 'syncError' && m.character && <RefreshButton id={m.character.id} />}

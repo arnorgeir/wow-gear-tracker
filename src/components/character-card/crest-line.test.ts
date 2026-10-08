@@ -21,6 +21,12 @@ describe('crestLine', () => {
     expect(crestLine({ crests: crests([]), gearFromSimc: true, upgradesReady: 0 }, now).text).toBe('No crests: no BiS upgrades affordable');
   });
 
+  it('keeps the balances but claims no upgrades while track data is unknown', () => {
+    expect(crestLine({ crests: crests([myth]), gearFromSimc: true, upgradesReady: 0, tracksKnown: false }, now))
+      .toEqual({ balances: [myth], text: '', tone: 'text-muted' });
+    expect(crestLine({ crests: null, gearFromSimc: false, upgradesReady: 0, tracksKnown: false }, now).text).toBe('Crests unknown: paste SimC');
+  });
+
   it('counts ready upgrades in the singular and plural', () => {
     expect(crestLine({ crests: crests([myth]), gearFromSimc: true, upgradesReady: 1 }, now))
       .toEqual({ balances: [myth], text: '1 BiS upgrade ready', tone: 'text-upgrade' });

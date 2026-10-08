@@ -10,6 +10,7 @@ describe('cellNote', () => {
   it('fills cells for members without rows, dimming the ones still waiting', () => {
     expect(cellNote('ready', true)).toBeNull();
     expect(cellNote('ready', false)).toEqual({ text: 'No BiS list', dim: false });
+    expect(cellNote('ready', false, true)).toEqual({ text: 'Loading BiS list…', dim: true });
     expect(cellNote('untracked', false)).toEqual({ text: 'Not tracked', dim: true });
     expect(cellNote('syncing', false)).toEqual({ text: 'Syncing…', dim: true });
     expect(cellNote('noGear', false)).toEqual({ text: 'No gear yet', dim: true });

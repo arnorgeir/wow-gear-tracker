@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bisSummary } from './bis-summary';
+import { barSegments, bisSummary } from './bis-summary';
 
 const counts = { done: 3, mythUpgradable: 2, belowMyth: 1, wrongStats: 0, missing: 4, inBags: 0 };
 
@@ -16,7 +16,21 @@ describe('bisSummary', () => {
     expect(bisSummary({ ...counts, wrongStats: 1, inBags: 2 }).text).toBe('3 done, 2 need crests, 1 vault targets, 1 wrong stats, 2 in bags');
   });
 
+  it('says nothing about states that need track data while it is unknown, and keeps the BiS total', () => {
+    expect(bisSummary(counts, false)).toEqual({ bis: 6, text: '' });
+  });
+
   it('is zero without counts', () => {
     expect(bisSummary(null)).toEqual({ bis: 0, text: '' });
+  });
+});
+
+describe('barSegments', () => {
+  it('shows each state with track data', () => {
+    expect(barSegments({ ...counts, wrongStats: 1, inBags: 2 }, true)).toEqual({ done: 3, mythUpgradable: 2, belowMyth: 1, wrongStats: 1, rest: 6 });
+  });
+
+  it('folds track-dependent states into one BiS segment without track data', () => {
+    expect(barSegments({ ...counts, wrongStats: 1, inBags: 2 }, false)).toEqual({ done: 6, mythUpgradable: 0, belowMyth: 0, wrongStats: 1, rest: 6 });
   });
 });

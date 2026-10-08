@@ -11,7 +11,7 @@ interface Props { members: GroupMemberView[]; grid: GroupGridRow[]; tracksKnown:
 const COLUMNS = 'grid-cols-[44px_repeat(var(--members),minmax(0,1fr))] sm:grid-cols-[64px_repeat(var(--members),minmax(0,1fr))]';
 
 export function GroupGrid({ members, grid, tracksKnown }: Props) {
-  const notes = members.map((m) => cellNote(m.state, m.hasRows));
+  const notes = members.map((m) => cellNote(m.state, m.hasRows, m.bisLoading));
   // A member without rows still gets a cell in every row, so the column reads as a column.
   const rows = grid.length > 0 ? grid : [{ slot: 'HEAD' as const, label: '', cells: members.map(() => null) }];
   return (
