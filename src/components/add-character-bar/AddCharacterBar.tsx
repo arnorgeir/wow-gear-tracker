@@ -17,7 +17,7 @@ interface Props {
   trackedCharacters: TrackedCharacter[];
   /** Set by the group page: search only this region, and keep the select fixed on it. */
   lockedRegion?: Region | null;
-  /** Set by the group page: what to do with the added character instead of opening its page. */
+  /** Set by the group page: what to do with the added character instead of refreshing the list. */
   onAdded?: (added: { id: number; key: string }) => void;
 }
 
@@ -29,8 +29,8 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
   const [realmSlug, setRealmSlug] = useState('');
   const [addingName, setAddingName] = useState<string | null>(null);
   const { busy, error, run } = useApiAction();
-  // router.push() alone leaves `busy` clearing before the destination page has actually
-  // rendered; wrapping it in a transition keeps a pending state until that render lands too.
+  // router.refresh() alone leaves `busy` clearing before the list has actually
+  // re-rendered; wrapping it in a transition keeps a pending state until that render lands too.
   const [navigating, startTransition] = useTransition();
   const pending = busy || navigating;
   const trackedLookup = useMemo(() => buildTrackedLookup(trackedCharacters), [trackedCharacters]);
@@ -46,7 +46,7 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
     if (!id) { setAddingName(null); return; }
     clear();
     const key = result.data?.key;
-    startTransition(() => (onAdded && key ? onAdded({ id, key }) : router.push(`/characters/${id}`)));
+    startTransition(() => (onAdded && key ? onAdded({ id, key }) : router.refresh()));
   }
 
   return (
@@ -99,7 +99,7 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
 
       {/* Three paragraphs, not one with a precedence: the search hint explains the realm dropdown, a failed
           add request needs its own line, and the "Adding…" status has to keep showing through the
-          navigation that follows a successful add, well after `busy` itself has cleared. */}
+          refresh that follows a successful add, well after `busy` itself has cleared. */}
       {pending && addingName && <p role="status" className="w-full text-sm text-muted">Adding {addingName}…</p>}
       {error && <p role="alert" className="w-full text-sm text-[#f3c9a2]">{error}</p>}
       {searchError && <p role="status" className="w-full text-sm text-[#f3c9a2]">{searchError}</p>}
