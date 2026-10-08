@@ -169,7 +169,7 @@ Definitions:
 | Cards | Existing "Loading BiS list…" (already shown when there's no list and no error) | Existing `bisError` | Keep the `bis / total` count, which doesn't depend on tracks. Draw the bar as one BiS segment, plus the wrong-stats segment. Drop the summary words and the crest upgrade text; crest chips stay. Show "Loading upgrade track data…" with `role="status"` while loading, or the existing `tracksError` line when failed |
 | Character page | `GearTable` shows "Loading BiS list…" with `role="status"` in place of "No BiS list to compare against yet." List counts read 0/0 as today | Existing alert | Tones hidden. "Loading upgrade track data…" with `role="status"` in `CharacterAlerts` while loading; the existing alert when failed |
 | Character page priority | "Loading BiS list…" with `role="status"` in place of the ranking | Unchanged | `approximate` |
-| Group page | The member is excluded with the reason `BiS list loading`, a new `EXCLUSION_REASONS.bisLoading`. The member notice says "Loading BiS list…" in muted text with `role="status"` | Existing `bisError` notice and the "no BiS list" reason | Tones hidden, `approximate`, and the same status line as the character page above the grid while loading |
+| Group page | The member is excluded with the reason `BiS list loading`, a new `EXCLUSION_REASONS.bisLoading`. The member notice says "Loading BiS list…" in muted text with `role="status"`, and the member's cells say "Loading BiS list…" dimmed, instead of "No BiS list" | Existing `bisError` notice and the "no BiS list" reason | Tones hidden, `approximate`, and the same status line as the character page above the grid while loading |
 
 Wording uses an ellipsis character and sentence case, matching the existing "Loading BiS list…". The two loading strings live in one shared copy module.
 
@@ -206,7 +206,7 @@ Wording uses an ellipsis character and sentence case, matching the existing "Loa
 
 **Components:**
 
-- `bisSummary` and `crestLine` cover the missing-track case; `member-notices` covers the loading notice. No component tests beyond the existing pattern.
+- `bisSummary` and `crestLine` cover the missing-track case; `member-notices` and `cellNote` cover the loading member. No component tests beyond the existing pattern.
 
 **By hand:**
 
