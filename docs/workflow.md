@@ -13,9 +13,10 @@ The project rules in `AGENTS.md` apply to every step and both agents. Both of th
 | 3. `plan`: resolve spec findings and plan | Claude | Opus | Speccing, then Ready | Spec findings resolved in the committed spec, then `docs/superpowers/plans/<date>-<name>.md` written and committed, and linked from each issue it covers |
 | 4. `implement` | Claude | Sonnet | In progress, then In review | A branch, implemented inline from the plan with TDD, the full gate green, pushed, and a pull request |
 | 5. `pr-review` | Codex | GPT-6 Astra, Medium | In review | `docs/reviews/pr-<N>.md` |
-| 6. `fix`: fixes and hand checks | Claude, with owner for manual checks | Sonnet | In review | Fix commits pushed to the same branch, hand-check results and gaps recorded in the pull request's Testing section |
+| 6. `fix`: resolve code findings | Claude | Sonnet | In review | Fix commits pushed to the same branch, required checks rerun |
 | 7. `re-review` | Codex | GPT-6 Astra, Light | In review | Material fixes reviewed against the latest commit; repeat `fix` and `re-review` until findings are resolved |
-| 8. Merge | Owner | | Done, on its own when the pull request closes the issue | Required checks green on the final commit, then a merge commit, never a squash |
+| 8. `validate`: complete checks and evidence | Claude, with owner for assigned checks | Sonnet | In review | Required checks completed or existing evidence recorded in PR Testing; no code change required |
+| 9. Merge | Owner | | Done, on its own when the pull request closes the issue | Required checks green on the final commit, then a merge commit, never a squash |
 
 - **A step sets its status when it starts,** after claiming the issues as `AGENTS.md` ("Issue board") describes. `plan` moves the issues to Ready when the plan is committed, and `implement` moves them to In review when it opens the pull request.
 - **Small fixes skip steps 1 to 3.** Anything that doesn't need a spec (see `AGENTS.md`, "How work flows") goes from Backlog or Ready straight to `implement` and `pr-review`.
@@ -46,7 +47,38 @@ Next: spec-review, Codex (GPT-6 Astra, Medium), new session
 - **Name the step, who runs it, and the model,** and say whether it needs a new session. Between phases it always does (see "Keeping usage down").
 - **Put everything the next step can't find on its own into the prompt:** the spec path before the plan links it, the branch, or review findings for a cloud session.
 - **Say first when the owner has to act before the next step,** such as approving the spec, running hand checks or merging.
-- **Pick the branch after a review.** After `pr-review` or `re-review`, the next step is `fix` when findings remain or required hand checks are still open, such as the live API and browser checks a cloud `implement` leaves for a local session. The next step is merge only when no findings remain and the required checks are done and recorded in the pull request's Testing section. The owner's own checks still go to the owner first, as the previous point says.
+- **Choose the next step from the review outcome below.** Use `fix` for code findings and `validate` for unfinished checks or missing evidence. When both are clear, hand off to the owner to merge. Skip steps that have no work.
+
+## Review outcomes and validation
+
+Every `pr-review` and `re-review` report, including its final chat response, states two outcomes separately:
+
+- **Code review:** `Changes requested` with actionable findings, or `Passed — no code changes requested`. Name the reviewed commit. A passed local review does not itself submit a GitHub approval or authorize a merge.
+- **Validation:** `Complete` or `Pending`, naming the exact required checks and their evidence. An unperformed check, an undocumented result and a failed check are different states; say which applies.
+
+| Code review | Validation | Next |
+|---|---|---|
+| Changes requested | Any | `fix`, then `re-review`; carry remaining checks forward |
+| Passed | Pending | `validate`; explicitly say no code fix is requested |
+| Passed | Complete | Owner merges after confirming required GitHub checks and approval on the final head |
+
+Only actionable defects belong in the findings list. Missing validation evidence belongs in the validation list. Tie each required check to the spec, plan or repository gate; optional suggestions do not become merge blockers. Missing wording is not proof a check failed or never ran: ask the validation step to record existing evidence or run the check if needed.
+
+`validate` completes the named checks and records who checked what, the tested commit, results and remaining gaps in PR Testing. Accept adequate existing evidence without repeating a check merely because the reviewer did not run it personally. A validation-only task needs no empty fix commit.
+
+- If validation completes with no code changes and the reviewed head is unchanged, hand off directly to the owner to merge. Updating PR Testing alone does not require another code review.
+- If a check exposes a defect, record the concrete failure and hand off to `fix`, followed by `re-review` on the new head. Code changes require the normal final-commit checks.
+- If validation remains blocked, name the specific missing access or owner action and keep `validate` pending. Do not relabel it as a code finding.
+
+Example of a clean review with unfinished validation:
+
+```
+Code review: Passed at <SHA> — no code changes requested.
+Validation: Pending — Method-outage browser check not run.
+
+Next: validate, Claude (Sonnet), new session
+> Run workflow step validate for PR #N. Complete the Method-outage browser check and record the result in PR Testing. No code fix is requested; if it passes without code changes, hand off to the owner to merge.
+```
 
 ## Using one agent
 
