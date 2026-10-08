@@ -21,6 +21,7 @@ The project rules in `AGENTS.md` apply to every step and both agents. Both of th
 - **A step sets its status when it starts,** after claiming the issues as `AGENTS.md` ("Issue board") describes. `plan` moves the issues to Ready when the plan is committed, and `implement` moves them to In review when it opens the pull request.
 - **Small fixes skip steps 1 to 3.** Anything that doesn't need a spec (see `AGENTS.md`, "How work flows") goes from Backlog or Ready straight to `implement` and `pr-review`.
 - **The plan's review is optional.** Add a Codex review of the plan only when the plan is large or risky.
+- **An over-engineering pass before the pull request is optional.** With the ponytail plugin installed, `implement` can run `ponytail-review` on the branch diff before pushing. It only looks for code to delete, so it doesn't replace `pr-review`. Testing rules in `AGENTS.md` win over its one-check advice.
 - **Resolve spec review findings before planning.** Update and commit the spec when a finding changes it. Ask the owner to approve it again only when scope or intended behavior changes; clarifications can proceed without another sign-off.
 - **The owner approves the spec and merges the pull request.** Apart from changes to the approved scope or intended behavior, nothing else needs a sign-off in between.
 - **Claude owns the hand-check checklist and records the results.** Claude runs checks it can perform locally; the owner runs any manual checks assigned to them. Keep unfinished checks explicit in the pull request's Testing section.
