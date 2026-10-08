@@ -26,6 +26,10 @@ The project rules in `AGENTS.md` apply to every step and both agents. Both of th
 - **Claude owns the hand-check checklist and records the results.** Claude runs checks it can perform locally; the owner runs any manual checks assigned to them. Keep unfinished checks explicit in the pull request's Testing section.
 - **Checks apply to the final commit.** After fixes, rerun typecheck, lint and tests, plus build when pages or components changed. Required CI must pass on the final commit before merge.
 
+## Filing issues
+
+Claude creates and edits issues with the `file-issue` skill (`.claude/skills/file-issue/`), on Sonnet. It checks for duplicates, sets the area and cloud labels and the board's Layer, Size and Status, and keeps the body short: the problem, the owner's own details and any open questions. Design waits for `spec`; an issue with open design choices goes to Needs spec instead.
+
 ## Handing off between steps
 
 Start a step with its name and the issue or pull request it works on:
@@ -134,5 +138,7 @@ Claude Code cloud sessions run on separate credits. Use them for work that needs
 
 - **Implementing a finished plan.** A cloud session on Sonnet works on its own branch, runs typecheck, lint, tests and build, pushes, and opens the pull request. Live API checks and hand checks against a copy of `data/app.db` stay local, and the pull request says they are still open.
 - **A deep review of a risky pull request,** such as hosting or login.
+
+Issues carry `cloud: spec` when their spec needs nothing local, and `cloud: implement` when their code and tests don't either. `gh issue list --label "cloud: spec"` finds candidates.
 
 Start one from claude.ai/code or the Claude app with the same prompt a local step would get, such as `Run workflow step implement for #64.` It doesn't need the owner's PC to be on. A cloud session starts from what is on GitHub, so push the branch first. Include any needed review findings and other non-sensitive handoff context that isn't committed in its prompt. Never include credentials, `.env` contents or private database data; checks that need them stay local.
