@@ -105,27 +105,42 @@ export async function ensureBisLists(deps: { db: Db; source: BisSource; now: num
   }
 }
 
-/** Refreshes Raidbots data daily. On failure keeps what it has, and retries at most hourly. */
-export async function ensureTracks(deps: { db: Db; fetchRaidbots: () => Promise<RaidbotsData>; now: number }): Promise<TracksResult> {
-  const { db, fetchRaidbots, now } = deps;
+export interface TracksRead extends TracksResult { status: ReferenceStatus; due: boolean }
+
+/** Stored Raidbots data and what the page should say about it. Reads the database only. Stale data shows no error: it is still usable. */
+export async function readTracks(db: Db, now: number): Promise<TracksRead> {
   const fetchedAt = await getMeta(db, TRACKS_META_KEY);
-  const failedAt = await getMeta(db, TRACKS_FAILED_META_KEY);
-  const fresh = fetchedAt && now - fetchedAt.updatedAt < DAY_MS;
-  const backingOff = failedAt && now - failedAt.updatedAt < RETRY_MS;
-  if (!fresh && !backingOff) {
-    try {
-      const data = await fetchRaidbots();
-      if (data.tracks.length === 0) throw new Error('No upgrade tracks in the Raidbots data');
-      await replaceTracks(db, data.tracks);
-      await replaceBonusQualities(db, data.qualities);
-      await setMeta(db, TRACKS_META_KEY, String(now), now);
-    } catch {
-      await setMeta(db, TRACKS_FAILED_META_KEY, String(now), now);
-    }
-  }
+  const failed = await getMeta(db, TRACKS_FAILED_META_KEY);
   const tracks = await getTrackMap(db);
   const qualities = await getBonusQualityMap(db);
-  return { tracks, qualities, error: tracks.size === 0 ? TRACKS_ERROR : null };
+  const { lastFailed, due } = timing(fetchedAt?.updatedAt ?? null, failed, now);
+  const status = statusOf(tracks.size > 0, lastFailed);
+  return { tracks, qualities, status, due, error: status === 'failed' ? TRACKS_ERROR : null };
+}
+
+/** Refreshes Raidbots data when due. On failure keeps what it has and records the attempt; never throws for an upstream failure. */
+export async function syncTracks(deps: { db: Db; fetchRaidbots: () => Promise<RaidbotsData>; now: number }): Promise<boolean> {
+  const { db, fetchRaidbots, now } = deps;
+  const fetchedAt = await getMeta(db, TRACKS_META_KEY);
+  const failed = await getMeta(db, TRACKS_FAILED_META_KEY);
+  if (!timing(fetchedAt?.updatedAt ?? null, failed, now).due) return false;
+  try {
+    const data = await fetchRaidbots();
+    if (data.tracks.length === 0) throw new Error('No upgrade tracks in the Raidbots data');
+    await replaceTracks(db, data.tracks);
+    await replaceBonusQualities(db, data.qualities);
+    await setMeta(db, TRACKS_META_KEY, String(now), now);
+  } catch {
+    await setMeta(db, TRACKS_FAILED_META_KEY, String(now), now);
+  }
+  return true;
+}
+
+/** Sync then read, for the SimC route: the user already waits on that write, and parsing needs qualities. */
+export async function ensureTracks(deps: { db: Db; fetchRaidbots: () => Promise<RaidbotsData>; now: number }): Promise<TracksResult> {
+  await syncTracks(deps);
+  const { tracks, qualities, error } = await readTracks(deps.db, deps.now);
+  return { tracks, qualities, error };
 }
 
 export async function ensureItemIcons(

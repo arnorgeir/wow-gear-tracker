@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { setMeta } from '../db/queries/meta';
-import { BIS_RETRY_MS, DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons, ensureTierTargets, readBisLists, syncBisLists } from './reference-sync';
+import { BIS_RETRY_MS, DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons, ensureTierTargets, readBisLists, syncBisLists, readTracks, syncTracks } from './reference-sync';
 import { HttpError } from '../http';
 import type { BisLists, BisSource, Track } from '../types';
 import type { BlizzardClient } from '../blizzard/client';
@@ -137,11 +137,50 @@ describe('readBisLists and syncBisLists', () => {
   });
 });
 
-describe('ensureTracks', () => {
-  const tracks: Track[] = [{ bonusId: 1, name: 'Myth', step: 1, max: 6, group: 618, currencyId: null, currencyName: null, costPerStep: null }];
-  const data = { tracks, qualities: [{ bonusId: 12805, quality: 'EPIC' as const }] };
-  const failing = async (): Promise<typeof data> => { throw new Error('down'); };
+const tracks: Track[] = [{ bonusId: 1, name: 'Myth', step: 1, max: 6, group: 618, currencyId: null, currencyName: null, costPerStep: null }];
+const data = { tracks, qualities: [{ bonusId: 12805, quality: 'EPIC' as const }] };
+const failing = async (): Promise<typeof data> => { throw new Error('down'); };
 
+describe('readTracks and syncTracks', () => {
+  const TRACKS_ERROR = 'Upgrade track data couldn’t be loaded, so upgrade states may be wrong';
+
+  it('reads loading on a fresh install, with no error', async () => {
+    expect(await readTracks(await openTestDb(), 1)).toMatchObject({ status: 'loading', due: true, error: null });
+  });
+
+  it('reads failed with the error when the first load fails, and backs off an hour', async () => {
+    const db = await openTestDb();
+    expect(await syncTracks({ db, fetchRaidbots: failing, now: 1000 })).toBe(true);
+    expect(await readTracks(db, 1000 + 59 * 60_000)).toMatchObject({ status: 'failed', due: false, error: TRACKS_ERROR });
+    expect(await syncTracks({ db, fetchRaidbots: failing, now: 1000 + 59 * 60_000 })).toBe(false);
+    expect((await readTracks(db, 1000 + 60 * 60_000)).due).toBe(true);
+  });
+
+  it('reads ready after a load, then stale without an error when a refresh fails', async () => {
+    const db = await openTestDb();
+    await syncTracks({ db, fetchRaidbots: async () => data, now: 1 });
+    const ready = await readTracks(db, 2);
+    expect(ready).toMatchObject({ status: 'ready', due: false, error: null });
+    expect(ready.tracks.size).toBe(1);
+    expect(ready.qualities.get(12805)).toBe('EPIC');
+    expect((await readTracks(db, 1 + DAY_MS)).due).toBe(true);
+    await syncTracks({ db, fetchRaidbots: failing, now: 1 + DAY_MS });
+    const stale = await readTracks(db, 2 + DAY_MS);
+    expect(stale).toMatchObject({ status: 'stale', due: false, error: null });
+    expect(stale.tracks.size).toBe(1);
+  });
+
+  it('skips a sync when nothing is due', async () => {
+    const db = await openTestDb();
+    let calls = 0;
+    const ok = async () => { calls++; return data; };
+    expect(await syncTracks({ db, fetchRaidbots: ok, now: 1 })).toBe(true);
+    expect(await syncTracks({ db, fetchRaidbots: ok, now: 2 })).toBe(false);
+    expect(calls).toBe(1);
+  });
+});
+
+describe('ensureTracks', () => {
   it('refreshes daily, stores qualities, and keeps old data on failure', async () => {
     const db = await openTestDb();
     let calls = 0;
