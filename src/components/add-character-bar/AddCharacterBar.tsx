@@ -1,13 +1,14 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition, type KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { LABEL_CLASS } from '@/components/shared/field-classes';
 import { REGIONS, type Region } from '@/core/types';
-import { SearchResults } from './SearchResults';
+import { activeOrNone, moveHighlight } from './highlight';
+import { LISTBOX_ID, SearchResults, optionId } from './SearchResults';
 import { buildTrackedLookup, isTracked, type TrackedCharacter } from './tracked';
-import { useCharacterSearch } from './use-character-search';
+import { useCharacterSearch, type SearchResult } from './use-character-search';
 
 const inputClass = 'h-12 rounded-xl border border-line-strong bg-surface-2 px-4 text-[17px] text-ink focus:border-gold focus:outline-none';
 // Narrow: the region select only ever shows two letters. Extra right padding keeps the chevron off the border.
@@ -28,12 +29,27 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
   } = useCharacterSearch(lockedRegion);
   const [realmSlug, setRealmSlug] = useState('');
   const [addingName, setAddingName] = useState<string | null>(null);
+  const [activeRaw, setActiveRaw] = useState(-1);
+  const active = activeOrNone(activeRaw, results.length);
   const { busy, error, run } = useApiAction();
   // router.refresh() alone leaves `busy` clearing before the list has actually
   // re-rendered; wrapping it in a transition keeps a pending state until that render lands too.
   const [navigating, startTransition] = useTransition();
   const pending = busy || navigating;
   const trackedLookup = useMemo(() => buildTrackedLookup(trackedCharacters), [trackedCharacters]);
+
+  function pick(r: SearchResult) { return add(r.name, { name: r.name, realmId: r.blizzardRealmId }); }
+
+  function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (!showList || results.length === 0) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveRaw(moveHighlight(active, e.key, results.length));
+    } else if (e.key === 'Enter' && active >= 0 && !pending) {
+      e.preventDefault();
+      pick(results[active]);
+    }
+  }
 
   async function add(name: string, body: Record<string, unknown>) {
     setAddingName(name);
@@ -61,7 +77,10 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
       <div ref={searchRef} className="relative flex min-w-64 grow flex-col gap-1.5">
         <label htmlFor="character-name" className={LABEL_CLASS}>Character name</label>
         <input id="character-name" type="search" autoComplete="off" value={term}
-          onChange={(e) => { setTerm(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
+          role="combobox" aria-expanded={showList} aria-controls={LISTBOX_ID} aria-autocomplete="list"
+          aria-activedescendant={showList && active >= 0 ? optionId(active) : undefined}
+          onChange={(e) => { setTerm(e.target.value); setOpen(true); setActiveRaw(-1); }} onFocus={() => setOpen(true)}
+          onKeyDown={onKeyDown}
           placeholder="Search by name" className={inputClass} />
         {/* Sits left of the search input's built-in × button, which padding would push inward. Stays mounted so
             screen readers announce the text when it appears; they skip a live region that arrives with its text. */}
@@ -74,9 +93,9 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
           )}
         </span>
         {showList && (
-          <SearchResults results={results} term={term.trim()} busy={pending}
+          <SearchResults results={results} activeIndex={active} term={term.trim()} busy={pending}
             isTracked={(r) => isTracked(trackedLookup, region, r)}
-            onPick={(r) => add(r.name, { name: r.name, realmId: r.blizzardRealmId })} onManual={() => setManual(true)} />
+            onPick={pick} onManual={() => setManual(true)} />
         )}
       </div>
 
