@@ -82,29 +82,6 @@ export async function syncBisLists(deps: { db: Db; source: BisSource; now: numbe
   return true;
 }
 
-/** Refreshes a spec's BiS lists daily. On failure keeps what it has, and retries that spec at most hourly. */
-export async function ensureBisLists(deps: { db: Db; source: BisSource; now: number }, specSlug: string): Promise<BisResult> {
-  const { db, source, now } = deps;
-  const cached = await getBisLists(db, specSlug);
-  if (cached && now - cached.fetchedAt < DAY_MS) return { lists: cached.lists, fetchedAt: cached.fetchedAt, error: null };
-  const failed = await getMeta(db, bisFailedKey(specSlug));
-  if (failed && now - failed.updatedAt < BIS_RETRY_MS) {
-    return { lists: cached?.lists ?? null, fetchedAt: cached?.fetchedAt ?? null, error: failed.value };
-  }
-  try {
-    const lists = await source.fetchLists(specSlug);
-    if (lists.overall.length + lists.raid.length + lists.mythicPlus.length === 0) throw new Error('No BiS tables found');
-    await replaceBisLists(db, specSlug, lists, now);
-    return { lists, fetchedAt: now, error: null };
-  } catch (err) {
-    const error = isHttpError(err) && err.status === 404 && !cached
-      ? `${source.name} has no gearing page for "${specSlug}"`
-      : 'BiS list couldn’t be updated';
-    await setMeta(db, bisFailedKey(specSlug), error, now);
-    return { lists: cached?.lists ?? null, fetchedAt: cached?.fetchedAt ?? null, error };
-  }
-}
-
 export interface TracksRead extends TracksResult { status: ReferenceStatus; due: boolean }
 
 /** Stored Raidbots data and what the page should say about it. Reads the database only. Stale data shows no error: it is still usable. */
@@ -180,33 +157,6 @@ export async function ensureItemDetails(
   const found = fetched.filter((entry): entry is { itemId: number } & ItemDetails => entry !== null);
   if (found.length > 0) await upsertItemDetails(db, found, now);
   return getItemDetailsMap(db, unique);
-}
-
-/**
- * Stat pairs for the Method items of a spec's tier rows. Each item is fetched once; a lookup that found
- * no stats (a 404, or no stats in the response) retries after a day, and a failed request stores nothing.
- */
-export async function ensureTierTargets(
-  deps: { db: Db; blizzard: BlizzardClient; now: number }, region: Region, lists: BisLists | null,
-): Promise<Map<number, TierTarget>> {
-  const { db, blizzard, now } = deps;
-  const ids = lists ? [...new Set(LIST_TYPES.flatMap((l) => lists[l]).flatMap((r) => (r.kind === 'item' && r.isTier ? [r.itemId] : [])))] : [];
-  const known = await getTierTargetRows(db, ids);
-  const due = ids.filter((id) => {
-    const row = known.get(id);
-    return !row || row.statsFetchedAt === null || (row.secondaryStats === null && now - row.statsFetchedAt >= DAY_MS);
-  });
-  const fetched = await Promise.all(due.map(async (itemId) => {
-    try {
-      return { itemId, info: await blizzard.getItemDetails(region, itemId) };
-    } catch {
-      return null;
-    }
-  }));
-  const found = fetched.filter((entry): entry is { itemId: number; info: ItemInfo | null } => entry !== null);
-  if (found.length > 0) await upsertTierTargets(db, found, now);
-  const rows = found.length > 0 ? await getTierTargetRows(db, ids) : known;
-  return new Map([...rows].map(([id, r]) => [id, { secondaryStats: r.secondaryStats, isTier: r.isTier }]));
 }
 
 export interface TierScope { region: Region; specSlug: string; lists: BisLists | null }

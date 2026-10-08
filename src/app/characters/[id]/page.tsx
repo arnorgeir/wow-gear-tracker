@@ -49,7 +49,7 @@ export default async function CharacterPage({ params, searchParams }: Props) {
       <CharacterSettings id={view.id} specs={view.specs} spec={view.spec} activeSpec={view.activeSpec} priorityList={view.priorityList} />
       <ListTabs id={view.id} listType={view.listType} counts={view.counts} />
       <div className="grid grid-cols-1 gap-8 min-[1380px]:grid-cols-[860px_minmax(0,1fr)] min-[1380px]:items-start">
-        <GearTable rows={view.rows} tracksKnown={!view.tracksError} />
+        <GearTable rows={view.rows} tracksKnown={view.tracksKnown} />
         <div className="flex flex-col gap-8">
           <DungeonPriority priority={view.priority} specLabel={`${view.spec} ${view.className}`} />
           <VaultSection vault={view.vault} vaultChoices={view.vaultChoices} vaultChoicesAt={view.vaultChoicesAt} now={now} />
@@ -57,6 +57,7 @@ export default async function CharacterPage({ params, searchParams }: Props) {
       </div>
       <StaleSync ids={view.status === 'ok' && isStale(view.lastSyncedAt, now) ? [view.id] : []} />
       <BackgroundSync url={`/api/season/sync?region=${view.region}`} due={view.priority.needsSync ? 'season' : null} />
+      <BackgroundSync url="/api/reference/sync" due={view.referenceDue} />
     </main>
   );
 }

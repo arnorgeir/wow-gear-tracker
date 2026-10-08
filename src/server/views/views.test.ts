@@ -11,6 +11,8 @@ import { insertCharacter, updateCharacter } from '@/core/db/queries/characters';
 import { replaceSeason } from '@/core/db/queries/season';
 import { setMeta } from '@/core/db/queries/meta';
 import { SEASON_META_KEY } from '@/core/sync/season-sync';
+import { syncReference } from '@/core/sync/reference-run';
+import { DAY_MS, syncBisLists, syncTracks } from '@/core/sync/reference-sync';
 import type { BisLists, GearItem, Track } from '@/core/types';
 import type { BlizzardClient } from '@/core/blizzard/client';
 
@@ -56,10 +58,15 @@ async function seed(s: Services, withGear = true) {
   return id;
 }
 
+/** Fills the reference cache the way the background sync would. */
+const prime = (s: Services) =>
+  syncReference({ db: s.db, bisSource: s.bisSource, fetchRaidbots: s.fetchRaidbots, blizzard: s.blizzard, now: s.now() });
+
 describe('getCharacterPage', () => {
   it('builds rows with states, tracks and icons for the priority list', async () => {
     const s = await services();
     const id = await seed(s);
+    await prime(s);
     const page = await getCharacterPage(s, id);
     expect(page).toMatchObject({ listType: 'mythicPlus', spec: 'Guardian', specSlug: 'guardian-druid', specs: ['Balance', 'Feral', 'Guardian', 'Restoration'] });
     expect(page!.rows.map((r) => r.state)).toEqual(['done', 'belowMyth']);
@@ -72,6 +79,7 @@ describe('getCharacterPage', () => {
   it('shows every row as missing before the first sync', async () => {
     const s = await services();
     const id = await seed(s, false);
+    await prime(s);
     const page = await getCharacterPage(s, id);
     expect(page!.snapshot).toBeNull();
     expect(page!.rows.every((r) => r.state === 'missing' && r.equipped === null)).toBe(true);
@@ -81,9 +89,11 @@ describe('getCharacterPage', () => {
     const s = await services();
     s.fetchRaidbots = async () => { throw new Error('down'); };
     const id = await seed(s);
+    await prime(s);
     const page = await getCharacterPage(s, id);
     expect(page!.tracksError).toMatch(/Upgrade track data/);
-    const [card] = await getCharacterCards(s);
+    await prime(s);
+    const { cards: [card] } = await getCharacterCards(s);
     expect(card!.tracksError).toMatch(/Upgrade track data/);
   });
 
@@ -93,6 +103,7 @@ describe('getCharacterPage', () => {
     const { id } = await insertCharacter(s.db, { region: 'eu', realmId: 1, realmSlug: 'test-realm', realmName: 'Test Realm', name: 'Birkibjörn', className: 'Druid', specName: 'Guardian' }, 1);
     const wrong = gear.map((g) => (g.slot === 'HEAD' ? { ...g, secondaryStats: ['CRIT_RATING', 'MASTERY_RATING'] } : g));
     await saveSnapshotIfChanged(s.db, id, 'blizzard', gearToSnapshotItems(wrong), 500);
+    await prime(s);
     const page = await getCharacterPage(s, id);
     expect(page!.rows[0]).toMatchObject({ state: 'wrongStats', equippedStats: ['CRIT_RATING', 'MASTERY_RATING'], bis: { targetStats: ['HASTE_RATING', 'MASTERY_RATING'] } });
     expect(page!.counts.mythicPlus).toEqual({ bis: 1, total: 2 });
@@ -105,6 +116,7 @@ describe('getCharacterPage', () => {
     const wrong = gear.map((g) => (g.slot === 'HEAD' ? { ...g, secondaryStats: ['CRIT_RATING', 'MASTERY_RATING'] } : g));
     await saveSnapshotIfChanged(s.db, id, 'blizzard', gearToSnapshotItems(wrong), 500);
     await saveSnapshotIfChanged(s.db, id, 'simc', gearToSnapshotItems(gear.map((g) => ({ ...g, secondaryStats: null }))), 600);
+    await prime(s);
     const page = await getCharacterPage(s, id);
     expect(page!.rows[0]).toMatchObject({ state: 'wrongStats', equippedStats: ['CRIT_RATING', 'MASTERY_RATING'] });
   });
@@ -118,7 +130,8 @@ describe('getCharacterCards', () => {
   it('counts states on each character’s priority list', async () => {
     const s = await services();
     await seed(s);
-    const [card] = await getCharacterCards(s);
+    await prime(s);
+    const { cards: [card] } = await getCharacterCards(s);
     expect(card).toMatchObject({ name: 'Birkibjörn', realmId: 1, total: 2, bisError: null, snapshot: { source: 'blizzard', createdAt: 500 } });
     expect(card!.counts).toMatchObject({ done: 1, belowMyth: 1, missing: 0 });
   });
@@ -142,6 +155,7 @@ describe('SimC data', () => {
     const id = await seed(s);
     await saveSnapshotIfChanged(s.db, id, 'simc', pasted, 900, crests);
 
+    await prime(s);
     const page = await getCharacterPage(s, id);
     expect(page!.sourceAt).toBe(900);
     expect(page!.rows.map((r) => r.state)).toEqual(['done', 'belowMyth', 'inBags']);
@@ -151,7 +165,8 @@ describe('SimC data', () => {
     expect(page!.vaultChoices.map((v) => [v.itemId, v.isBis])).toEqual([[20, true], [77, false]]);
     expect(page!.vaultChoicesAt).toBe(900);
 
-    const [card] = await getCharacterCards(s);
+    await prime(s);
+    const { cards: [card] } = await getCharacterCards(s);
     expect(card).toMatchObject({ upgradesReady: 1, crests: { pastedAt: 900 }, sourceAt: 900 });
   });
 
@@ -162,6 +177,7 @@ describe('SimC data', () => {
     const upgraded = gear.map((g) => (g.slot === 'NECK' ? { ...g, itemLevel: 330 } : g));
     await saveSnapshotIfChanged(s.db, id, 'blizzard', gearToSnapshotItems(upgraded), 950);
 
+    await prime(s);
     const page = await getCharacterPage(s, id);
     expect(page!.snapshot?.source).toBe('blizzard');
     expect(page!.rows[2]!.state).toBe('missing');
@@ -172,6 +188,7 @@ describe('SimC data', () => {
   it('shows no crests or vault choices without a paste', async () => {
     const s = await services();
     const id = await seed(s);
+    await prime(s);
     const page = await getCharacterPage(s, id);
     expect(page).toMatchObject({ crests: null, vaultChoices: [], vaultChoicesAt: null });
     expect(page!.rows.every((r) => r.upgrade === null)).toBe(true);
@@ -188,6 +205,7 @@ describe('any rows on the character page', () => {
       { location: 'vault', slot: 'SHOULDER', itemId: 71, name: 'Vault Mantle', itemLevel: 334, quality: 'EPIC', bonusIds: [], isTier: false, secondaryStats: null },
       { location: 'vault', slot: 'SHOULDER', itemId: 72, name: 'Low Mantle', itemLevel: 320, quality: 'EPIC', bonusIds: [], isTier: false, secondaryStats: null },
     ], 500);
+    await prime(s);
     const page = await getCharacterPage(s, id);
     expect(page!.rows[0]).toMatchObject({ state: 'missing', bis: { kind: 'any', minItemLevel: 334, source: '' } });
     expect(page!.vaultChoices.map((c) => [c.itemId, c.isBis])).toEqual([[71, true], [72, false]]);
@@ -217,6 +235,7 @@ describe('dungeon priority', () => {
     const s = await services(needs);
     const id = await seed(s);
     await withSeason(s);
+    await prime(s);
     const page = await getCharacterPage(s, id);
     expect(page!.priority).toMatchObject({ listType: 'mythicPlus', fellBack: false, season: 'ready', needsSync: false, approximate: false, nothingFrom: ['Beta Spire'] });
     expect(page!.priority.dungeons).toEqual([{
@@ -244,6 +263,7 @@ describe('dungeon priority', () => {
       ],
     });
     await setMeta(s.db, SEASON_META_KEY, 'season-test-2', 1000);
+    await prime(s);
     const page = await getCharacterPage(s, id);
     const credits = (name: string) => page!.priority.dungeons.find((d) => d.name === name)!.credits;
     expect(credits('Alpha Hollow')).toEqual([{
@@ -256,6 +276,7 @@ describe('dungeon priority', () => {
   it('asks for a sync and says loading before any season is stored', async () => {
     const s = await services(needs);
     const id = await seed(s);
+    await prime(s);
     const page = await getCharacterPage(s, id);
     expect(page!.priority).toMatchObject({ season: 'loading', needsSync: true, dungeons: [], nothingFrom: [] });
   });
@@ -264,6 +285,7 @@ describe('dungeon priority', () => {
     const s = await services({ overall: needs.mythicPlus, raid: [], mythicPlus: [] });
     const id = await seed(s);
     await withSeason(s);
+    await prime(s);
     const page = await getCharacterPage(s, id);
     expect(page!.priority).toMatchObject({ listType: 'overall', fellBack: true });
     expect(page!.priority.dungeons.map((d) => d.name)).toEqual(['Alpha Hollow']);
@@ -274,14 +296,17 @@ describe('identity', () => {
   it('shows race, spec and class, the avatar and the class icon', async () => {
     const s = await services();
     const id = await seed(s);
+    await prime(s);
     let page = await getCharacterPage(s, id);
     expect(page).toMatchObject({ identity: 'Guardian Druid', race: null, faction: null, avatarUrl: null, classIconUrl: 'https://i/class-11.jpg' });
 
     await updateCharacter(s.db, id, { race: 'Troll', faction: 'HORDE', avatarUrl: 'https://render/a.jpg', specOverride: 'Feral' });
+    await prime(s);
     page = await getCharacterPage(s, id);
     expect(page).toMatchObject({ identity: 'Troll Feral Druid', faction: 'HORDE', avatarUrl: 'https://render/a.jpg' });
 
-    const [card] = await getCharacterCards(s);
+    await prime(s);
+    const { cards: [card] } = await getCharacterCards(s);
     expect(card).toMatchObject({ identity: 'Troll Feral Druid', avatarUrl: 'https://render/a.jpg', classIconUrl: 'https://i/class-11.jpg' });
   });
 });
@@ -329,5 +354,76 @@ describe('creditView', () => {
       dropStats: ['MASTERY_RATING', 'VERSATILITY'], targetName: 'Primordial Robe of Rites', targetStats: ['HASTE_RATING', 'MASTERY_RATING'],
     }, new Map([[251147, 'https://i/251147.jpg']]));
     expect(view).toMatchObject({ kind: 'tier', fit: 'alternative', targetName: 'Primordial Robe of Rites', item: { itemId: 251147, iconUrl: 'https://i/251147.jpg' } });
+  });
+});
+
+describe('reference data off the render path', () => {
+  /** Counts the three requests a render must never make; the retained icon and spec calls stay stubbed. */
+  function counting(s: Services) {
+    const calls = { lists: 0, tracks: 0, items: 0 };
+    const { bisSource, fetchRaidbots, blizzard } = s;
+    s.bisSource = { name: bisSource.name, fetchLists: async (slug) => { calls.lists++; return bisSource.fetchLists(slug); } };
+    s.fetchRaidbots = async () => { calls.tracks++; return fetchRaidbots(); };
+    const getItemDetails = blizzard.getItemDetails.bind(blizzard);
+    Object.assign(s.blizzard, { getItemDetails: async (region: string, id: number) => { calls.items++; return getItemDetails(region as 'eu', id); } });
+    return calls;
+  }
+
+  it('renders loading states from an empty cache without asking Method, Raidbots or Blizzard item details', async () => {
+    const s = await services();
+    const calls = counting(s);
+    const id = await seed(s);
+    const page = await getCharacterPage(s, id);
+    const { cards: [card], referenceDue } = await getCharacterCards(s);
+    expect(calls).toEqual({ lists: 0, tracks: 0, items: 0 });
+    expect(page).toMatchObject({
+      bisLoading: true, bisError: null, tracksLoading: true, tracksKnown: false, tracksError: null, rows: [],
+      referenceDue: 'bis:guardian-druid,tracks',
+    });
+    expect(page!.priority).toMatchObject({ bisLoading: true, approximate: true });
+    expect(card).toMatchObject({ counts: null, bisError: null, tracksKnown: false, tracksLoading: true, tracksError: null });
+    expect(referenceDue).toBe('bis:guardian-druid,tracks');
+  });
+
+  it('asks only for tracks with no characters', async () => {
+    expect(await getCharacterCards(await services())).toEqual({ cards: [], referenceDue: 'tracks' });
+  });
+
+  it('needs no sync once the reference data is stored', async () => {
+    const s = await services();
+    const id = await seed(s);
+    await prime(s);
+    expect((await getCharacterPage(s, id))!.referenceDue).toBeNull();
+    expect((await getCharacterCards(s)).referenceDue).toBeNull();
+  });
+
+  it('drops failed work from the key, so a failure does not ask again', async () => {
+    const s = await services();
+    s.bisSource = { name: 'Fake', fetchLists: async () => { throw new Error('down'); } };
+    s.fetchRaidbots = async () => { throw new Error('down'); };
+    const id = await seed(s);
+    await prime(s);
+    const page = await getCharacterPage(s, id);
+    expect(page).toMatchObject({ referenceDue: null, bisLoading: false, bisError: 'BiS list couldn’t be updated', tracksLoading: false, tracksKnown: false });
+    expect(page!.tracksError).toMatch(/Upgrade track data/);
+  });
+
+  it('treats tracks as unknown until stored, and cached tracks with a newer failure as known', async () => {
+    const s = await services();
+    const id = await seed(s);
+    await syncBisLists({ db: s.db, source: s.bisSource, now: 1000 }, 'guardian-druid');
+    let page = await getCharacterPage(s, id);
+    let { cards: [card] } = await getCharacterCards(s);
+    expect(page).toMatchObject({ tracksKnown: false, tracksLoading: true, tracksError: null, priority: { approximate: true } });
+    expect(card).toMatchObject({ tracksKnown: false, tracksLoading: true });
+    expect(card!.counts).not.toBeNull();
+
+    await syncTracks({ db: s.db, fetchRaidbots: s.fetchRaidbots, now: 1000 });
+    await syncTracks({ db: s.db, fetchRaidbots: async () => { throw new Error('down'); }, now: 1000 + DAY_MS });
+    s.now = () => 1001 + DAY_MS;
+    page = await getCharacterPage(s, id);
+    ({ cards: [card] } = await getCharacterCards(s));
+    expect(page).toMatchObject({ tracksKnown: true, tracksLoading: false, tracksError: null, priority: { approximate: false } });
+    expect(card).toMatchObject({ tracksKnown: true, tracksLoading: false, tracksError: null });
   });
 });

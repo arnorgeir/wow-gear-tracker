@@ -1,3 +1,4 @@
+import { BackgroundSync } from '@/components/background-sync/BackgroundSync';
 import { AddCharacterBar } from '@/components/add-character-bar/AddCharacterBar';
 import { CharacterCard } from '@/components/character-card/CharacterCard';
 import { SetupNotice } from '@/components/setup-notice/SetupNotice';
@@ -18,7 +19,7 @@ export default async function CharactersPage() {
     if (isMissingConfigError(err)) return <SetupNotice missing={err.missing} />;
     throw err;
   }
-  const cards = await getCharacterCards(services);
+  const { cards, referenceDue } = await getCharacterCards(services);
   const now = services.now();
   const staleIds = cards.filter((c) => c.status === 'ok' && isStale(c.lastSyncedAt, now)).map((c) => c.id);
 
@@ -38,6 +39,7 @@ export default async function CharactersPage() {
         </div>
       )}
       <StaleSync ids={staleIds} />
+      <BackgroundSync url="/api/reference/sync" due={referenceDue} />
     </main>
   );
 }

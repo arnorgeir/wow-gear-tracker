@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
-import type { BlizzardClient } from '@/core/blizzard/client';
+import { syncBisLists } from '@/core/sync/reference-sync';
 import type { BisLists } from '@/core/types';
-import { createBisLookup } from './bis-lookup';
+import { createBisLookup, referenceDue, type SpecBis } from './bis-lookup';
 
 const lists: BisLists = {
   overall: [],
@@ -11,17 +11,26 @@ const lists: BisLists = {
 };
 
 describe('createBisLookup', () => {
-  it('fetches Method once per spec when one spec is looked up in two regions at once', async () => {
-    let fetches = 0;
-    const regions: string[] = [];
-    const deps = {
-      db: await openTestDb(),
-      blizzard: { getItemDetails: async (region: string) => { regions.push(region); return null; } } as unknown as BlizzardClient,
-      bisSource: { name: 'Fake', fetchLists: async () => { fetches++; return lists; } },
-    };
-    const lookup = createBisLookup(deps, 1000);
-    await Promise.all([lookup('druid-guardian', 'eu'), lookup('druid-guardian', 'us')]);
-    expect(fetches).toBe(1);
-    expect(regions.sort()).toEqual(['eu', 'us']);
+  it('names a missing list as due work', async () => {
+    const lookup = createBisLookup(await openTestDb(), 1000);
+    expect(await lookup('guardian-druid', 'eu')).toMatchObject({ lists: null, status: 'loading', due: true, targetsDue: false, dueKeys: ['bis:guardian-druid'] });
+  });
+
+  it('names each region’s missing tier stats once the list is stored', async () => {
+    const db = await openTestDb();
+    await syncBisLists({ db, source: { name: 'Fake', fetchLists: async () => lists }, now: 1000 }, 'guardian-druid');
+    const lookup = createBisLookup(db, 1000);
+    const [eu, us] = await Promise.all([lookup('guardian-druid', 'eu'), lookup('guardian-druid', 'us')]);
+    expect(eu).toMatchObject({ lists, status: 'ready', due: false, targetsDue: true, dueKeys: ['tiers:eu:guardian-druid'] });
+    expect(us.dueKeys).toEqual(['tiers:us:guardian-druid']);
+  });
+});
+
+describe('referenceDue', () => {
+  it('joins the distinct due names in order, or says nothing is due', () => {
+    const spec = (dueKeys: string[]) => ({ dueKeys }) as SpecBis;
+    expect(referenceDue(true, [spec(['tiers:eu:guardian-druid']), spec(['bis:feral-druid']), spec(['bis:feral-druid'])]))
+      .toBe('bis:feral-druid,tiers:eu:guardian-druid,tracks');
+    expect(referenceDue(false, [spec([])])).toBeNull();
   });
 });

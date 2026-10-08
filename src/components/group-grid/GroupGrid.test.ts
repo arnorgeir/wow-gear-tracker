@@ -15,7 +15,7 @@ const summary = (id: number, name: string): CharacterSummary => ({
 });
 const member = (over: Partial<GroupMemberView>): GroupMemberView => ({
   key: 'eu.argent-dawn.birkibjörn', name: 'Birkibjörn', realmSlug: 'argent-dawn', character: null, state: 'ready',
-  syncError: null, bisError: null, hasRows: true, listType: 'mythicPlus', fellBack: false, crests: null, ...over,
+  syncError: null, bisError: null, bisLoading: false, hasRows: true, listType: 'mythicPlus', fellBack: false, crests: null, ...over,
 });
 const render = (members: GroupMemberView[], grid: GroupGridRow[], tracksKnown = true) =>
   renderToStaticMarkup(createElement(GroupEditsProvider, { keys: members.map((m) => m.key) }, createElement(GroupGrid, { members, grid, tracksKnown }))).replace(/<link[^>]*\/>/g, '');

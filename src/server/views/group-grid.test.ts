@@ -55,6 +55,8 @@ describe('exclusionReason', () => {
   it('gives a reason for every member the ranking leaves out, and none for an eligible one', () => {
     expect(exclusionReason('ready', true)).toBeNull();
     expect(exclusionReason('ready', false)).toBe('no BiS list');
+    expect(exclusionReason('ready', false, true)).toBe('BiS list loading');
+    expect(exclusionReason('ready', true, true)).toBeNull();
     expect(exclusionReason('untracked', false)).toBe('not tracked');
     expect(exclusionReason('notFound', false)).toBe('not found by Blizzard');
     expect(exclusionReason('syncing', false)).toBe('syncing');
