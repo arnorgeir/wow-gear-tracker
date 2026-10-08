@@ -8,7 +8,7 @@ import { ListTabs } from '@/components/character-page/ListTabs';
 import { VaultSection } from '@/components/character-page/VaultSection';
 import { CharacterSettings } from '@/components/character-settings/CharacterSettings';
 import { CrestSummary } from '@/components/crest-summary/CrestSummary';
-import { SeasonSync } from '@/components/season-sync/SeasonSync';
+import { BackgroundSync } from '@/components/background-sync/BackgroundSync';
 import { SetupNotice } from '@/components/setup-notice/SetupNotice';
 import { SimcPaste } from '@/components/simc-paste/SimcPaste';
 import { StaleSync } from '@/components/stale-sync/StaleSync';
@@ -56,7 +56,7 @@ export default async function CharacterPage({ params, searchParams }: Props) {
         </div>
       </div>
       <StaleSync ids={view.status === 'ok' && isStale(view.lastSyncedAt, now) ? [view.id] : []} />
-      <SeasonSync region={view.region} needed={view.priority.needsSync} />
+      <BackgroundSync url={`/api/season/sync?region=${view.region}`} due={view.priority.needsSync ? 'season' : null} />
     </main>
   );
 }

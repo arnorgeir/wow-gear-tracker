@@ -7,7 +7,7 @@ import type { BisLists, Region } from '../types';
 import { readBisLists, readTierTargets, readTracks } from './reference-sync';
 import { syncReference, type ReferenceSyncDeps } from './reference-run';
 
-const tierRobe = { kind: 'item', slotLabel: 'Chest', slots: ['CHEST'], itemId: 10, name: 'Tier Robe', bonusIds: [], isTier: true, isCatalyst: false, source: '' } as const;
+const tierRobe: BisLists['mythicPlus'][number] = { kind: 'item', slotLabel: 'Chest', slots: ['CHEST'], itemId: 10, name: 'Tier Robe', bonusIds: [], isTier: true, isCatalyst: false, source: '' };
 const lists: BisLists = { overall: [], raid: [], mythicPlus: [tierRobe] };
 const trackData = { tracks: [{ bonusId: 1, name: 'Myth', step: 1, max: 6, group: 618, currencyId: null, currencyName: null, costPerStep: null }], qualities: [] };
 

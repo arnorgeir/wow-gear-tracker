@@ -60,6 +60,11 @@ describe('proxy', () => {
     expect(await res.json()).toEqual({ error: 'Cross-site requests are not allowed.' });
   });
 
+  it('rejects a foreign Origin on the reference sync', async () => {
+    const res = await proxy(request('/api/reference/sync', { method: 'POST', headers: { origin: 'http://evil.example' } }));
+    expect(res.status).toBe(403);
+  });
+
   it('rejects a page under a rebound name', async () => {
     const res = await proxy(request('/characters/1', { headers: { host: 'evil.example:3000' } }));
     expect(res.status).toBe(403);
