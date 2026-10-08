@@ -5,18 +5,20 @@ import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { classTextColor } from '@/components/shared/class-colors';
 import { RemoveCharacterButton } from '@/components/remove-character-button/RemoveCharacterButton';
 import { CrestChip } from '@/components/crest-chip/CrestChip';
-import { bisSummary } from './bis-summary';
+import { TRACKS_LOADING } from '@/components/shared/loading-copy';
+import { barSegments, bisSummary } from './bis-summary';
 import { crestLine } from './crest-line';
 
 export function CharacterCard({ card, now }: { card: CharacterCardView; now: number }) {
   const color = classTextColor(card.className);
   const counts = card.counts;
-  const { bis, text: summary } = bisSummary(counts);
+  const { bis, text: summary } = bisSummary(counts, card.tracksKnown);
+  const bar = counts && barSegments(counts, card.tracksKnown);
   const source = card.snapshot && card.sourceAt !== null
     ? `${card.snapshot.source === 'simc' ? 'SimC, pasted' : 'Blizzard, synced'} ${formatAge(card.sourceAt, now)}`
     : 'Not synced yet';
   const listName = card.priorityList === 'mythicPlus' ? 'Mythic+ BiS' : 'Overall BiS';
-  const crests = crestLine({ crests: card.crests, gearFromSimc: card.snapshot?.source === 'simc', upgradesReady: card.upgradesReady }, now);
+  const crests = crestLine({ crests: card.crests, gearFromSimc: card.snapshot?.source === 'simc', upgradesReady: card.upgradesReady, tracksKnown: card.tracksKnown }, now);
 
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
@@ -33,7 +35,7 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
         <p className="rounded-lg border border-[#8a5a2b] bg-[#2e1f16] p-3 text-[15px] text-[#f3c9a2]">
           Blizzard can&rsquo;t find this character. It may have been renamed or transferred.
         </p>
-      ) : counts ? (
+      ) : bar ? (
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between">
             <span className="text-sm font-semibold uppercase tracking-wider text-muted">{listName}</span>
@@ -41,16 +43,18 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
           </div>
           {/* A tier piece with the wrong stats isn't BiS: it gets its own segment. */}
           <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-line" aria-hidden="true">
-            <div className="bg-gold" style={{ flexGrow: counts.done }} />
-            <div className="bg-crest" style={{ flexGrow: counts.mythUpgradable }} />
-            <div className="bg-vault" style={{ flexGrow: counts.belowMyth }} />
-            <div className="bg-stats" style={{ flexGrow: counts.wrongStats }} />
-            <div style={{ flexGrow: counts.missing + counts.inBags }} />
+            <div className="bg-gold" style={{ flexGrow: bar.done }} />
+            <div className="bg-crest" style={{ flexGrow: bar.mythUpgradable }} />
+            <div className="bg-vault" style={{ flexGrow: bar.belowMyth }} />
+            <div className="bg-stats" style={{ flexGrow: bar.wrongStats }} />
+            <div style={{ flexGrow: bar.rest }} />
           </div>
-          <span className="text-sm text-muted">{summary}</span>
+          {card.tracksLoading
+            ? <span role="status" className="text-sm text-muted">{TRACKS_LOADING}</span>
+            : summary && <span className="text-sm text-muted">{summary}</span>}
           <span className="flex flex-wrap items-center gap-1.5">
             {crests.balances.map((b) => <CrestChip key={b.currencyId} balance={b} />)}
-            <span className={`text-sm ${crests.tone}`}>{crests.text}</span>
+            {crests.text && <span className={`text-sm ${crests.tone}`}>{crests.text}</span>}
           </span>
         </div>
       ) : (

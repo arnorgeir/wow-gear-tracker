@@ -1,11 +1,12 @@
+import { BIS_LOADING } from '@/components/shared/loading-copy';
 import { statPairLabel } from '@/components/shared/stat-pair';
 import { tierTargetText } from '@/components/shared/tier-target';
 import type { GearRowView, GroupMemberState } from '@/server/views/types';
 
 /** What a member's cells say when there are no rows to show. Dimmed ones are waiting on something. */
-export function cellNote(state: GroupMemberState, hasRows: boolean): { text: string; dim: boolean } | null {
+export function cellNote(state: GroupMemberState, hasRows: boolean, bisLoading = false): { text: string; dim: boolean } | null {
   switch (state) {
-    case 'ready': return hasRows ? null : { text: 'No BiS list', dim: false };
+    case 'ready': return hasRows ? null : bisLoading ? { text: BIS_LOADING, dim: true } : { text: 'No BiS list', dim: false };
     case 'untracked': return { text: 'Not tracked', dim: true };
     case 'syncing': return { text: 'Syncing…', dim: true };
     case 'noGear': return { text: 'No gear yet', dim: true };

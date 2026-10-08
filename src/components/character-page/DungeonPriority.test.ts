@@ -44,6 +44,12 @@ describe('DungeonPriority', () => {
     expect(html).not.toContain('Nothing you need from');
   });
 
+  it('says the BiS list is loading instead of ranking', () => {
+    const html = render({ ...base, bisLoading: true, season: 'loading' });
+    expect(html).toContain('Loading BiS list…');
+    expect(html).not.toContain('Loading this season’s loot…');
+  });
+
   it('marks a split dungeon', () => {
     const html = render({ ...base, dungeons: [{ challengeModeId: 502, name: 'Streets of Beta', score: 3, split: true, credits: [] }] });
     expect(html).toContain('Split dungeon');

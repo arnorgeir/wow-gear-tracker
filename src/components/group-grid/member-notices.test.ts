@@ -19,6 +19,10 @@ describe('memberNotices', () => {
     expect(memberNotices(member({ bisError: 'Method is down' }))).toEqual([{ kind: 'bisError', text: 'Method is down' }]);
   });
 
+  it('says a member’s BiS list is loading', () => {
+    expect(memberNotices(member({ hasRows: false, bisLoading: true }))).toEqual([{ kind: 'bisLoading', text: 'Loading BiS list…' }]);
+  });
+
   it('lists a sync error and a BiS error together', () => {
     expect(memberNotices(member({ syncError: 'timeout', bisError: 'Method is down' })).map((n) => n.kind)).toEqual(['syncError', 'bisError']);
   });

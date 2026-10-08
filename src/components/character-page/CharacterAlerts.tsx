@@ -1,3 +1,4 @@
+import { TRACKS_LOADING } from '@/components/shared/loading-copy';
 import { formatAge } from '@/core/format';
 import type { CharacterPageView } from '@/server/views/types';
 
@@ -16,6 +17,7 @@ export function CharacterAlerts({ view, now }: { view: CharacterPageView; now: n
         </p>
       )}
       {view.tracksError && <p role="alert" className="text-[#f3c9a2]">{view.tracksError}.</p>}
+      {view.tracksLoading && <p role="status" className="text-muted">{TRACKS_LOADING}</p>}
     </>
   );
 }

@@ -10,6 +10,7 @@ import { RememberGroup } from '@/components/remember-group/RememberGroup';
 import { BackgroundSync } from '@/components/background-sync/BackgroundSync';
 import { SetupNotice } from '@/components/setup-notice/SetupNotice';
 import { StaleSync } from '@/components/stale-sync/StaleSync';
+import { TRACKS_LOADING } from '@/components/shared/loading-copy';
 import { StateLegend } from '@/components/state-legend/StateLegend';
 import { GROUP_COOKIE } from '@/core/characters/member-key';
 import { isMissingConfigError } from '@/core/config';
@@ -52,13 +53,16 @@ export default async function GroupPage({ searchParams }: Props) {
         {view.members.length === 0 ? (
           <p className="text-muted">Pick up to five characters to compare their gear and rank dungeons for the group.</p>
         ) : (
-          <GroupLayout
-            dungeonCount={view.priority.ranking?.dungeons.length ?? 0}
-            legend={<StateLegend />}
-            gear={<GroupGrid members={view.members} grid={view.grid} tracksKnown={view.tracksKnown} />}
-            dungeons={<div className={PANEL_BOX}><GroupPriority priority={view.priority} /></div>}
-            vault={<div className={PANEL_BOX}><GroupVault vault={view.vault} now={now} /></div>}
-          />
+          <>
+            {view.tracksLoading && <p role="status" className="text-muted">{TRACKS_LOADING}</p>}
+            <GroupLayout
+              dungeonCount={view.priority.ranking?.dungeons.length ?? 0}
+              legend={<StateLegend />}
+              gear={<GroupGrid members={view.members} grid={view.grid} tracksKnown={view.tracksKnown} />}
+              dungeons={<div className={PANEL_BOX}><GroupPriority priority={view.priority} /></div>}
+              vault={<div className={PANEL_BOX}><GroupVault vault={view.vault} now={now} /></div>}
+            />
+          </>
         )}
       </GroupEditsProvider>
       <RememberGroup keys={view.keys} />

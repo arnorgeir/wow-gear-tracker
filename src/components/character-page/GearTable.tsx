@@ -1,5 +1,6 @@
 import { EmptySlotCard } from '@/components/empty-slot-card/EmptySlotCard';
 import { ItemCard } from '@/components/item-card/ItemCard';
+import { BIS_LOADING } from '@/components/shared/loading-copy';
 import { ROW_TONE_STYLES, rowTone } from '@/components/shared/row-tone';
 import { trackText } from '@/components/shared/track-label';
 import { StateBadge } from '@/components/state-badge/StateBadge';
@@ -7,13 +8,15 @@ import { UpgradeBadge } from '@/components/upgrade-badge/UpgradeBadge';
 import type { GearRowView } from '@/server/views/types';
 import { BisTarget } from '@/components/bis-target/BisTarget';
 
-export function GearTable({ rows, tracksKnown }: { rows: GearRowView[]; tracksKnown: boolean }) {
+export function GearTable({ rows, tracksKnown, bisLoading }: { rows: GearRowView[]; tracksKnown: boolean; bisLoading: boolean }) {
   return (
     <section aria-label="Gear by slot" className="flex flex-col rounded-2xl border border-line bg-surface py-1">
       <div className="hidden grid-cols-[110px_minmax(0,1fr)_minmax(0,1fr)_190px] gap-3 border-b border-line px-4 py-3 text-[13px] font-semibold uppercase tracking-wider text-muted md:grid">
         <span>Slot</span><span>Equipped</span><span>BiS</span><span>State</span>
       </div>
-      {rows.length === 0 && <p className="p-6 text-muted">No BiS list to compare against yet.</p>}
+      {rows.length === 0 && (bisLoading
+        ? <p role="status" className="p-6 text-muted">{BIS_LOADING}</p>
+        : <p className="p-6 text-muted">No BiS list to compare against yet.</p>)}
       {rows.map((row, index) => {
         const tone = rowTone(row.state, tracksKnown);
         return (
