@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { setMeta } from '../db/queries/meta';
-import { BIS_RETRY_MS, DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons, ensureTierTargets } from './reference-sync';
+import { BIS_RETRY_MS, DAY_MS, ensureBisLists, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons, ensureTierTargets, readBisLists, syncBisLists } from './reference-sync';
 import { HttpError } from '../http';
 import type { BisLists, BisSource, Track } from '../types';
 import type { BlizzardClient } from '../blizzard/client';
@@ -74,6 +74,65 @@ describe('ensureBisLists', () => {
     await ensureBisLists({ db, source: source(async () => { throw new Error('down'); }).s, now: 1 }, 'guardian-druid');
     const other = source(async () => lists);
     expect((await ensureBisLists({ db, source: other.s, now: 2 }, 'feral-druid')).error).toBeNull();
+    expect(other.calls()).toBe(1);
+  });
+});
+
+describe('readBisLists and syncBisLists', () => {
+  const slug = 'guardian-druid';
+
+  it('reads loading on a cold cache and asks for a sync', async () => {
+    const db = await openTestDb();
+    expect(await readBisLists(db, slug, 1)).toEqual({ lists: null, fetchedAt: null, error: null, status: 'loading', due: true });
+  });
+
+  it('syncs once, then reads ready until a day passes', async () => {
+    const db = await openTestDb();
+    const { s, calls } = source(async () => lists);
+    expect(await syncBisLists({ db, source: s, now: 1000 }, slug)).toBe(true);
+    expect(await readBisLists(db, slug, 1000 + DAY_MS - 1)).toEqual({ lists, fetchedAt: 1000, error: null, status: 'ready', due: false });
+    expect(await syncBisLists({ db, source: s, now: 1000 + DAY_MS - 1 }, slug)).toBe(false);
+    expect(calls()).toBe(1);
+    expect((await readBisLists(db, slug, 1000 + DAY_MS)).due).toBe(true);
+    expect(await syncBisLists({ db, source: s, now: 1000 + DAY_MS }, slug)).toBe(true);
+    expect(calls()).toBe(2);
+  });
+
+  it('reads stale with the error after a failed refresh, and backs off for an hour', async () => {
+    const db = await openTestDb();
+    await syncBisLists({ db, source: source(async () => lists).s, now: 1000 }, slug);
+    const down = source(async () => { throw new Error('down'); });
+    const expired = 1000 + DAY_MS;
+    expect(await syncBisLists({ db, source: down.s, now: expired }, slug)).toBe(true);
+    expect(await readBisLists(db, slug, expired + 1)).toEqual({ lists, fetchedAt: 1000, error: 'BiS list couldn’t be updated', status: 'stale', due: false });
+    expect(await syncBisLists({ db, source: down.s, now: expired + BIS_RETRY_MS - 1 }, slug)).toBe(false);
+    expect(down.calls()).toBe(1);
+    expect((await readBisLists(db, slug, expired + BIS_RETRY_MS)).due).toBe(true);
+  });
+
+  it('keeps the previous list when the page has no BiS tables', async () => {
+    const db = await openTestDb();
+    await syncBisLists({ db, source: source(async () => lists).s, now: 1000 }, slug);
+    await syncBisLists({ db, source: source(async () => ({ overall: [], raid: [], mythicPlus: [] })).s, now: 1000 + DAY_MS }, slug);
+    expect(await readBisLists(db, slug, 1000 + DAY_MS)).toMatchObject({ lists, fetchedAt: 1000, error: 'BiS list couldn’t be updated', status: 'stale' });
+  });
+
+  it('reads failed with the missing-page message on a cold 404, and recovers after the backoff', async () => {
+    const db = await openTestDb();
+    await syncBisLists({ db, source: source(async () => { throw new HttpError(404, 'u', ''); }).s, now: 1 }, 'nope-nope');
+    expect(await readBisLists(db, 'nope-nope', 2)).toEqual({
+      lists: null, fetchedAt: null, error: 'Fake has no gearing page for "nope-nope"', status: 'failed', due: false,
+    });
+    await syncBisLists({ db, source: source(async () => lists).s, now: 1 + BIS_RETRY_MS }, 'nope-nope');
+    expect(await readBisLists(db, 'nope-nope', 2 + BIS_RETRY_MS)).toMatchObject({ lists, status: 'ready', error: null, due: false });
+  });
+
+  it('backs off per spec, so one failing spec does not stop another', async () => {
+    const db = await openTestDb();
+    await syncBisLists({ db, source: source(async () => { throw new Error('down'); }).s, now: 1 }, slug);
+    expect((await readBisLists(db, 'feral-druid', 2)).due).toBe(true);
+    const other = source(async () => lists);
+    expect(await syncBisLists({ db, source: other.s, now: 2 }, 'feral-druid')).toBe(true);
     expect(other.calls()).toBe(1);
   });
 });

@@ -14,7 +14,7 @@ export const DAY_MS = 86_400_000;
 // so data cached by an older version of the app is refetched instead of trusted for a day.
 const TRACKS_META_KEY = 'tracks.v3.fetchedAt';
 const TRACKS_FAILED_META_KEY = 'tracks.failedAt';
-const TRACKS_RETRY_MS = 60 * 60 * 1000;
+const RETRY_MS = 60 * 60 * 1000;
 const TRACKS_ERROR = 'Upgrade track data couldn’t be loaded, so upgrade states may be wrong';
 
 export interface TracksResult {
@@ -29,9 +29,58 @@ export interface BisResult {
   error: string | null;
 }
 
-export const BIS_RETRY_MS = 60 * 60 * 1000;
+export const BIS_RETRY_MS = RETRY_MS;
 // One entry per spec: the value is the error message, so a skipped retry can repeat it.
 const bisFailedKey = (specSlug: string) => `bis.${specSlug}.failed`;
+
+export type ReferenceStatus = 'loading' | 'failed' | 'ready' | 'stale';
+type MetaRow = Awaited<ReturnType<typeof getMeta>>;
+
+/** One rule for the page and the sync: due when the data is missing or a day old, unless the last attempt failed within the hour. */
+function timing(storedAt: number | null, failed: MetaRow, now: number) {
+  const lastFailed = failed !== null && (storedAt === null || failed.updatedAt > storedAt);
+  const fresh = storedAt !== null && now - storedAt < DAY_MS;
+  const backingOff = lastFailed && now - failed!.updatedAt < RETRY_MS;
+  return { lastFailed, due: !fresh && !backingOff };
+}
+
+const statusOf = (stored: boolean, lastFailed: boolean): ReferenceStatus =>
+  stored ? (lastFailed ? 'stale' : 'ready') : (lastFailed ? 'failed' : 'loading');
+
+export interface BisRead extends BisResult { status: ReferenceStatus; due: boolean }
+
+/** A spec's stored BiS lists and what the page should say about them. Reads the database only. */
+export async function readBisLists(db: Db, specSlug: string, now: number): Promise<BisRead> {
+  const cached = await getBisLists(db, specSlug);
+  const failed = await getMeta(db, bisFailedKey(specSlug));
+  const { lastFailed, due } = timing(cached?.fetchedAt ?? null, failed, now);
+  return {
+    lists: cached?.lists ?? null,
+    fetchedAt: cached?.fetchedAt ?? null,
+    error: lastFailed ? failed!.value : null,
+    status: statusOf(cached !== null, lastFailed),
+    due,
+  };
+}
+
+/** Refreshes a spec's BiS lists when due. On failure keeps what it has and records why; never throws for an upstream failure. */
+export async function syncBisLists(deps: { db: Db; source: BisSource; now: number }, specSlug: string): Promise<boolean> {
+  const { db, source, now } = deps;
+  const cached = await getBisLists(db, specSlug);
+  const failed = await getMeta(db, bisFailedKey(specSlug));
+  if (!timing(cached?.fetchedAt ?? null, failed, now).due) return false;
+  try {
+    const lists = await source.fetchLists(specSlug);
+    if (lists.overall.length + lists.raid.length + lists.mythicPlus.length === 0) throw new Error('No BiS tables found');
+    await replaceBisLists(db, specSlug, lists, now);
+  } catch (err) {
+    const error = isHttpError(err) && err.status === 404 && !cached
+      ? `${source.name} has no gearing page for "${specSlug}"`
+      : 'BiS list couldn’t be updated';
+    await setMeta(db, bisFailedKey(specSlug), error, now);
+  }
+  return true;
+}
 
 /** Refreshes a spec's BiS lists daily. On failure keeps what it has, and retries that spec at most hourly. */
 export async function ensureBisLists(deps: { db: Db; source: BisSource; now: number }, specSlug: string): Promise<BisResult> {
@@ -62,7 +111,7 @@ export async function ensureTracks(deps: { db: Db; fetchRaidbots: () => Promise<
   const fetchedAt = await getMeta(db, TRACKS_META_KEY);
   const failedAt = await getMeta(db, TRACKS_FAILED_META_KEY);
   const fresh = fetchedAt && now - fetchedAt.updatedAt < DAY_MS;
-  const backingOff = failedAt && now - failedAt.updatedAt < TRACKS_RETRY_MS;
+  const backingOff = failedAt && now - failedAt.updatedAt < RETRY_MS;
   if (!fresh && !backingOff) {
     try {
       const data = await fetchRaidbots();
