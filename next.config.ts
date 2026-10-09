@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { FRAME_HEADERS } from './src/server/frame-headers';
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -6,6 +7,7 @@ const nextConfig: NextConfig = {
     // proxy's 1 MB limit means an oversized body still shows the proxy more than 1 MB.
     proxyClientMaxBodySize: '2mb',
   },
+  headers: async () => [{ source: '/:path*', headers: FRAME_HEADERS }],
 };
 
 export default nextConfig;
