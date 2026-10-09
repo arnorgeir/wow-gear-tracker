@@ -6,6 +6,7 @@ import { type GearRow } from '@/core/gear/evaluate';
 import { borrowStats } from '@/core/gear/stat-pair';
 import { methodSpecSlug } from '@/core/method/method';
 import { identityLine } from '@/core/characters/identity';
+import { characterHref } from '@/core/characters/member-key';
 import { type GearItem } from '@/core/types';
 import type { CrestView, CharacterSummary } from './types';
 
@@ -37,7 +38,7 @@ export async function loadGear(db: Db, characterId: number): Promise<GearContext
 export function summarize(c: CharacterRow, snapshot: Snapshot | null, classIcons: ReadonlyMap<string, string | null> = new Map()): CharacterSummary {
   const spec = c.specOverride || c.specName;
   return {
-    id: c.id, name: c.name, realmName: c.realmName, realmId: c.realmId, region: c.region, className: c.className,
+    id: c.id, href: characterHref(c), name: c.name, realmName: c.realmName, realmId: c.realmId, region: c.region, className: c.className,
     activeSpec: c.specName, spec, specSlug: methodSpecSlug(spec, c.className),
     status: c.status, lastSyncedAt: c.lastSyncedAt, lastSyncError: c.lastSyncError, priorityList: c.priorityList,
     snapshot: snapshot && { source: snapshot.source, createdAt: snapshot.createdAt },

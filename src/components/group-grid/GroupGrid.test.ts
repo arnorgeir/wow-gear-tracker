@@ -9,7 +9,7 @@ import { GroupGrid } from './GroupGrid';
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: () => {}, refresh: () => {}, push: () => {} }) }));
 
 const summary = (id: number, name: string): CharacterSummary => ({
-  id, name, realmName: 'Argent Dawn', realmId: 1, region: 'eu', className: 'Druid', activeSpec: 'Guardian', spec: 'Guardian', specSlug: 'guardian-druid',
+  id, href: '/characters/eu/argent-dawn/birkibj%C3%B6rn', name, realmName: 'Argent Dawn', realmId: 1, region: 'eu', className: 'Druid', activeSpec: 'Guardian', spec: 'Guardian', specSlug: 'guardian-druid',
   status: 'ok', lastSyncedAt: 5, lastSyncError: null, priorityList: 'mythicPlus', snapshot: null, sourceAt: null, race: null, faction: null,
   avatarUrl: null, classIconUrl: null, identity: 'Guardian Druid',
 });

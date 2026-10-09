@@ -47,7 +47,7 @@ export default async function CharacterPage({ params, searchParams }: Props) {
         <CrestSummary crests={view.crests} now={now} />
       </section>
       <CharacterSettings id={view.id} specs={view.specs} spec={view.spec} activeSpec={view.activeSpec} priorityList={view.priorityList} />
-      <ListTabs id={view.id} listType={view.listType} counts={view.counts} />
+      <ListTabs href={view.href} listType={view.listType} counts={view.counts} />
       <div className="grid grid-cols-1 gap-8 min-[1380px]:grid-cols-[860px_minmax(0,1fr)] min-[1380px]:items-start">
         <GearTable rows={view.rows} tracksKnown={view.tracksKnown} bisLoading={view.bisLoading} />
         <div className="flex flex-col gap-8">

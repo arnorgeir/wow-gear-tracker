@@ -135,6 +135,13 @@ describe('getCharacterCards', () => {
     expect(card).toMatchObject({ name: 'Birkibjörn', realmId: 1, total: 2, bisError: null, snapshot: { source: 'blizzard', createdAt: 500 } });
     expect(card!.counts).toMatchObject({ done: 1, belowMyth: 1, missing: 0 });
   });
+
+  it('links each card to its character path', async () => {
+    const s = await services();
+    await seed(s);
+    const { cards: [card] } = await getCharacterCards(s);
+    expect(card!.href).toBe('/characters/eu/test-realm/birkibj%C3%B6rn');
+  });
 });
 
 describe('SimC data', () => {

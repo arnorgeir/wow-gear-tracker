@@ -25,7 +25,7 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
       <div className="flex items-center gap-3.5">
         <CharacterAvatar name={card.name} className={card.className} avatarUrl={card.avatarUrl} classIconUrl={card.classIconUrl} size={52} />
         <div className="flex min-w-0 flex-col">
-          <Link href={`/characters/${card.id}`} className="truncate text-xl font-bold no-underline hover:underline" style={{ color }}>{card.name}</Link>
+          <Link href={card.href} className="truncate text-xl font-bold no-underline hover:underline" style={{ color }}>{card.name}</Link>
           <span className="text-[15px] text-muted">{card.realmName}</span>
           <span className="text-[15px] font-semibold" style={{ color }}>{card.identity}</span>
         </div>

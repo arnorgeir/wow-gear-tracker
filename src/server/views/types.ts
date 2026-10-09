@@ -38,6 +38,8 @@ export interface CrestView {
 
 export interface CharacterSummary {
   id: number;
+  /** The character page's path, for example `/characters/eu/tarren-mill/rust%C3%BD`. */
+  href: string;
   name: string;
   realmName: string;
   realmId: number;
