@@ -1,4 +1,5 @@
-import { getCharacter } from '@/core/db/queries/characters';
+import type { MemberKey } from '@/core/characters/member-key';
+import { findCharacterByKey } from '@/core/db/queries/characters';
 import { crestCostsByGroup } from '@/core/gear/crests';
 import type { GearRow } from '@/core/gear/evaluate';
 import { rankDungeons } from '@/core/priority/rank';
@@ -6,7 +7,7 @@ import { ensureClassIcons, ensureItemIcons, readTracks } from '@/core/sync/refer
 import { readSeason } from '@/core/sync/season-sync';
 import { LIST_TYPES, type ListType } from '@/core/types';
 import type { Services } from '../services';
-import type { CharacterPageView } from './types';
+import type { CharacterPageView, UntrackedCharacterView } from './types';
 import { createBisLookup, referenceDue } from './bis-lookup';
 import { crestView } from './summarize';
 import { creditView, loadMember, priorityCharacter, rowView, vaultChoicesFor } from './member';
@@ -14,10 +15,10 @@ import { creditView, loadMember, priorityCharacter, rowView, vaultChoicesFor } f
 // A tier piece with the wrong stats fills the set but isn't BiS, as on the character card.
 const bisCount = (rows: GearRow[]) => rows.filter((r) => r.matched && r.state !== 'wrongStats').length;
 
-export async function getCharacterPage(services: Services, id: number, listType?: ListType): Promise<CharacterPageView | null> {
+export async function getCharacterPage(services: Services, key: MemberKey, listType?: ListType): Promise<CharacterPageView | UntrackedCharacterView> {
   const { db, blizzard, now } = services;
-  const character = await getCharacter(db, id);
-  if (!character) return null;
+  const character = await findCharacterByKey(db, key);
+  if (!character) return { status: 'untracked', region: key.region, realmSlug: key.realmSlug, name: key.nameKey };
   const time = now();
   const list = listType ?? character.priorityList;
   const fallbackSpec = character.specOverride || character.specName;

@@ -111,6 +111,9 @@ export interface CharacterPageView extends CharacterSummary {
   priority: PriorityView;
 }
 
+/** A character path that names no tracked character. `name` is the path's folded name. */
+export interface UntrackedCharacterView { status: 'untracked'; region: Region; realmSlug: string; name: string }
+
 export type GroupMemberState = 'untracked' | 'notFound' | 'syncing' | 'noGear' | 'ready';
 export interface GroupMemberView {
   /** The formatted member key, as in the URL. */
