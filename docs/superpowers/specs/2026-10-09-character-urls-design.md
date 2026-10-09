@@ -54,13 +54,13 @@ Adding while the page renders would be a write on `GET`, which the request guard
 
 The client side alone isn't enough. A foreign page can put an untracked path in an iframe. The framed document runs with the app's origin, so its POST is `same-origin` and passes the guard. Framing is therefore blocked before any script runs:
 
-- **`next.config.ts` gains `headers()`** for `source: '/:path*'`, setting `Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`. The browser refuses to render the document in any frame, so its scripts never run.
+- **`next.config.ts` gains `headers()`** for `source: '/:path*'`. It returns `FRAME_HEADERS` from `src/server/frame-headers.ts`, which sets `Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`. The browser refuses to render the document in any frame, so its scripts never run.
 - **The policy covers the whole app, not only character pages.** Nothing is meant to be embedded, and every page has buttons that write, such as **Remove**. Blocking framing everywhere also stops clickjacking on those.
 - **The protection doesn't depend on a browser's local-network rules.** Some browsers already block public sites from framing `localhost`, but the app doesn't rely on that.
 - Top-level navigation is unaffected. A shared link opened in a tab still loads and auto-adds.
 
 - **`src/components/auto-add-character/AutoAddCharacter.tsx`** is a client component. It shows "Adding rustý – tarren-mill…".
-- On mount it POSTs `{ region, realmSlug, name }` to the existing `POST /api/characters`, which already accepts a realm slug. The request uses `useApiAction` from `src/components/hooks/use-api-action.ts`. It then calls `router.refresh()`, so the server renders the tracked page at the same URL.
+- On mount it POSTs `{ region, realmSlug, name }` to the existing `POST /api/characters`, which already accepts a realm slug. The request uses `runApiAction` from `src/components/shared/api-action.ts`, the function `useApiAction` wraps; the hook's `run` changes on every render, which doesn't suit an effect. On success it calls `router.refresh()`, so the server renders the tracked page at the same URL.
 - A ref guards the effect, so Strict Mode's second mount in development doesn't send a second POST. `addCharacter` is idempotent anyway, but the guard saves a Blizzard call.
 - On failure it shows the error text in place of the progress line, with a link back to `/`. A `UserError` reads, for example, "Blizzard can’t find rustý on that realm." A renamed or transferred character reaches this state too and gets the same message.
 - When configuration is missing, `getServices` throws first and the page shows `SetupNotice`, as today.
@@ -69,7 +69,7 @@ The client side alone isn't enough. A foreign page can put an untracked path in 
 
 Views compute the path on the server, and components render it. Components stop building paths from an ID.
 
-- `CharacterSummary` and `GroupMemberView` in `src/server/views/types.ts` gain `href: string`, set with `characterHref`.
+- `CharacterSummary` in `src/server/views/types.ts` gains `href: string`, set with `characterHref` in `summarize`. Cards, the page view and tracked group members (`GroupMemberView.character`) all carry it.
 - `CharacterCard` and `MemberHeader` (both links: the name, and **Import SimC**) use `href`.
 - `ListTabs` takes `href` instead of `id` and links to `${href}?list=${l}`.
 - Components that call API routes (`SimcPaste`, `CharacterSettings`, `RefreshButton`, `StaleSync`, `RemoveCharacterButton`) keep using the ID.
@@ -84,9 +84,9 @@ Views compute the path on the server, and components render it. Components stop 
   - `characterHref` encodes `Rustý` and lowercases it.
   - `memberKeyFromParts` accepts uppercase and accented input, and rejects a bad region, a bad slug, or a name containing digits or dots.
   - A round trip from `characterHref` through decode and `memberKeyFromParts` gives back the original key.
-- **Query:** `findCharacterByKey` finds a row by an uppercase name and returns `undefined` for another realm with the same name.
+- **Query:** `findCharacterByKey` finds a row by its folded key and returns `undefined` for another realm or region with the same name. Uppercase paths fold before the lookup, in `memberKeyFromParts`.
 - **Loader, `views.test.ts`:** `getCharacterPage` returns the full view with `href` for a tracked key, and `untracked` for an unknown key. Card and group views carry `href`.
-- **Config, `next.config.test.ts`:** `headers()` returns `frame-ancestors 'none'` and `X-Frame-Options: DENY` for `/:path*`.
+- **Config, `src/server/frame-headers.test.ts`:** the config's `headers()` returns `frame-ancestors 'none'` and `X-Frame-Options: DENY` for `/:path*`.
 - **Hand check, by the owner:**
   - Open a tracked character's path from a card, a group header and a list tab.
   - Open an untracked path and watch it add itself.
