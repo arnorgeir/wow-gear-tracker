@@ -20,14 +20,32 @@ export function memberKeyOf(c: { region: Region; realmSlug: string; name: string
 
 export const formatMemberKey = (key: MemberKey) => `${key.region}.${key.realmSlug}.${key.nameKey}`;
 
+export function memberKeyFromParts(region: string, realmSlug: string, name: string): MemberKey | null {
+  const r = region.toLowerCase();
+  const slug = realmSlug.toLowerCase();
+  if (!(REGIONS as readonly string[]).includes(r) || !SLUG.test(slug) || !NAME.test(name)) return null;
+  return { region: r as Region, realmSlug: slug, nameKey: nameKeyOf(name) };
+}
+
 export function parseMemberKey(raw: string): MemberKey | null {
   const parts = raw.trim().split('.');
-  if (parts.length !== 3) return null;
-  const region = parts[0]!.toLowerCase();
-  const realmSlug = parts[1]!.toLowerCase();
-  const name = parts[2]!;
-  if (!(REGIONS as readonly string[]).includes(region) || !SLUG.test(realmSlug) || !NAME.test(name)) return null;
-  return { region: region as Region, realmSlug, nameKey: nameKeyOf(name) };
+  return parts.length === 3 ? memberKeyFromParts(parts[0]!, parts[1]!, parts[2]!) : null;
+}
+
+/** A character page's address. The name is folded, so links read lowercase, as Raider.IO's do. */
+export const characterHref = (c: { region: Region; realmSlug: string; name: string }) =>
+  `/characters/${c.region}/${c.realmSlug}/${encodeURIComponent(nameKeyOf(c.name))}`;
+
+/**
+ * Route segments, decoded once more. Names and slugs never contain `%`, so decoding a segment Next
+ * already decoded changes nothing. A segment that won't decode is no key.
+ */
+export function memberKeyFromPath(region: string, realm: string, name: string): MemberKey | null {
+  try {
+    return memberKeyFromParts(decodeURIComponent(region), decodeURIComponent(realm), decodeURIComponent(name));
+  } catch {
+    return null;
+  }
 }
 
 /** A comma-separated list of keys. Keys that don't parse, and repeats, are dropped. */
