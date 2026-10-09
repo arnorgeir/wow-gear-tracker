@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { LABEL_CLASS } from '@/components/shared/field-classes';
 import { REGIONS, type Region } from '@/core/types';
-import { activeOrNone, moveHighlight } from './highlight';
+import { activeIndex, keyAction, type Highlight } from './highlight';
 import { LISTBOX_ID, SearchResults, optionId } from './SearchResults';
 import { buildTrackedLookup, isTracked, type TrackedCharacter } from './tracked';
 import { useCharacterSearch, type SearchResult } from './use-character-search';
@@ -29,8 +29,8 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
   } = useCharacterSearch(lockedRegion);
   const [realmSlug, setRealmSlug] = useState('');
   const [addingName, setAddingName] = useState<string | null>(null);
-  const [activeRaw, setActiveRaw] = useState(-1);
-  const active = activeOrNone(activeRaw, results.length);
+  const [highlight, setHighlight] = useState<Highlight>({ list: [], index: -1 });
+  const active = activeIndex(highlight, results);
   const { busy, error, run } = useApiAction();
   // router.refresh() alone leaves `busy` clearing before the list has actually
   // re-rendered; wrapping it in a transition keeps a pending state until that render lands too.
@@ -41,14 +41,11 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
   function pick(r: SearchResult) { return add(r.name, { name: r.name, realmId: r.blizzardRealmId }); }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (!showList || results.length === 0) return;
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveRaw(moveHighlight(active, e.key, results.length));
-    } else if (e.key === 'Enter' && active >= 0 && !pending) {
-      e.preventDefault();
-      pick(results[active]);
-    }
+    const action = keyAction({ key: e.key, isOpen: showList, count: results.length, active, pending, isComposing: e.nativeEvent.isComposing });
+    if (!action) return;
+    e.preventDefault();
+    if ('move' in action) setHighlight({ list: results, index: action.move });
+    else { const r = results[action.pick]; if (r) pick(r); }
   }
 
   async function add(name: string, body: Record<string, unknown>) {
@@ -79,7 +76,7 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
         <input id="character-name" type="search" autoComplete="off" value={term}
           role="combobox" aria-expanded={showList} aria-controls={LISTBOX_ID} aria-autocomplete="list"
           aria-activedescendant={showList && active >= 0 ? optionId(active) : undefined}
-          onChange={(e) => { setTerm(e.target.value); setOpen(true); setActiveRaw(-1); }} onFocus={() => setOpen(true)}
+          onChange={(e) => { setTerm(e.target.value); setOpen(true); setHighlight({ list: [], index: -1 }); }} onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
           placeholder="Search by name" className={inputClass} />
         {/* Sits left of the search input's built-in × button, which padding would push inward. Stays mounted so

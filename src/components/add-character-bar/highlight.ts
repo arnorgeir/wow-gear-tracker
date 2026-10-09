@@ -5,7 +5,20 @@ export function moveHighlight(current: number, key: 'ArrowDown' | 'ArrowUp', cou
   return (current + (key === 'ArrowDown' ? 1 : count - 1)) % count;
 }
 
-/** The stored highlight, or -1 when a new answer is shorter than it. */
-export function activeOrNone(index: number, count: number): number {
-  return index < count ? index : -1;
+/** A highlight and the answer it was made on: a new answer is a new list, so the old index means nothing. */
+export interface Highlight { list: readonly unknown[]; index: number }
+
+/** The highlighted index, or -1 once the list is not the one the highlight was made on. */
+export function activeIndex(highlight: Highlight, list: readonly unknown[]): number {
+  return highlight.list === list && highlight.index < list.length ? highlight.index : -1;
+}
+
+export interface KeyState { key: string; isOpen: boolean; count: number; active: number; pending: boolean; isComposing: boolean }
+
+/** What a key press does to the result list: move the highlight, pick a result, or nothing. */
+export function keyAction({ key, isOpen, count, active, pending, isComposing }: KeyState): { move: number } | { pick: number } | null {
+  if (isComposing || !isOpen || count === 0) return null;
+  if (key === 'ArrowDown' || key === 'ArrowUp') return { move: moveHighlight(active, key, count) };
+  if (key === 'Enter' && active >= 0 && !pending) return { pick: active };
+  return null;
 }
