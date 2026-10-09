@@ -1,6 +1,6 @@
 # Raider.IO-style character URLs
 
-Status: design approved in chat on 2026-10-09.
+Status: design approved in chat on 2026-10-09. Spec review finding (foreign frames) resolved on 2026-10-09.
 Date: 2026-10-09
 Issue: #102. Raider.IO-style character URLs: /characters/<region>/<realm>/<name>
 
@@ -18,10 +18,11 @@ Character pages move to `/characters/<region>/<realm>/<name>`, for example `/cha
 - A path for a character Blizzard doesn't know shows Blizzard's message and a link back to the list. Nothing is stored.
 - `/characters/2` returns 404.
 - Opening a page never writes on `GET`. The add goes through the guarded `POST /api/characters`.
+- No other site can embed the app in a frame, so an untracked path in a foreign iframe never runs the add.
 
 ## Scope
 
-In scope: the page route, the lookup, the auto-add state, and every link to a character page.
+In scope: the page route, the lookup, the auto-add state, every link to a character page, and an app-wide framing policy.
 
 Out of scope:
 
@@ -51,6 +52,13 @@ The group page already names characters by identity instead of by row: `MemberKe
 
 Adding while the page renders would be a write on `GET`, which the request guard lets through. Any website could then make the owner's browser request a character path, for example in a hidden image, and each request would add a character and call Blizzard. So the add runs from the client, through the guarded route.
 
+The client side alone isn't enough. A foreign page can put an untracked path in an iframe. The framed document runs with the app's origin, so its POST is `same-origin` and passes the guard. Framing is therefore blocked before any script runs:
+
+- **`next.config.ts` gains `headers()`** for `source: '/:path*'`, setting `Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`. The browser refuses to render the document in any frame, so its scripts never run.
+- **The policy covers the whole app, not only character pages.** Nothing is meant to be embedded, and every page has buttons that write, such as **Remove**. Blocking framing everywhere also stops clickjacking on those.
+- **The protection doesn't depend on a browser's local-network rules.** Some browsers already block public sites from framing `localhost`, but the app doesn't rely on that.
+- Top-level navigation is unaffected. A shared link opened in a tab still loads and auto-adds.
+
 - **`src/components/auto-add-character/AutoAddCharacter.tsx`** is a client component. It shows "Adding rustý – tarren-mill…".
 - On mount it POSTs `{ region, realmSlug, name }` to the existing `POST /api/characters`, which already accepts a realm slug. The request uses `useApiAction` from `src/components/hooks/use-api-action.ts`. It then calls `router.refresh()`, so the server renders the tracked page at the same URL.
 - A ref guards the effect, so Strict Mode's second mount in development doesn't send a second POST. `addCharacter` is idempotent anyway, but the guard saves a Blizzard call.
@@ -78,9 +86,11 @@ Views compute the path on the server, and components render it. Components stop 
   - A round trip from `characterHref` through decode and `memberKeyFromParts` gives back the original key.
 - **Query:** `findCharacterByKey` finds a row by an uppercase name and returns `undefined` for another realm with the same name.
 - **Loader, `views.test.ts`:** `getCharacterPage` returns the full view with `href` for a tracked key, and `untracked` for an unknown key. Card and group views carry `href`.
+- **Config, `next.config.test.ts`:** `headers()` returns `frame-ancestors 'none'` and `X-Frame-Options: DENY` for `/:path*`.
 - **Hand check, by the owner:**
   - Open a tracked character's path from a card, a group header and a list tab.
   - Open an untracked path and watch it add itself.
   - Open a misspelled name and see Blizzard's message.
   - Confirm `/characters/2` gets 404.
-- **Not covered:** no browser-level tests, so the auto-add effect and its Strict Mode guard are checked by hand only.
+  - **Foreign frame, in production mode:** stop dev, run a production build, then `npx next start -p 3001`. Serve a page from another origin, for example `http://127.0.0.1:8080`, whose only content is an iframe of an untracked path on `http://localhost:3001`. The frame must not render, and the browser console must report the `frame-ancestors` block. The server log must show no `POST /api/characters`, and the character must not appear on the list. `curl -sI http://localhost:3001/` shows both headers.
+- **Not covered:** no browser-level tests, so the auto-add effect, its Strict Mode guard and the frame block are checked by hand only.
