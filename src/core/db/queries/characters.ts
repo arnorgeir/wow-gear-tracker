@@ -2,6 +2,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import type { Db } from '../client';
 import { characters } from '../schema';
 import { type Region } from '../../types';
+import type { MemberKey } from '../../characters/member-key';
 import { nameKeyOf } from '../../characters/name-key';
 import { withWriteLock } from './write-lock';
 
@@ -32,6 +33,11 @@ export function insertCharacter(db: Db, input: NewCharacter, now: number): Promi
 export const listCharacters = (db: Db) => db.select().from(characters).orderBy(asc(characters.addedAt), asc(characters.id));
 
 export const getCharacter = (db: Db, id: number) => db.select().from(characters).where(eq(characters.id, id)).get();
+
+// Blizzard realm slugs are unique within a region. The identity index is on realm_id, and a scan of a few dozen rows is fine.
+export const findCharacterByKey = (db: Db, key: MemberKey) => db.select().from(characters)
+  .where(and(eq(characters.region, key.region), eq(characters.realmSlug, key.realmSlug), eq(characters.nameKey, key.nameKey)))
+  .get();
 
 export async function updateCharacter(db: Db, id: number, patch: Partial<Omit<CharacterRow, 'id' | 'addedAt' | 'nameKey'>>) {
   await withWriteLock(db, () => db.update(characters).set(patch).where(eq(characters.id, id)));
