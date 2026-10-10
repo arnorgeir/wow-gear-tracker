@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CharacterPageSkeleton } from '@/components/character-page/CharacterPageSkeleton';
 import { runApiAction } from '@/components/shared/api-action';
+import { addingText } from '@/components/shared/loading-copy';
 import type { UntrackedCharacterView } from '@/server/views/types';
 
 /**
@@ -31,5 +33,5 @@ export function AutoAddCharacter({ character }: { character: UntrackedCharacterV
 
   return error
     ? <p role="alert" className="text-[#f3c9a2]">{error}</p>
-    : <p className="text-muted">Adding {name} – {realmSlug}…</p>;
+    : <CharacterPageSkeleton heading={<p role="status" className="text-muted">{addingText(`${name} – ${realmSlug}`)}</p>} />;
 }

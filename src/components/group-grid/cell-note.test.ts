@@ -7,12 +7,12 @@ const row = (bis: GearRowView['bis'], state: GearRowView['state'] = 'missing'): 
 const named = { kind: 'item' as const, itemId: 1, name: 'Greathelm', itemLevel: null, quality: 'EPIC' as const, bonusIds: [], iconUrl: null, trackLabel: null, isTier: false, isCatalyst: false, source: '', targetStats: null, targetIsTierPiece: false };
 
 describe('cellNote', () => {
-  it('fills cells for members without rows, dimming the ones still waiting', () => {
+  it('fills cells for members without rows, with skeletons for the ones still loading', () => {
     expect(cellNote('ready', true)).toBeNull();
     expect(cellNote('ready', false)).toEqual({ text: 'No BiS list', dim: false });
-    expect(cellNote('ready', false, true)).toEqual({ text: 'Loading BiS list…', dim: true });
+    expect(cellNote('ready', false, true)).toEqual({ skeleton: true });
+    expect(cellNote('syncing', false)).toEqual({ skeleton: true });
     expect(cellNote('untracked', false)).toEqual({ text: 'Not tracked', dim: true });
-    expect(cellNote('syncing', false)).toEqual({ text: 'Syncing…', dim: true });
     expect(cellNote('noGear', false)).toEqual({ text: 'No gear yet', dim: true });
     expect(cellNote('notFound', false)).toEqual({ text: 'Not found', dim: true });
   });

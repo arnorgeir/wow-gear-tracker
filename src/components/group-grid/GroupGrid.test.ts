@@ -41,6 +41,37 @@ describe('GroupGrid', () => {
     expect(notices).toContain('Track');
   });
 
+  it('fills a syncing member’s column with skeleton cells and says so once to screen readers', () => {
+    const html = render([member({ name: 'Sólrún', key: 'eu.argent-dawn.sólrún', state: 'syncing', hasRows: false })], [{ slot: 'HEAD', label: 'Head', cells: [null] }]);
+    expect(html).toContain('animate-pulse');
+    expect(html).not.toContain('Syncing…<');
+    expect(html.match(/Syncing Sólrún…/g)).toHaveLength(1);
+  });
+
+  it('fills a member’s column with skeleton cells while their BiS list loads, with the words in the notice row', () => {
+    const html = render([member({ state: 'ready', hasRows: false, bisLoading: true, character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [null] }]);
+    expect(html).toContain('animate-pulse');
+    expect(html.match(/Loading BiS list…/g)).toHaveLength(1);
+  });
+
+  it('keeps rendered members’ columns and skeletons only a newly requested member', () => {
+    const html = renderToStaticMarkup(createElement(GroupEditsProvider, { keys: ['eu.argent-dawn.birkibjörn'] },
+      createElement(GroupGrid, { members: [member({ character: summary(3, 'Birkibjörn') })], grid: [{ slot: 'HEAD', label: 'Head', cells: [cell({})] }], tracksKnown: true, requestedKeys: ['eu.argent-dawn.birkibjörn', 'eu.argent-dawn.sólrún'] }))).replace(/<link[^>]*\/>/g, '');
+    expect(html).toContain('--members:2');
+    expect(html).toContain('Enigmatic Dreamwatcher’s Somnolent Stare');
+    expect(html.match(/data-skeleton-cell/g)).toHaveLength(1);
+    expect(html).toContain('animate-pulse');
+  });
+
+  it('drops the column of a member no longer requested at once', () => {
+    const html = renderToStaticMarkup(createElement(GroupEditsProvider, { keys: [] },
+      createElement(GroupGrid, { members: [member({ character: summary(3, 'Birkibjörn') }), member({ key: 'eu.argent-dawn.sólrún', name: 'Sólrún', character: summary(4, 'Sólrún') })],
+        grid: [{ slot: 'HEAD', label: 'Head', cells: [cell({}), cell({})] }], tracksKnown: true, requestedKeys: ['eu.argent-dawn.sólrún'] }))).replace(/<link[^>]*\/>/g, '');
+    expect(html).toContain('--members:1');
+    expect(html).not.toContain('title="Birkibjörn"');
+    expect(html).toContain('title="Sólrún"');
+  });
+
   it('leaves out the notice row when nobody has a problem', () => {
     expect(render([member({ character: summary(3, 'Birkibjörn') })], [])).not.toContain('Member notices');
   });
