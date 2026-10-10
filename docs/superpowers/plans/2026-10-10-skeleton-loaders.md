@@ -1515,3 +1515,24 @@ Record who checked what, on which commit, in the pull request's Testing section.
 - [ ] **Step 4: Push and open the pull request**
 
 Push `feat/skeleton-loaders`. Open the pull request per `AGENTS.md`: opens with `Closes #87.`, then `## What changes`, `## Testing` (test count, typecheck, lint and build status, hand checks done, gaps such as "no browser tests: transitions checked by hand"), then `Spec: docs/superpowers/specs/2026-10-10-skeleton-loaders-design.md`. Move #87 to In review.
+
+---
+
+### Task 10: Keep existing group columns while new members load
+
+Added at PR review (owner request), after Tasks 1-9. Supersedes Task 6's grid skeleton: while the group changes, members already rendered keep their real column and only each newly requested member gets a skeleton column. The group-wide dungeon and vault panels still skeleton. Spec: "Group edits in flight".
+
+**Files:**
+- Create: `src/components/group-grid/grid-columns.ts`, `grid-columns.test.ts`, `MemberHeaderSkeleton.tsx`
+- Modify: `src/components/group-grid/GroupGrid.tsx` (optional `requestedKeys`), `GroupGridSkeleton.tsx` (use `MemberHeaderSkeleton`), `GroupGrid.test.ts`
+- Modify: `src/components/group-body/GroupBody.tsx`, `GroupBody.test.ts`, `src/app/group/page.tsx`
+
+**Interfaces:**
+- Produces: `gridColumns(renderedKeys: string[], requestedKeys: string[]): GridColumn[]` with `GridColumn = { kind: 'member'; index: number } | { kind: 'pending'; key: string }`; `GroupGrid` prop `requestedKeys?: string[]`; `GroupBodyContent.grid: { members: GroupMemberView[]; rows: GroupGridRow[]; tracksKnown: boolean }` replaces `gear: ReactNode`.
+
+- [ ] **Step 1: Write the failing tests.** `gridColumns`: all rendered; one pending; rapid additions; removed member dropped; nothing rendered; nobody requested. `GroupGrid` with `requestedKeys`: real column kept plus one skeleton column (`--members:2`, one `data-skeleton-cell`); no-longer-requested member's column gone.
+- [ ] **Step 2: Run them; expect FAIL** (`./grid-columns` missing; `requestedKeys` ignored).
+- [ ] **Step 3: Implement** as in the spec: `gridColumns` maps each requested key to a `member` or `pending` column; `GroupGrid` draws one column per `GridColumn` (real header, notices and cells for members; `MemberHeaderSkeleton` and `CellSkeleton` for pending), with `--members` the column count. `GroupBody` renders `GroupGrid requestedKeys={keys}` in skeleton mode when it has content, else `GroupGridSkeleton`. The page passes `grid` data instead of a rendered grid.
+- [ ] **Step 4: Run tests, typecheck, lint, full suite; expect PASS.**
+- [ ] **Step 5: Browser check** (dev and a production build in a scratch worktree, slowed server): add one member to a group of two (two columns stay real, one skeleton); add two quickly (skeleton columns 1 then 2); remove one while adding another (removed column gone at once); empty to one.
+- [ ] **Step 6: Commit** `feat: keep existing group columns while new members load`.

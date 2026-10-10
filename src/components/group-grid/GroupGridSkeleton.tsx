@@ -1,9 +1,9 @@
 import type { CSSProperties } from 'react';
-import { Skeleton } from '@/components/skeleton/Skeleton';
 import { SLOT_TYPES } from '@/core/types';
 import { SLOT_LABELS } from '@/server/views/group-grid';
 import { CellSkeleton } from './CellSkeleton';
 import { COLUMNS } from './columns';
+import { MemberHeaderSkeleton } from './MemberHeaderSkeleton';
 import { SLOT_SHORT } from './slot-short';
 
 /** The grid's shape for a membership the server hasn't rendered yet. */
@@ -15,12 +15,7 @@ export function GroupGridSkeleton({ members, status }: { members: number; status
       {status && <span role="status" className="sr-only">{status}</span>}
       <div className={`grid gap-[3px] sm:gap-1.5 ${COLUMNS}`} style={{ '--members': count } as CSSProperties}>
         <span className="self-end p-1 text-xs font-semibold uppercase tracking-wider text-muted"><span className="sr-only sm:not-sr-only">Slot</span></span>
-        {columns.map((i) => (
-          <div key={i} className="flex flex-col items-center gap-1.5 p-1 sm:items-start sm:p-2">
-            <Skeleton className="h-[26px] w-full max-w-28 rounded-full" />
-            <Skeleton className="h-5 w-16 rounded-full" />
-          </div>
-        ))}
+        {columns.map((i) => <MemberHeaderSkeleton key={i} />)}
         {SLOT_TYPES.map((slot) => (
           <div key={slot} className="contents">
             <span className="flex items-center text-xs font-semibold text-muted sm:text-sm">

@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { GroupBody } from '@/components/group-body/GroupBody';
 import { PANEL_BOX } from '@/components/group-body/panel-box';
 import { GroupEditsProvider } from '@/components/group-edits/GroupEditsProvider';
-import { GroupGrid } from '@/components/group-grid/GroupGrid';
 import { GroupMembers } from '@/components/group-members/GroupMembers';
 import { GroupPriority } from '@/components/group-priority/GroupPriority';
 import { GroupVault } from '@/components/group-vault/GroupVault';
@@ -53,7 +52,7 @@ export default async function GroupPage({ searchParams }: Props) {
           empty={<p className="text-muted">Pick up to five characters to compare their gear and rank dungeons for the group.</p>}
           content={view.members.length === 0 ? null : {
             notice: view.tracksLoading ? <p role="status" className="text-muted">{TRACKS_LOADING}</p> : null,
-            gear: <GroupGrid members={view.members} grid={view.grid} tracksKnown={view.tracksKnown} />,
+            grid: { members: view.members, rows: view.grid, tracksKnown: view.tracksKnown },
             dungeons: <div className={PANEL_BOX}><GroupPriority priority={view.priority} /></div>,
             vault: <div className={PANEL_BOX}><GroupVault vault={view.vault} now={now} /></div>,
             dungeonCount: view.priority.ranking?.dungeons.length ?? 0,

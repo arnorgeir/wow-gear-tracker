@@ -1,6 +1,6 @@
 # Skeleton loaders
 
-Status: design approved in chat on 2026-10-10. Spec review findings (list-tab pending state, client-side group fallback) resolved on 2026-10-10. Route skeletons limited to `/` on 2026-10-10, after a browser probe (see "Why only `/` gets a route skeleton").
+Status: design approved in chat on 2026-10-10. Spec review findings (list-tab pending state, client-side group fallback) resolved on 2026-10-10. Route skeletons limited to `/` on 2026-10-10, after a browser probe (see "Why only `/` gets a route skeleton"). Group edits keep rendered members' columns on 2026-10-10, at the owner's request during PR review.
 Date: 2026-10-10
 Issue: #87. Skeleton loaders... skeleton loaders everywhere
 
@@ -14,10 +14,10 @@ Every wait for data shows a pulsing skeleton shaped like the content it is waiti
 
 - Navigating to `/` shows the characters page's skeleton at once. The group and character routes get no route skeleton; see "Why only `/` gets a route skeleton".
 - Every in-page wait listed under "In-page waits" shows a skeleton of the section in place of its loading text.
-- A group membership change skeletons the grid and both rail panels, while the member picker stays real and usable.
+- A group membership change keeps the grid columns of members already shown, and skeletons only the column of each newly requested member. The group-wide dungeon and vault panels skeleton. The member picker stays real and usable.
 - A character added from the bar on `/` appears at once as a skeleton card with its name.
 - Switching list tabs on a character page skeletons the gear table, dungeons and vault until the new list renders, even when the BiS and season data are cached. Header, settings and tabs stay.
-- The group grid skeleton always has as many columns as the latest requested membership, including while several edits are pending.
+- The group grid always has one column per member of the latest requested membership, including while several edits are pending: a real column for each member already rendered, a skeleton column for each one not yet rendered.
 - Switching list tabs on a character page, or editing the group, never blanks the whole page.
 - Screen readers hear one status line for each skeleton region, saying what is loading.
 - With `prefers-reduced-motion`, skeletons don't pulse.
@@ -65,7 +65,8 @@ Each skeleton sits in the directory of the component it imitates, and copies tha
 | `DungeonPrioritySkeleton` | `character-page/` | Four ranked rows: name bar, score bar, one or two item-card shapes. Rendered inside the real section and heading. |
 | `VaultSectionSkeleton` | `character-page/` | The vault section's box and its three reward rows. |
 | `CharacterPageSkeleton` | `character-page/` | The whole character page below the back link: header, crests, settings, list tabs, gear table, dungeons, vault. Takes an optional `heading` node shown above it. |
-| `GroupGridSkeleton` | `group-grid/` | Takes `members: number`, at least 1. Member header shapes and every slot row; slot labels real. No server-only imports, so client components can render it. |
+| `GroupGridSkeleton` | `group-grid/` | Takes `members: number`, at least 1. Member header shapes and every slot row; slot labels real. Used only when no member has rendered yet. No server-only imports, so client components can render it. |
+| `MemberHeaderSkeleton` | `group-grid/` | One member header's shape. `GroupGridSkeleton` and `GroupGrid`'s pending columns share it. |
 | `GroupPrioritySkeleton` | `group-priority/` | The group dungeon list's rows. |
 | `GroupVaultSkeleton` | `group-vault/` | The group vault panel's rows. |
 
@@ -96,7 +97,7 @@ Group edits navigate to a new `?chars=` the same way. A route skeleton on either
 
 Group edits navigate with `router.replace` to a new `?chars=`, and the list tabs link to a new `?list=`. If Next treats the new search params as a new segment and shows `loading.tsx`, a tab switch blanks the whole character page and a group edit hides the picker the user is clicking.
 
-**Required behavior:** neither navigation shows the route skeleton. Only the sections that depend on the change skeleton: the gear table, dungeons and vault for a tab switch (see "List-tab switches"); the grid and rail panels for a group edit (see "Group edits in flight").
+**Required behavior:** neither navigation shows the route skeleton. Only the sections that depend on the change skeleton: the gear table, dungeons and vault for a tab switch (see "List-tab switches"); the new members' grid columns and the rail panels for a group edit (see "Group edits in flight").
 
 Both navigations run inside `startTransition`, and neither route has a loading boundary in its tree (see above), so the page stays and only the dependent sections skeleton.
 
@@ -136,16 +137,22 @@ Group cells: `cellNote` in `src/components/group-grid/cell-note.ts` returns `{ s
 
 - **`src/components/group-body/GroupBody.tsx`**, a client component rendered inside `GroupEditsProvider`, takes:
   - `empty`: the empty-state paragraph.
-  - `content`: `null` when the rendered group has no members, else `{ notice, legend, gear, dungeons, vault, dungeonCount }`, the same server-rendered slots the page passes to `GroupLayout` today. `notice` is the page-level track data line, or `null`.
+  - `content`: `null` when the rendered group has no members, else `{ notice, grid, dungeons, vault, dungeonCount }`. `notice`, `dungeons` and `vault` are the server-rendered slots the page passes to `GroupLayout` today. `grid` is **data**, `{ members, rows, tracksKnown }`, not a rendered node, so the client can lay the grid out again while the group changes. `notice` is the page-level track data line, or `null`.
 - **`groupBodyMode(pending, requestedCount, hasContent)`** in `group-body/group-body-mode.ts` is a pure function returning `'empty'`, `'skeleton'` or `'content'`:
   - `requestedCount === 0` gives `'empty'`, pending or not. Removing the last member shows the empty-state text at once: there is nothing to wait for.
   - Otherwise `pending` gives `'skeleton'`.
   - Otherwise `hasContent` gives `'content'`, and its absence gives `'empty'`.
-- **In `'skeleton'` mode** `GroupBody` renders `GroupLayout` with `legend` from `content` when present, else `StateLegend`; `gear` as `GroupGridSkeleton members={keys.length}`; `dungeons` as `GroupPrioritySkeleton`; `vault` as `GroupVaultSkeleton`. Both rail skeletons go inside the page's `PANEL_BOX` wrapper, which moves to `group-body/`. `GroupLayout` takes `dungeonCount: number | null` and hides the Dungeons tab's count when it is `null`, as it is in this mode.
-- **The column count follows the latest intent.** `keys` comes from the context on every render, so a second edit while the first is pending changes the skeleton at once: a third member added to a pending two-member group shows three columns.
-- **Empty to one member** works without any server response: `keys.length` becomes 1 and `pending` true in the same render, so the mode goes from `'empty'` to `'skeleton'` directly.
+- **The grid keeps rendered members while the group changes.** `GroupGrid` takes an optional `requestedKeys`, the members asked for. `gridColumns(renderedKeys, requestedKeys)` in `group-grid/grid-columns.ts` is a pure function returning one column per requested key, in the requested order: `{ kind: 'member', index }` for a member the server has rendered, `{ kind: 'pending', key }` for one it hasn't. A rendered member no longer requested has no column, so a removal shows at once.
+  - A `member` column renders exactly as it does settled: its header, its notices and its cells.
+  - A `pending` column renders `MemberHeaderSkeleton` and one `CellSkeleton` per row. Rows come from the rendered grid; with no rows, one row.
+  - The column count, `--members`, is the number of columns, so existing columns resize and reposition for the requested membership.
+  - Columns are keyed by member key, so a member's column keeps its identity across edits.
+- **In `'skeleton'` mode** `GroupBody` renders `GroupLayout` with `legend`; `gear` as `GroupGrid` with `requestedKeys={keys}` when `content` is present, else `GroupGridSkeleton members={keys.length}`; `dungeons` as `GroupPrioritySkeleton`; `vault` as `GroupVaultSkeleton`. `legend` is the page's `StateLegend`, passed by the page as its own prop. Both rail skeletons go inside the page's `PANEL_BOX` wrapper, which moves to `group-body/`. `GroupLayout` takes `dungeonCount: number | null` and hides the Dungeons tab's count when it is `null`, as it is in this mode.
+- **The group-wide panels skeleton.** The dungeon ranking and the vault depend on every member, so the old ones can't stay while the group changes. The owner's request concerns the grid only.
+- **The column count follows the latest intent.** `keys` comes from the context on every render, so a second edit while the first is pending changes the columns at once: a third member added to a pending two-member group shows the two real columns and one skeleton column, and a fourth then adds another.
+- **Empty to one member** works without any server response: `keys.length` becomes 1 and `pending` true in the same render, so the mode goes from `'empty'` to `'skeleton'` directly. No member has rendered, so `content` is `null` and the whole grid is `GroupGridSkeleton`.
 - **`GroupLayout` stays mounted** across `'content'` and `'skeleton'`: both render it at the same place in the tree, so the selected phone tab survives an edit.
-- `GroupGridSkeleton`, `GroupPrioritySkeleton` and `GroupVaultSkeleton` contain no server-only imports, because `GroupBody` renders them on the client.
+- `GroupGrid` and its parts, `GroupGridSkeleton`, `GroupPrioritySkeleton` and `GroupVaultSkeleton` contain no server-only imports, because `GroupBody` renders them on the client.
 - The member picker and its add bar stay real and usable. Further edits are allowed while one is pending, as today.
 - "Updating group…" in `GroupMembers` becomes sr-only. The skeleton says the rest.
 
@@ -175,6 +182,8 @@ The repo renders components to static markup in `*.test.ts` files (for example `
   - Every shape is inside an `aria-hidden` element.
   - There is exactly one `role="status"`, with the expected text.
   - `GroupGridSkeleton` renders one header shape per member and one row per slot.
+  - `gridColumns` (unit): all rendered; one pending; rapid additions; a removed member's column gone; nothing rendered yet; nobody requested.
+  - `GroupGrid` with `requestedKeys`: keeps the rendered member's real column and adds one skeleton column; drops a no-longer-requested member's column at once.
   - `CharacterCardSkeleton` with `name` shows the name and "Adding {name}…" visibly.
 - **Render, in-page swaps:**
   - `GearTable` with `bisLoading` and no rows renders skeleton rows, not the text.
@@ -188,8 +197,10 @@ The repo renders components to static markup in `*.test.ts` files (for example `
   - Middle-click a tab. It opens in a new browser tab, and the current page doesn't skeleton.
   - Group edits:
     - Empty group, add one member: one skeleton column appears before the server answers.
+    - One or more members, add one: the existing members' columns stay real and shrink to make room, and only the new column is a skeleton, then it fills in.
     - One member, remove it: the empty-state text appears at once.
-    - Two members, add a third and a fourth before the first edit settles: the skeleton shows three, then four columns, and the picker stays usable.
+    - Two members, add a third and a fourth before the first edit settles: the first two columns stay real, and the skeleton columns go from one to two. The picker stays usable.
+    - Two members, remove one while adding another: the removed column disappears at once, the kept column stays real.
     - On a phone width, pick the Vault tab, then edit the group: the Vault tab stays selected.
   - Repeat the tab-switch and group-edit checks on a production build (`npm run build`, then `npx next start -p 3001`, with dev stopped), since prefetching differs from dev.
   - Add a character from the bar on `/`. A named skeleton card appears, then the real card.

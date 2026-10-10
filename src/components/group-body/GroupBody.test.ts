@@ -10,13 +10,13 @@ const p = (text: string) => createElement('p', null, text);
 const render = (keys: string[], hasContent: boolean) => renderToStaticMarkup(createElement(GroupEditsProvider, { keys },
   createElement(GroupBody, {
     legend: p('legend'), empty: p('Pick up to five characters'),
-    content: hasContent ? { notice: null, gear: p('real grid'), dungeons: p('real dungeons'), vault: p('real vault'), dungeonCount: 7 } : null,
+    content: hasContent ? { notice: null, grid: { members: [], rows: [], tracksKnown: true }, dungeons: p('real dungeons'), vault: p('real vault'), dungeonCount: 7 } : null,
   })));
 
 describe('GroupBody', () => {
   it('renders the server panels once settled', () => {
     const html = render(['eu.argent-dawn.birkibjörn'], true);
-    expect(html).toContain('real grid');
+    expect(html).toContain('Gear by slot');
     expect(html).toContain('legend');
     expect(html).toContain('>7</span>');
     expect(html).not.toContain('animate-pulse');
