@@ -1,6 +1,6 @@
 # Skeleton loaders
 
-Status: design approved in chat on 2026-10-10.
+Status: design approved in chat on 2026-10-10. Spec review findings (list-tab pending state, client-side group fallback) resolved on 2026-10-10.
 Date: 2026-10-10
 Issue: #87. Skeleton loaders... skeleton loaders everywhere
 
@@ -16,6 +16,8 @@ Every wait for data shows a pulsing skeleton shaped like the content it is waiti
 - Every in-page wait listed under "In-page waits" shows a skeleton of the section in place of its loading text.
 - A group membership change skeletons the grid and both rail panels, while the member picker stays real and usable.
 - A character added from the bar on `/` appears at once as a skeleton card with its name.
+- Switching list tabs on a character page skeletons the gear table, dungeons and vault until the new list renders, even when the BiS and season data are cached. Header, settings and tabs stay.
+- The group grid skeleton always has as many columns as the latest requested membership, including while several edits are pending.
 - Switching list tabs on a character page, or editing the group, never blanks the whole page.
 - Screen readers hear one status line for each skeleton region, saying what is loading.
 - With `prefers-reduced-motion`, skeletons don't pulse.
@@ -23,7 +25,7 @@ Every wait for data shows a pulsing skeleton shaped like the content it is waiti
 
 ## Scope
 
-In scope: route loading states for `/`, `/group` and `/characters/[region]/[realm]/[name]`; in-page waits on background syncs; the group edit transition; adding a character from the bar; the untracked-character auto-add.
+In scope: route loading states for `/`, `/group` and `/characters/[region]/[realm]/[name]`; in-page waits on background syncs; list-tab switches on the character page; the group edit transition; adding a character from the bar; the untracked-character auto-add.
 
 Out of scope:
 
@@ -61,8 +63,9 @@ Each skeleton sits in the directory of the component it imitates, and copies tha
 | `CardProgressSkeleton` | `character-card/` | The card's middle block only: list label bar, progress bar, summary line. |
 | `GearTableSkeleton` | `character-page/` | Real header row and 16 rows on the gear table's 4-column grid. |
 | `DungeonPrioritySkeleton` | `character-page/` | Four ranked rows: name bar, score bar, one or two item-card shapes. Rendered inside the real section and heading. |
+| `VaultSectionSkeleton` | `character-page/` | The vault section's box and its three reward rows. |
 | `CharacterPageSkeleton` | `character-page/` | The whole character page below the back link: header, crests, settings, list tabs, gear table, dungeons, vault. Takes an optional `heading` node shown above it. |
-| `GroupGridSkeleton` | `group-grid/` | Takes `members: number`. Member header shapes and every slot row; slot labels real. |
+| `GroupGridSkeleton` | `group-grid/` | Takes `members: number`, at least 1. Member header shapes and every slot row; slot labels real. No server-only imports, so client components can render it. |
 | `GroupPrioritySkeleton` | `group-priority/` | The group dungeon list's rows. |
 | `GroupVaultSkeleton` | `group-vault/` | The group vault panel's rows. |
 
@@ -73,7 +76,7 @@ A skeleton that only its parent renders, such as a header shape used only by `Ch
 Each route gets a `loading.tsx` that composes the skeletons:
 
 - **`src/app/loading.tsx`, for `/`:** the real heading and subtitle, a skeleton of the add bar's box, `StateLegend`, and four `CharacterCardSkeleton`s in the page's card grid. Status: "Loading characters…".
-- **`src/app/group/loading.tsx`:** the real heading, a skeleton of the member picker, then `GroupLayout` with `GroupGridSkeleton members={5}` and both rail skeletons. Status: "Loading group…".
+- **`src/app/group/loading.tsx`:** the real heading, a skeleton of the member picker, then `GroupLayout` with `dungeonCount={null}`, `GroupGridSkeleton members={5}` and both rail skeletons. Status: "Loading group…".
 - **`src/app/characters/[region]/[realm]/[name]/loading.tsx`:** the real "All characters" link and `CharacterPageSkeleton`. Status: "Loading character…".
 
 A route skeleton doesn't know the character's name yet, so it shows no words on screen.
@@ -84,9 +87,25 @@ A route skeleton doesn't know the character's name yet, so it shows no words on 
 
 Group edits navigate with `router.replace` to a new `?chars=`, and the list tabs link to a new `?list=`. If Next treats the new search params as a new segment and shows `loading.tsx`, a tab switch blanks the whole character page and a group edit hides the picker the user is clicking.
 
-**Required behavior:** neither navigation shows the route skeleton. Only the sections that depend on the change skeleton: the gear table, dungeons and vault for a tab switch; the grid and rail panels for a group edit (see "Group edits in flight").
+**Required behavior:** neither navigation shows the route skeleton. Only the sections that depend on the change skeleton: the gear table, dungeons and vault for a tab switch (see "List-tab switches"); the grid and rail panels for a group edit (see "Group edits in flight").
 
-The plan's first task checks this in the browser, with the dev server and a throttled network. If the route skeleton does show, the plan picks the smallest fix that meets the requirement, such as wrapping the tab links' navigation in a transition, or moving the route's loading boundary below the parts that must stay. The plan records which fix and why.
+Both navigations run inside `startTransition`, which already holds visible content instead of showing a Suspense fallback. The plan's first task checks in the browser, on the dev server and on a production build, that a transition navigation to a new `?list=` or `?chars=` doesn't show `loading.tsx`. If it still does, the plan picks the smallest fix that meets the requirement, such as moving the route's loading boundary below the parts that must stay, and records which fix and why.
+
+A cached destination that renders at once must not be forced through a skeleton. Neither the route fallback nor the section swaps add a minimum display time.
+
+### List-tab switches
+
+Today `ListTabs` renders plain `Link`s, and the page renders `GearTable`, `DungeonPriority` and `VaultSection` directly. With the BiS and season data cached, nothing on the page knows a tab switch is in flight, so the old list stays on screen until the server answers.
+
+- **`src/components/list-switch/ListSwitchProvider.tsx`**, a client provider, owns the switch. It holds the requested list type and a `useTransition` pending flag. `select(listType, href)` sets the requested list and calls `startTransition(() => router.push(href, { scroll: false }))`. Once nothing is pending, the requested list resets to the rendered one, as `GroupEditsProvider` does with its keys.
+- **`ListTabs` becomes a client component.** Each tab stays a `Link` with the same `href`, so middle-click, open-in-new-tab and keyboard focus behave as today. A plain left click without modifier keys calls `preventDefault()` and `select(...)`. The tab marked `aria-current="page"` is the requested one, so the click shows at once.
+- **`WhileListSettled`**, a client component in the same directory, takes `fallback` and `children` and renders the fallback while the switch is pending. The page wraps three sections in it:
+  - `GearTable`, falling back to `GearTableSkeleton` in its real section box.
+  - `DungeonPriority`, falling back to its real heading and `DungeonPrioritySkeleton`.
+  - `VaultSection`, falling back to `VaultSectionSkeleton`.
+- The fallbacks have fixed shapes, so the server page builds them and passes them in as nodes. The header, crests, settings and tabs stay mounted and usable.
+- **Rapid switches settle on the last one.** Each click updates the requested list and starts a new transition; the router drops the earlier navigation, and the sections stay skeletons until the last one has rendered.
+- The provider wraps the page body below the back link. It is the only owner of the switch; nothing else reads the URL's `list` param on the client.
 
 ### In-page waits
 
@@ -104,13 +123,22 @@ Group cells: `cellNote` in `src/components/group-grid/cell-note.ts` returns `{ s
 
 ### Group edits in flight
 
-`GroupEditsProvider` already exposes `pending` and the requested `keys`.
+`GroupEditsProvider` already exposes `pending` and the requested `keys`, which run ahead of the rendered ones during an edit. Only a client component can read them; the server page knows only the committed keys. So the choice between the empty state, skeletons and real panels moves to the client.
 
-- A small client component in `group-edits/`, `WhileSettled`, takes `fallback` and `children`, and renders the fallback while `useGroupEdits().pending` is true. Nothing else imports it, so it stays in that directory.
-- The group page wraps each `GroupLayout` slot in it: the grid falls back to `GroupGridSkeleton members={keys.length}`, the dungeons panel to `GroupPrioritySkeleton`, and the vault panel to `GroupVaultSkeleton`.
+- **`src/components/group-body/GroupBody.tsx`**, a client component rendered inside `GroupEditsProvider`, takes:
+  - `empty`: the empty-state paragraph.
+  - `content`: `null` when the rendered group has no members, else `{ notice, legend, gear, dungeons, vault, dungeonCount }`, the same server-rendered slots the page passes to `GroupLayout` today. `notice` is the page-level track data line, or `null`.
+- **`groupBodyMode(pending, requestedCount, hasContent)`** in `group-body/group-body-mode.ts` is a pure function returning `'empty'`, `'skeleton'` or `'content'`:
+  - `requestedCount === 0` gives `'empty'`, pending or not. Removing the last member shows the empty-state text at once: there is nothing to wait for.
+  - Otherwise `pending` gives `'skeleton'`.
+  - Otherwise `hasContent` gives `'content'`, and its absence gives `'empty'`.
+- **In `'skeleton'` mode** `GroupBody` renders `GroupLayout` with `legend` from `content` when present, else `StateLegend`; `gear` as `GroupGridSkeleton members={keys.length}`; `dungeons` as `GroupPrioritySkeleton`; `vault` as `GroupVaultSkeleton`. Both rail skeletons go inside the page's `PANEL_BOX` wrapper, which moves to `group-body/`. `GroupLayout` takes `dungeonCount: number | null` and hides the Dungeons tab's count when it is `null`, as it is in this mode.
+- **The column count follows the latest intent.** `keys` comes from the context on every render, so a second edit while the first is pending changes the skeleton at once: a third member added to a pending two-member group shows three columns.
+- **Empty to one member** works without any server response: `keys.length` becomes 1 and `pending` true in the same render, so the mode goes from `'empty'` to `'skeleton'` directly.
+- **`GroupLayout` stays mounted** across `'content'` and `'skeleton'`: both render it at the same place in the tree, so the selected phone tab survives an edit.
+- `GroupGridSkeleton`, `GroupPrioritySkeleton` and `GroupVaultSkeleton` contain no server-only imports, because `GroupBody` renders them on the client.
 - The member picker and its add bar stay real and usable. Further edits are allowed while one is pending, as today.
 - "Updating group…" in `GroupMembers` becomes sr-only. The skeleton says the rest.
-- When the group goes from no members to some, the page renders the empty-state text, not `GroupLayout`. While pending in that state, the empty text is replaced by the same skeletons inside `GroupLayout`.
 
 ### Adding a character from the bar on `/`
 
@@ -131,6 +159,9 @@ The bar and the card grid are siblings in a server page, so they share the pendi
 The repo renders components to static markup in `*.test.ts` files (for example `src/components/group-grid/GroupGrid.test.ts`). The new tests follow that pattern.
 
 - **Unit, `cell-note.test.ts`:** `bisLoading` and `syncing` return `{ skeleton: true }`; `untracked`, `noGear`, `notFound` and "No BiS list" keep their text.
+- **Unit, `group-body-mode.test.ts`:** every combination of `pending`, `requestedCount` 0 or more, and `hasContent`, including 0 requested while pending (`'empty'`) and 1 requested with no content while pending (`'skeleton'`).
+- **Render, `GroupBody`** inside a `GroupEditsProvider` (with the App Router mocked, as `GroupGrid.test.ts` does): settled with content renders the slots; settled without content renders the empty text.
+- **Render, `ListTabs`** inside a `ListSwitchProvider`: each tab is a link with its `?list=` href, and the rendered list carries `aria-current="page"`. `WhileListSettled` renders its children when nothing is pending.
 - **Render, each skeleton:**
   - Every shape is inside an `aria-hidden` element.
   - There is exactly one `role="status"`, with the expected text.
@@ -143,10 +174,20 @@ The repo renders components to static markup in `*.test.ts` files (for example `
   - `GroupGrid` renders skeleton cells for a `syncing` member, with one "Syncing {name}…" status.
 - **Hand checks, local, with dev tools throttling the network to Slow 4G:**
   - Open each route from the nav and from a card. The route skeleton shows, then the page.
-  - Switch list tabs on a character page. The page never blanks; only the sections change.
-  - Add and remove group members. The picker stays; the grid and rail skeleton, then fill in.
+  - On a character whose BiS and season data are already loaded, switch list tabs. The clicked tab is marked at once; the gear table, dungeons and vault show skeletons, then the new list. Header, settings and tabs never blank.
+  - Click three tabs quickly. The page settles on the last one clicked.
+  - Middle-click a tab. It opens in a new browser tab, and the current page doesn't skeleton.
+  - Group edits:
+    - Empty group, add one member: one skeleton column appears before the server answers.
+    - One member, remove it: the empty-state text appears at once.
+    - Two members, add a third and a fourth before the first edit settles: the skeleton shows three, then four columns, and the picker stays usable.
+    - On a phone width, pick the Vault tab, then edit the group: the Vault tab stays selected.
+  - Repeat the tab-switch and group-edit checks on a production build (`npm run build`, then `npx next start -p 3001`, with dev stopped), since prefetching differs from dev.
   - Add a character from the bar on `/`. A named skeleton card appears, then the real card.
   - Open an untracked character's path. The adding line and page skeleton show, then the page.
   - Turn on reduced motion in the OS. The skeletons don't pulse.
   - Compare each skeleton with its loaded page. No large jump when content lands.
-- **Not covered:** no browser-level tests, so route fallbacks, transitions and the search-param behavior are checked by hand only.
+- **Not covered:**
+  - No browser-level tests, so route fallbacks, transitions, rapid edits and the search-param behavior are checked by hand only.
+  - Static markup can't show a screen reader's announcements. The render tests check that one status exists per region; a pass with a screen reader is optional.
+  - Pending states can't be forced in a static render, so the skeleton branches of `GroupBody` and `WhileListSettled` are covered by `groupBodyMode` and by hand.
