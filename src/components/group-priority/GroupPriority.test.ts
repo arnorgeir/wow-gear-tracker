@@ -153,4 +153,11 @@ describe('GroupPriority', () => {
     expect(second.indexOf('Split dungeon: loot shown for the whole instance.')).toBeGreaterThan(second.indexOf('</summary>'));
     expect(html.match(/Split dungeon/g)).toHaveLength(1);
   });
+
+  it('shows skeleton rows under the real heading while the season loads', () => {
+    const html = render({ ...base, season: 'loading' });
+    expect(html).toContain('Dungeon priority</h2>');
+    expect(html).toContain('animate-pulse');
+    expect(html).toMatch(/<span role="status" class="sr-only">Loading this season’s loot…<\/span>/);
+  });
 });

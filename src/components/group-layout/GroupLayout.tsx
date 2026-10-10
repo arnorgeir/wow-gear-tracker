@@ -10,7 +10,7 @@ const TAB = 'flex h-11 items-center justify-center gap-1.5 rounded-lg font-bold'
 const ICONS: Record<GroupView, BrandIconName> = { gear: 'characters', dungeons: 'dungeons', vault: 'vault' };
 const tabTone = (on: boolean) => (on ? 'bg-raised text-ink' : 'text-muted');
 
-interface Props { legend: ReactNode; gear: ReactNode; dungeons: ReactNode; vault: ReactNode; dungeonCount: number }
+interface Props { legend: ReactNode; gear: ReactNode; dungeons: ReactNode; vault: ReactNode; dungeonCount: number | null }
 
 /** Tabs below xl, the grid beside a sticky rail at xl. The panels are server-rendered slots. */
 export function GroupLayout({ legend, gear, dungeons, vault, dungeonCount }: Props) {
@@ -24,7 +24,7 @@ export function GroupLayout({ legend, gear, dungeons, vault, dungeonCount }: Pro
           <button key={id} type="button" aria-pressed={view === id} onClick={() => setView(id)} className={`${TAB} flex-auto ${tabTone(view === id)}`}>
             <BrandIcon name={ICONS[id]} />
             {label}
-            {id === 'dungeons' && <span className="font-mono text-xs text-muted">{dungeonCount}</span>}
+            {id === 'dungeons' && dungeonCount !== null && <span className="font-mono text-xs text-muted">{dungeonCount}</span>}
           </button>
         ))}
       </div>

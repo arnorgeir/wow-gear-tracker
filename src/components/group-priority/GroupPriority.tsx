@@ -1,12 +1,13 @@
 import { APPROXIMATE, SEASON_FAILED, SEASON_LOADING, SEASON_STALE } from '@/components/shared/priority-copy';
 import type { GroupPriorityView } from '@/server/views/types';
 import { DungeonRow } from './DungeonRow';
+import { PriorityRowsSkeleton } from './PriorityRowsSkeleton';
 
 const names = (list: string[]) => (list.length <= 1 ? list.join('') : `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`);
 const excludedText = (excluded: GroupPriorityView['excluded']) => excluded.map((e) => `${e.name} (${e.reason})`).join(', ');
 
 function Ranking({ priority }: { priority: GroupPriorityView }) {
-  if (priority.season === 'loading') return <p role="status" className="text-muted">{SEASON_LOADING}</p>;
+  if (priority.season === 'loading') return <><span role="status" className="sr-only">{SEASON_LOADING}</span><PriorityRowsSkeleton /></>;
   if (priority.season === 'failed') return <p role="alert" className="text-[#f3c9a2]">{SEASON_FAILED}</p>;
   if (!priority.ranking) {
     return (
