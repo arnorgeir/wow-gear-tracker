@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState, useTransition, type KeyboardEvent } from 'react';
+import { useLayoutEffect, useMemo, useState, useTransition, type KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApiAction } from '@/components/hooks/use-api-action';
+import { usePendingCharacter } from '@/components/pending-character/PendingCharacterProvider';
 import { LABEL_CLASS } from '@/components/shared/field-classes';
 import { REGIONS, type Region } from '@/core/types';
 import { activeIndex, keyAction, type Highlight } from './highlight';
@@ -36,6 +37,15 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
   // re-rendered; wrapping it in a transition keeps a pending state until that render lands too.
   const [navigating, startTransition] = useTransition();
   const pending = busy || navigating;
+  const shared = usePendingCharacter();
+  const setSharedName = shared?.setName;
+  // One value says whether a card is being added; it clears with the error on a failed add and with the refresh on success.
+  const showing = pending && addingName ? addingName : null;
+  // Layout effect: the skeleton card leaves in the same paint the real card arrives, never beside it.
+  useLayoutEffect(() => {
+    setSharedName?.(showing);
+    return () => setSharedName?.(null);
+  }, [setSharedName, showing]);
   const trackedLookup = useMemo(() => buildTrackedLookup(trackedCharacters), [trackedCharacters]);
 
   function pick(r: SearchResult) { return add(r.name, { name: r.name, realmId: r.blizzardRealmId }); }
@@ -115,8 +125,9 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
 
       {/* Three paragraphs, not one with a precedence: the search hint explains the realm dropdown, a failed
           add request needs its own line, and the "Adding…" status has to keep showing through the
-          refresh that follows a successful add, well after `busy` itself has cleared. */}
-      {pending && addingName && <p role="status" className="w-full text-sm text-muted">Adding {addingName}…</p>}
+          refresh that follows a successful add, well after `busy` itself has cleared. On a page with a
+          PendingCharacterProvider, the skeleton card in the grid says it instead. */}
+      {!shared && showing && <p role="status" className="w-full text-sm text-muted">Adding {showing}…</p>}
       {error && <p role="alert" className="w-full text-sm text-[#f3c9a2]">{error}</p>}
       {searchError && <p role="status" className="w-full text-sm text-[#f3c9a2]">{searchError}</p>}
     </section>
