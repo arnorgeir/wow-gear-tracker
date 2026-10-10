@@ -1,6 +1,6 @@
 # Skeleton loaders
 
-Status: design approved in chat on 2026-10-10. Spec review findings (list-tab pending state, client-side group fallback) resolved on 2026-10-10.
+Status: design approved in chat on 2026-10-10. Spec review findings (list-tab pending state, client-side group fallback) resolved on 2026-10-10. Route skeletons limited to `/` on 2026-10-10, after a browser probe (see "Why only `/` gets a route skeleton").
 Date: 2026-10-10
 Issue: #87. Skeleton loaders... skeleton loaders everywhere
 
@@ -12,7 +12,7 @@ Every wait for data shows a pulsing skeleton shaped like the content it is waiti
 
 ## What success looks like
 
-- Navigating to any of the three routes shows that page's skeleton at once.
+- Navigating to `/` shows the characters page's skeleton at once. The group and character routes get no route skeleton; see "Why only `/` gets a route skeleton".
 - Every in-page wait listed under "In-page waits" shows a skeleton of the section in place of its loading text.
 - A group membership change skeletons the grid and both rail panels, while the member picker stays real and usable.
 - A character added from the bar on `/` appears at once as a skeleton card with its name.
@@ -25,7 +25,7 @@ Every wait for data shows a pulsing skeleton shaped like the content it is waiti
 
 ## Scope
 
-In scope: route loading states for `/`, `/group` and `/characters/[region]/[realm]/[name]`; in-page waits on background syncs; list-tab switches on the character page; the group edit transition; adding a character from the bar; the untracked-character auto-add.
+In scope: the route loading state for `/`; in-page waits on background syncs; list-tab switches on the character page; the group edit transition; adding a character from the bar; the untracked-character auto-add.
 
 Out of scope:
 
@@ -45,13 +45,13 @@ No new color token: `bg-line` on `bg-surface` already reads as a placeholder in 
 
 ### Words
 
-- **Each skeleton region carries exactly one `role="status"` element** with `sr-only` text naming what is loading, such as "Loading character…". The shapes inside are `aria-hidden`.
+- **Each skeleton region carries exactly one `role="status"` element** with `sr-only` text naming what is loading, such as "Loading characters…". The shapes inside are `aria-hidden`.
 - **Visible text appears only where the skeleton can't explain itself:**
   - A name the user just asked for: "Adding Birkibjörn…".
   - The page-level "Loading upgrade track data…" line on the group and character pages. The rest of the page is real there; only the upgrade colors are missing, and nothing else says why.
   - Errors, unchanged.
 - **Text that becomes screen-reader-only:** "Loading BiS list…" wherever a skeleton replaces it, "Syncing…" in group cells, and "Updating group…" in the member picker.
-- The copy stays in `src/components/shared/loading-copy.ts`, together with the new route strings.
+- The copy stays in `src/components/shared/loading-copy.ts`, together with the new strings.
 
 ### Section skeletons
 
@@ -73,15 +73,24 @@ A skeleton that only its parent renders, such as a header shape used only by `Ch
 
 ### Page loads
 
-Each route gets a `loading.tsx` that composes the skeletons:
+Only `/` gets a route skeleton:
 
-- **`src/app/loading.tsx`, for `/`:** the real heading and subtitle, a skeleton of the add bar's box, `StateLegend`, and four `CharacterCardSkeleton`s in the page's card grid. Status: "Loading characters…".
-- **`src/app/group/loading.tsx`:** the real heading, a skeleton of the member picker, then `GroupLayout` with `dungeonCount={null}`, `GroupGridSkeleton members={5}` and both rail skeletons. Status: "Loading group…".
-- **`src/app/characters/[region]/[realm]/[name]/loading.tsx`:** the real "All characters" link and `CharacterPageSkeleton`. Status: "Loading character…".
+- **`src/app/(home)/loading.tsx`:** the real heading and subtitle, a skeleton of the add bar's box, `StateLegend`, and four `CharacterCardSkeleton`s in the page's card grid. Status: "Loading characters…". Shapes only, no visible words.
+- **The home page moves to `src/app/(home)/page.tsx`.** The `(home)` route group scopes the loading boundary to `/`. A `loading.tsx` at `src/app/` would sit above `/group` and the character route too, and a loading boundary above a page that isn't its own triggers the full reloads described below.
+- **`/group` and the character route have no `loading.tsx`.** Opening them from another page keeps the old page on screen until the new one renders, as today. Their sections still skeleton on every in-page wait, tab switch and group edit.
 
-A route skeleton doesn't know the character's name yet, so it shows no words on screen.
+### Why only `/` gets a route skeleton
 
-`src/app/loading.tsx` sits in the root segment, so it would also wrap `/group` and the character route. Each of those has its own `loading.tsx`, which is the nearer boundary and wins.
+A browser probe on 2026-10-10, on the dev server and on a production build, with a 2 s delay in the character page and tabs navigating inside `startTransition`:
+
+| Route fallback | Tab switch to a new `?list=` |
+|---|---|
+| `loading.tsx` beside the character page | Same document, but the route fallback shows: the whole page blanks |
+| `<Suspense>` in a character-route `layout.tsx` | Full document reload on every click, dev and production |
+| `loading.tsx` at `src/app/characters/` | Full document reload on every click |
+| None | Same document, the transition's pending state works, no fallback |
+
+Group edits navigate to a new `?chars=` the same way. A route skeleton on either page therefore either blanks it or reloads it on every tab switch or group edit, so neither page gets one. A later issue can look for another page-load cue for them.
 
 ### Search-param navigations must not show a route skeleton
 
@@ -89,7 +98,7 @@ Group edits navigate with `router.replace` to a new `?chars=`, and the list tabs
 
 **Required behavior:** neither navigation shows the route skeleton. Only the sections that depend on the change skeleton: the gear table, dungeons and vault for a tab switch (see "List-tab switches"); the grid and rail panels for a group edit (see "Group edits in flight").
 
-Both navigations run inside `startTransition`, which already holds visible content instead of showing a Suspense fallback. The plan's first task checks in the browser, on the dev server and on a production build, that a transition navigation to a new `?list=` or `?chars=` doesn't show `loading.tsx`. If it still does, the plan picks the smallest fix that meets the requirement, such as moving the route's loading boundary below the parts that must stay, and records which fix and why.
+Both navigations run inside `startTransition`, and neither route has a loading boundary in its tree (see above), so the page stays and only the dependent sections skeleton.
 
 A cached destination that renders at once must not be forced through a skeleton. Neither the route fallback nor the section swaps add a minimum display time.
 
@@ -173,7 +182,7 @@ The repo renders components to static markup in `*.test.ts` files (for example `
   - `CharacterCard` renders `CardProgressSkeleton` without counts, and a skeleton summary line while tracks load.
   - `GroupGrid` renders skeleton cells for a `syncing` member, with one "Syncing {name}…" status.
 - **Hand checks, local, with dev tools throttling the network to Slow 4G:**
-  - Open each route from the nav and from a card. The route skeleton shows, then the page.
+  - Open `/` from the nav. The route skeleton shows, then the page. Open `/group` and a character: no route skeleton, and no full reload.
   - On a character whose BiS and season data are already loaded, switch list tabs. The clicked tab is marked at once; the gear table, dungeons and vault show skeletons, then the new list. Header, settings and tabs never blank.
   - Click three tabs quickly. The page settles on the last one clicked.
   - Middle-click a tab. It opens in a new browser tab, and the current page doesn't skeleton.

@@ -4,7 +4,7 @@
 
 **Goal:** Every wait for data shows a pulsing skeleton shaped like the content it waits for, with words only where the shape can't explain itself.
 
-**Architecture:** One `Skeleton` primitive and a skeleton beside each data section. Route `loading.tsx` files compose them for page loads. Components swap a section for its skeleton during background-sync waits. Two client owners of pending state drive the swaps: a new `ListSwitchProvider` for list tabs, and a new `GroupBody` that reads `GroupEditsProvider` for group edits. A `PendingCharacterProvider` lets the add bar show a named skeleton card in the grid beside it.
+**Architecture:** One `Skeleton` primitive and a skeleton beside each data section. `/` gets a route `loading.tsx` composed from them; the group and character routes get none (Task 1 probe). Components swap a section for its skeleton during background-sync waits. Two client owners of pending state drive the swaps: a new `ListSwitchProvider` for list tabs, and a new `GroupBody` that reads `GroupEditsProvider` for group edits. A `PendingCharacterProvider` lets the add bar show a named skeleton card in the grid beside it.
 
 **Tech Stack:** Next.js App Router (this repo's version: read `node_modules/next/dist/docs/` before relying on any API), React 19, Tailwind v4, Vitest with `renderToStaticMarkup`.
 
@@ -56,7 +56,7 @@ These follow the spec's intent and change no behavior:
 | `src/components/group-body/GroupBody.tsx`, `group-body-mode.ts`, `panel-box.ts` | Empty, skeleton or real group panels |
 | `src/components/pending-character/PendingCharacterProvider.tsx` | The name being added from the bar |
 | `src/components/character-grid/CharacterGrid.tsx` | Card grid, empty state, pending card |
-| `src/app/loading.tsx`, `src/app/group/loading.tsx`, `src/app/characters/[region]/[realm]/[name]/loading.tsx` | Route skeletons |
+| `src/app/(home)/page.tsx` (moved), `src/app/(home)/loading.tsx` | `/` and its route skeleton |
 
 ---
 
@@ -247,8 +247,6 @@ export function Skeleton({ className = '' }: { className?: string }) {
 export const BIS_LOADING = 'Loading BiS list…';
 export const TRACKS_LOADING = 'Loading upgrade track data…';
 export const CHARACTERS_LOADING = 'Loading characters…';
-export const CHARACTER_LOADING = 'Loading character…';
-export const GROUP_LOADING = 'Loading group…';
 export const GROUP_UPDATING = 'Updating group…';
 export const LIST_LOADING = 'Loading list…';
 export const addingText = (name: string) => `Adding ${name}…`;
@@ -1251,53 +1249,48 @@ Expected: PASS.
 
 ---
 
-### Task 7: Route loading skeletons
+### Task 7: Route skeleton for `/` only
+
+Task 1's probe ruled out route skeletons on `/group` and the character route (spec, "Why only `/` gets a route skeleton"). `/` gets one, scoped with a `(home)` route group so no loading boundary sits above the other routes.
 
 **Files:**
-- Create: `src/app/loading.tsx`, `src/app/group/loading.tsx`, `src/app/characters/[region]/[realm]/[name]/loading.tsx`, `src/app/loading.test.ts`
+- Move: `src/app/page.tsx` to `src/app/(home)/page.tsx` (`git mv`; its imports use `@/`, so nothing else changes)
+- Create: `src/app/(home)/loading.tsx`, `src/app/(home)/loading.test.ts`
 
 **Interfaces:**
-- Consumes: `CharacterCardSkeleton`, `CharacterPageSkeleton`, `GroupGridSkeleton`, `GroupPrioritySkeleton`, `GroupVaultSkeleton`, `GroupLayout`, `PANEL_BOX`, `Skeleton`, copy constants.
+- Consumes: `CharacterCardSkeleton` (Task 2), `Skeleton`, `CHARACTERS_LOADING`.
 
 - [ ] **Step 1: Write the failing test**
 
 `vitest.config.ts` includes `src/**/*.test.ts`, so a test under `src/app` runs.
 
-`src/app/loading.test.ts`:
+`src/app/(home)/loading.test.ts`:
 
 ```ts
-import { createElement, type ReactElement } from 'react';
+import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import CharacterLoading from './characters/[region]/[realm]/[name]/loading';
-import GroupLoading from './group/loading';
-import HomeLoading from './loading';
+import Loading from './loading';
 
-const render = (C: () => ReactElement) => renderToStaticMarkup(createElement(C)).replace(/<link[^>]*\/>/g, '');
-
-describe('route skeletons', () => {
-  it.each([
-    ['home', HomeLoading, 'Loading characters…', '>Characters</h1>'],
-    ['group', GroupLoading, 'Loading group…', '>Group</h1>'],
-    ['character', CharacterLoading, 'Loading character…', 'All characters'],
-  ])('%s announces once and keeps its static parts real', (_, C, status, real) => {
-    const html = render(C);
+describe('home route skeleton', () => {
+  it('announces once, keeps the heading real and shows four card shapes', () => {
+    const html = renderToStaticMarkup(createElement(Loading));
     expect(html.match(/role="status"/g)).toHaveLength(1);
-    expect(html).toContain(`<p role="status" class="sr-only">${status}</p>`);
-    expect(html).toContain(real);
-    expect(html).toContain('animate-pulse');
+    expect(html).toContain('<p role="status" class="sr-only">Loading characters…</p>');
+    expect(html).toContain('>Characters</h1>');
+    expect(html.match(/<article/g)).toHaveLength(4);
   });
 });
 ```
 
-- [ ] **Step 2: Run it to see it fail**
+- [ ] **Step 2: Move the page, then run the test to see it fail**
 
-Run: `npx vitest run src/app/loading.test.ts`
-Expected: FAIL, modules missing.
+Run: `git mv src/app/page.tsx "src/app/(home)/page.tsx"` (create the folder first), then `npx vitest run "src/app/(home)"`
+Expected: FAIL, cannot resolve `./loading`.
 
 - [ ] **Step 3: Implement**
 
-`src/app/loading.tsx`:
+`src/app/(home)/loading.tsx`:
 
 ```tsx
 import { CharacterCardSkeleton } from '@/components/character-card/CharacterCardSkeleton';
@@ -1323,65 +1316,18 @@ export default function Loading() {
 }
 ```
 
-`src/app/group/loading.tsx`:
-
-```tsx
-import { PANEL_BOX } from '@/components/group-body/panel-box';
-import { GroupGridSkeleton } from '@/components/group-grid/GroupGridSkeleton';
-import { GroupLayout } from '@/components/group-layout/GroupLayout';
-import { GroupPrioritySkeleton } from '@/components/group-priority/GroupPrioritySkeleton';
-import { GroupVaultSkeleton } from '@/components/group-vault/GroupVaultSkeleton';
-import { GROUP_LOADING } from '@/components/shared/loading-copy';
-import { Skeleton } from '@/components/skeleton/Skeleton';
-import { StateLegend } from '@/components/state-legend/StateLegend';
-
-export default function Loading() {
-  return (
-    <main className="mx-auto flex max-w-[1440px] flex-col gap-8 px-4 py-12 sm:px-8 2xl:px-16">
-      <p role="status" className="sr-only">{GROUP_LOADING}</p>
-      <div className="flex flex-col gap-4">
-        <h1 className="font-display text-4xl font-bold tracking-wide">Group</h1>
-        <div className="flex flex-wrap gap-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-12 w-40 rounded-full" />)}</div>
-      </div>
-      <GroupLayout dungeonCount={null} legend={<StateLegend />}
-        gear={<GroupGridSkeleton members={5} />}
-        dungeons={<div className={PANEL_BOX}><GroupPrioritySkeleton /></div>}
-        vault={<div className={PANEL_BOX}><GroupVaultSkeleton /></div>} />
-    </main>
-  );
-}
-```
-
-`src/app/characters/[region]/[realm]/[name]/loading.tsx`:
-
-```tsx
-import Link from 'next/link';
-import { CharacterPageSkeleton } from '@/components/character-page/CharacterPageSkeleton';
-import { CHARACTER_LOADING } from '@/components/shared/loading-copy';
-
-export default function Loading() {
-  return (
-    <main className="mx-auto flex max-w-[1440px] flex-col gap-8 px-4 py-10 sm:px-16">
-      <p role="status" className="sr-only">{CHARACTER_LOADING}</p>
-      <Link href="/" className="text-sm">&larr; All characters</Link>
-      <CharacterPageSkeleton />
-    </main>
-  );
-}
-```
-
 - [ ] **Step 4: Run it to see it pass**
 
-Run: `npx vitest run src/app/loading.test.ts`
-Expected: PASS. If `GroupLayout` (a client component with `useState`) fails to render statically, it shouldn't: `GroupLayout.test.ts` already renders it.
+Run: `npx vitest run "src/app/(home)" && npm run typecheck`
+Expected: PASS.
 
 - [ ] **Step 5: Check the search-param behavior with the real code**
 
-With dev running: open a character, switch tabs, and confirm the route skeleton never shows, only the three section skeletons. Edit the group and confirm the picker stays. If the route skeleton shows on either, stop and tell the owner (see Task 1).
+With dev running: open `/` from the nav and see its skeleton. Open a character, switch tabs, and confirm the page stays in the same document and only the three sections skeleton. Edit the group and confirm the picker stays. If either navigation reloads the document or blanks the page, stop and tell the owner.
 
 - [ ] **Step 6: Commit**
 
-`feat: show page skeletons while a route loads`
+`feat: show the characters page skeleton while it loads`
 
 ---
 
@@ -1391,7 +1337,7 @@ With dev running: open a character, switch tabs, and confirm the route skeleton 
 - Create: `src/components/pending-character/PendingCharacterProvider.tsx`
 - Create: `src/components/character-grid/CharacterGrid.tsx`, `src/components/character-grid/CharacterGrid.test.ts`
 - Modify: `src/components/add-character-bar/AddCharacterBar.tsx`
-- Modify: `src/app/page.tsx`
+- Modify: `src/app/(home)/page.tsx` (moved there in Task 7)
 - Modify: `src/components/auto-add-character/AutoAddCharacter.tsx`
 
 **Interfaces:**
@@ -1505,7 +1451,7 @@ and change the bar's own line to show only without a provider:
 
 Update the comment above the three paragraphs to say the "Adding…" line moves to the card when the page provides one.
 
-`src/app/page.tsx`: wrap the `<main>` content in `<PendingCharacterProvider>` (the `AddCharacterBar` and the grid both inside), and replace the empty/grid ternary with:
+`src/app/(home)/page.tsx`: wrap the `<main>` content in `<PendingCharacterProvider>` (the `AddCharacterBar` and the grid both inside), and replace the empty/grid ternary with:
 
 ```tsx
       <CharacterGrid count={cards.length} empty={<p className="text-muted">No characters yet. Search for one above.</p>}>
@@ -1550,7 +1496,7 @@ Expected: success.
 
 Run each check on the dev server, and repeat the tab-switch and group-edit checks on `npx next start -p 3001` after the build. Restart dev afterwards.
 
-- Open `/`, `/group` and a character from the nav and from a card: the route skeleton shows, then the page.
+- Open `/` from the nav: its skeleton shows, then the page. Open `/group` and a character from the nav and from a card: no route skeleton, no full reload.
 - On a character whose BiS and season data are loaded, switch list tabs: the clicked tab is marked at once; the gear table, dungeons and vault skeleton, then the new list renders. Header, settings and tabs never blank.
 - Click three tabs quickly: the page settles on the last one.
 - Middle-click a tab: it opens in a new browser tab, and the current page doesn't skeleton.
