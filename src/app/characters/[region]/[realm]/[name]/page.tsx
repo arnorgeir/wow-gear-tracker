@@ -4,9 +4,15 @@ import { AutoAddCharacter } from '@/components/auto-add-character/AutoAddCharact
 import { CharacterAlerts } from '@/components/character-page/CharacterAlerts';
 import { CharacterHeader } from '@/components/character-page/CharacterHeader';
 import { DungeonPriority } from '@/components/character-page/DungeonPriority';
+import { DungeonPrioritySkeleton } from '@/components/character-page/DungeonPrioritySkeleton';
 import { GearTable } from '@/components/character-page/GearTable';
+import { GearTableSkeleton } from '@/components/character-page/GearTableSkeleton';
 import { ListTabs } from '@/components/character-page/ListTabs';
 import { VaultSection } from '@/components/character-page/VaultSection';
+import { VaultSectionSkeleton } from '@/components/character-page/VaultSectionSkeleton';
+import { ListSwitchProvider } from '@/components/list-switch/ListSwitchProvider';
+import { WhileListSettled } from '@/components/list-switch/WhileListSettled';
+import { LIST_LOADING } from '@/components/shared/loading-copy';
 import { CharacterSettings } from '@/components/character-settings/CharacterSettings';
 import { CrestSummary } from '@/components/crest-summary/CrestSummary';
 import { BackgroundSync } from '@/components/background-sync/BackgroundSync';
@@ -58,14 +64,22 @@ export default async function CharacterPage({ params, searchParams }: Props) {
         <CrestSummary crests={view.crests} now={now} />
       </section>
       <CharacterSettings id={view.id} specs={view.specs} spec={view.spec} activeSpec={view.activeSpec} priorityList={view.priorityList} />
-      <ListTabs href={view.href} listType={view.listType} counts={view.counts} />
-      <div className="grid grid-cols-1 gap-8 min-[1380px]:grid-cols-[860px_minmax(0,1fr)] min-[1380px]:items-start">
-        <GearTable rows={view.rows} tracksKnown={view.tracksKnown} bisLoading={view.bisLoading} />
-        <div className="flex flex-col gap-8">
-          <DungeonPriority priority={view.priority} specLabel={`${view.spec} ${view.className}`} />
-          <VaultSection vault={view.vault} vaultChoices={view.vaultChoices} vaultChoicesAt={view.vaultChoicesAt} now={now} />
+      <ListSwitchProvider listType={view.listType}>
+        <ListTabs href={view.href} counts={view.counts} />
+        <div className="grid grid-cols-1 gap-8 min-[1380px]:grid-cols-[860px_minmax(0,1fr)] min-[1380px]:items-start">
+          <WhileListSettled fallback={<GearTableSkeleton status={LIST_LOADING} />}>
+            <GearTable rows={view.rows} tracksKnown={view.tracksKnown} bisLoading={view.bisLoading} />
+          </WhileListSettled>
+          <div className="flex flex-col gap-8">
+            <WhileListSettled fallback={<DungeonPrioritySkeleton />}>
+              <DungeonPriority priority={view.priority} specLabel={`${view.spec} ${view.className}`} />
+            </WhileListSettled>
+            <WhileListSettled fallback={<VaultSectionSkeleton />}>
+              <VaultSection vault={view.vault} vaultChoices={view.vaultChoices} vaultChoicesAt={view.vaultChoicesAt} now={now} />
+            </WhileListSettled>
+          </div>
         </div>
-      </div>
+      </ListSwitchProvider>
       <StaleSync ids={view.status === 'ok' && isStale(view.lastSyncedAt, now) ? [view.id] : []} />
       <BackgroundSync url={`/api/season/sync?region=${view.region}`} due={view.priority.needsSync ? 'season' : null} />
       <BackgroundSync url="/api/reference/sync" due={view.referenceDue} />
