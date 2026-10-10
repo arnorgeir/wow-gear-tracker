@@ -38,6 +38,8 @@ export interface CrestView {
 
 export interface CharacterSummary {
   id: number;
+  /** The character page's path, for example `/characters/eu/tarren-mill/rust%C3%BD`. */
+  href: string;
   name: string;
   realmName: string;
   realmId: number;
@@ -108,6 +110,9 @@ export interface CharacterPageView extends CharacterSummary {
   specs: string[];
   priority: PriorityView;
 }
+
+/** A character path that names no tracked character. `name` is the path's folded name. */
+export interface UntrackedCharacterView { status: 'untracked'; region: Region; realmSlug: string; name: string }
 
 export type GroupMemberState = 'untracked' | 'notFound' | 'syncing' | 'noGear' | 'ready';
 export interface GroupMemberView {

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { getCharacterCards } from './character-cards';
 import { getCharacterPage } from './character-page';
+import type { MemberKey } from '@/core/characters/member-key';
 import type { Services } from '../services';
+import type { CharacterPageView } from './types';
 import { upgradeFor } from './summarize';
 import { creditView, rowView } from './member';
 import type { GearRow } from '@/core/gear/evaluate';
@@ -58,6 +60,10 @@ async function seed(s: Services, withGear = true) {
   return id;
 }
 
+const BIRKI: MemberKey = { region: 'eu', realmSlug: 'test-realm', nameKey: 'birkibjörn' };
+/** Birkibjörn's page. Every caller seeds Birkibjörn first, so the result is never `untracked`. */
+const birkiPage = async (s: Services) => (await getCharacterPage(s, BIRKI)) as CharacterPageView;
+
 /** Fills the reference cache the way the background sync would. */
 const prime = (s: Services) =>
   syncReference({ db: s.db, bisSource: s.bisSource, fetchRaidbots: s.fetchRaidbots, blizzard: s.blizzard, now: s.now() });
@@ -65,9 +71,9 @@ const prime = (s: Services) =>
 describe('getCharacterPage', () => {
   it('builds rows with states, tracks and icons for the priority list', async () => {
     const s = await services();
-    const id = await seed(s);
+    await seed(s);
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     expect(page).toMatchObject({ listType: 'mythicPlus', spec: 'Guardian', specSlug: 'guardian-druid', specs: ['Balance', 'Feral', 'Guardian', 'Restoration'] });
     expect(page!.rows.map((r) => r.state)).toEqual(['done', 'belowMyth']);
     expect(page!.rows[1]!.equipped).toMatchObject({ name: 'Best Neck', trackLabel: 'Hero 5/6', iconUrl: 'https://i/20.jpg' });
@@ -78,9 +84,9 @@ describe('getCharacterPage', () => {
 
   it('shows every row as missing before the first sync', async () => {
     const s = await services();
-    const id = await seed(s, false);
+    await seed(s, false);
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     expect(page!.snapshot).toBeNull();
     expect(page!.rows.every((r) => r.state === 'missing' && r.equipped === null)).toBe(true);
   });
@@ -88,9 +94,9 @@ describe('getCharacterPage', () => {
   it('flags missing track data instead of marking matched items done', async () => {
     const s = await services();
     s.fetchRaidbots = async () => { throw new Error('down'); };
-    const id = await seed(s);
+    await seed(s);
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     expect(page!.tracksError).toMatch(/Upgrade track data/);
     await prime(s);
     const { cards: [card] } = await getCharacterCards(s);
@@ -104,7 +110,7 @@ describe('getCharacterPage', () => {
     const wrong = gear.map((g) => (g.slot === 'HEAD' ? { ...g, secondaryStats: ['CRIT_RATING', 'MASTERY_RATING'] } : g));
     await saveSnapshotIfChanged(s.db, id, 'blizzard', gearToSnapshotItems(wrong), 500);
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     expect(page!.rows[0]).toMatchObject({ state: 'wrongStats', equippedStats: ['CRIT_RATING', 'MASTERY_RATING'], bis: { targetStats: ['HASTE_RATING', 'MASTERY_RATING'] } });
     expect(page!.counts.mythicPlus).toEqual({ bis: 1, total: 2 });
   });
@@ -117,12 +123,22 @@ describe('getCharacterPage', () => {
     await saveSnapshotIfChanged(s.db, id, 'blizzard', gearToSnapshotItems(wrong), 500);
     await saveSnapshotIfChanged(s.db, id, 'simc', gearToSnapshotItems(gear.map((g) => ({ ...g, secondaryStats: null }))), 600);
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     expect(page!.rows[0]).toMatchObject({ state: 'wrongStats', equippedStats: ['CRIT_RATING', 'MASTERY_RATING'] });
   });
 
-  it('returns null for an unknown character', async () => {
-    expect(await getCharacterPage(await services(), 404)).toBeNull();
+  it('links the page to its own path', async () => {
+    const s = await services();
+    await seed(s);
+    await prime(s);
+    expect((await birkiPage(s)).href).toBe('/characters/eu/test-realm/birkibj%C3%B6rn');
+  });
+
+  it('reports a character that isn’t tracked, by its key', async () => {
+    const s = await services();
+    await seed(s);
+    expect(await getCharacterPage(s, { region: 'eu', realmSlug: 'test-realm', nameKey: 'rustý' }))
+      .toEqual({ status: 'untracked', region: 'eu', realmSlug: 'test-realm', name: 'rustý' });
   });
 });
 
@@ -134,6 +150,13 @@ describe('getCharacterCards', () => {
     const { cards: [card] } = await getCharacterCards(s);
     expect(card).toMatchObject({ name: 'Birkibjörn', realmId: 1, total: 2, bisError: null, snapshot: { source: 'blizzard', createdAt: 500 } });
     expect(card!.counts).toMatchObject({ done: 1, belowMyth: 1, missing: 0 });
+  });
+
+  it('links each card to its character path', async () => {
+    const s = await services();
+    await seed(s);
+    const { cards: [card] } = await getCharacterCards(s);
+    expect(card!.href).toBe('/characters/eu/test-realm/birkibj%C3%B6rn');
   });
 });
 
@@ -156,7 +179,7 @@ describe('SimC data', () => {
     await saveSnapshotIfChanged(s.db, id, 'simc', pasted, 900, crests);
 
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     expect(page!.sourceAt).toBe(900);
     expect(page!.rows.map((r) => r.state)).toEqual(['done', 'belowMyth', 'inBags']);
     expect(page!.rows[0]!.upgrade).toBeNull();
@@ -178,7 +201,7 @@ describe('SimC data', () => {
     await saveSnapshotIfChanged(s.db, id, 'blizzard', gearToSnapshotItems(upgraded), 950);
 
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     expect(page!.snapshot?.source).toBe('blizzard');
     expect(page!.rows[2]!.state).toBe('missing');
     expect(page!.crests?.pastedAt).toBe(900);
@@ -187,9 +210,9 @@ describe('SimC data', () => {
 
   it('shows no crests or vault choices without a paste', async () => {
     const s = await services();
-    const id = await seed(s);
+    await seed(s);
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     expect(page).toMatchObject({ crests: null, vaultChoices: [], vaultChoicesAt: null });
     expect(page!.rows.every((r) => r.upgrade === null)).toBe(true);
   });
@@ -206,7 +229,7 @@ describe('any rows on the character page', () => {
       { location: 'vault', slot: 'SHOULDER', itemId: 72, name: 'Low Mantle', itemLevel: 320, quality: 'EPIC', bonusIds: [], isTier: false, secondaryStats: null },
     ], 500);
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     expect(page!.rows[0]).toMatchObject({ state: 'missing', bis: { kind: 'any', minItemLevel: 334, source: '' } });
     expect(page!.vaultChoices.map((c) => [c.itemId, c.isBis])).toEqual([[71, true], [72, false]]);
   });
@@ -233,10 +256,10 @@ describe('dungeon priority', () => {
 
   it('ranks the season for the priority list, with credited items and the rest listed apart', async () => {
     const s = await services(needs);
-    const id = await seed(s);
+    await seed(s);
     await withSeason(s);
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     expect(page!.priority).toMatchObject({ listType: 'mythicPlus', fellBack: false, season: 'ready', needsSync: false, approximate: false, nothingFrom: ['Beta Spire'] });
     expect(page!.priority.dungeons).toEqual([{
       challengeModeId: 501, name: 'Alpha Hollow', score: 3, split: false,
@@ -250,7 +273,7 @@ describe('dungeon priority', () => {
       mythicPlus: [{ kind: 'item', slotLabel: 'Chest', slots: ['CHEST'], itemId: 12, name: 'Tier Catalyst Robe', bonusIds: [], isTier: true, isCatalyst: true, source: 'Alpha Hollow' }],
     };
     const s = await services(tierNeeds);
-    const id = await seed(s);
+    await seed(s);
     await replaceSeason(s.db, {
       slug: 'season-test-2',
       dungeons: [
@@ -264,7 +287,7 @@ describe('dungeon priority', () => {
     });
     await setMeta(s.db, SEASON_META_KEY, 'season-test-2', 1000);
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     const credits = (name: string) => page!.priority.dungeons.find((d) => d.name === name)!.credits;
     expect(credits('Alpha Hollow')).toEqual([{
       kind: 'tier', slotLabel: 'Chest', weight: expect.any(Number), fit: expect.any(String), dropStats: null, targetStats: null,
@@ -275,18 +298,18 @@ describe('dungeon priority', () => {
 
   it('asks for a sync and says loading before any season is stored', async () => {
     const s = await services(needs);
-    const id = await seed(s);
+    await seed(s);
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     expect(page!.priority).toMatchObject({ season: 'loading', needsSync: true, dungeons: [], nothingFrom: [] });
   });
 
   it('falls back to Overall when the spec has no Mythic+ list', async () => {
     const s = await services({ overall: needs.mythicPlus, raid: [], mythicPlus: [] });
-    const id = await seed(s);
+    await seed(s);
     await withSeason(s);
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     expect(page!.priority).toMatchObject({ listType: 'overall', fellBack: true });
     expect(page!.priority.dungeons.map((d) => d.name)).toEqual(['Alpha Hollow']);
   });
@@ -297,12 +320,12 @@ describe('identity', () => {
     const s = await services();
     const id = await seed(s);
     await prime(s);
-    let page = await getCharacterPage(s, id);
+    let page = await birkiPage(s);
     expect(page).toMatchObject({ identity: 'Guardian Druid', race: null, faction: null, avatarUrl: null, classIconUrl: 'https://i/class-11.jpg' });
 
     await updateCharacter(s.db, id, { race: 'Troll', faction: 'HORDE', avatarUrl: 'https://render/a.jpg', specOverride: 'Feral' });
     await prime(s);
-    page = await getCharacterPage(s, id);
+    page = await birkiPage(s);
     expect(page).toMatchObject({ identity: 'Troll Feral Druid', faction: 'HORDE', avatarUrl: 'https://render/a.jpg' });
 
     await prime(s);
@@ -372,8 +395,8 @@ describe('reference data off the render path', () => {
   it('renders loading states from an empty cache without asking Method, Raidbots or Blizzard item details', async () => {
     const s = await services();
     const calls = counting(s);
-    const id = await seed(s);
-    const page = await getCharacterPage(s, id);
+    await seed(s);
+    const page = await birkiPage(s);
     const { cards: [card], referenceDue } = await getCharacterCards(s);
     expect(calls).toEqual({ lists: 0, tracks: 0, items: 0 });
     expect(page).toMatchObject({
@@ -391,9 +414,9 @@ describe('reference data off the render path', () => {
 
   it('needs no sync once the reference data is stored', async () => {
     const s = await services();
-    const id = await seed(s);
+    await seed(s);
     await prime(s);
-    expect((await getCharacterPage(s, id))!.referenceDue).toBeNull();
+    expect((await birkiPage(s))!.referenceDue).toBeNull();
     expect((await getCharacterCards(s)).referenceDue).toBeNull();
   });
 
@@ -401,9 +424,9 @@ describe('reference data off the render path', () => {
     const s = await services();
     s.bisSource = { name: 'Fake', fetchLists: async () => { throw new Error('down'); } };
     s.fetchRaidbots = async () => { throw new Error('down'); };
-    const id = await seed(s);
+    await seed(s);
     await prime(s);
-    const page = await getCharacterPage(s, id);
+    const page = await birkiPage(s);
     expect(page).toMatchObject({ referenceDue: null, bisLoading: false, bisError: 'BiS list couldn’t be updated', tracksLoading: false, tracksKnown: false });
     expect(page!.tracksError).toMatch(/Upgrade track data/);
   });
@@ -421,9 +444,9 @@ describe('reference data off the render path', () => {
 
   it('treats tracks as unknown until stored, and cached tracks with a newer failure as known', async () => {
     const s = await services();
-    const id = await seed(s);
+    await seed(s);
     await syncBisLists({ db: s.db, source: s.bisSource, now: 1000 }, 'guardian-druid');
-    let page = await getCharacterPage(s, id);
+    let page = await birkiPage(s);
     let { cards: [card] } = await getCharacterCards(s);
     expect(page).toMatchObject({ tracksKnown: false, tracksLoading: true, tracksError: null, priority: { approximate: true } });
     expect(card).toMatchObject({ tracksKnown: false, tracksLoading: true });
@@ -432,7 +455,7 @@ describe('reference data off the render path', () => {
     await syncTracks({ db: s.db, fetchRaidbots: s.fetchRaidbots, now: 1000 });
     await syncTracks({ db: s.db, fetchRaidbots: async () => { throw new Error('down'); }, now: 1000 + DAY_MS });
     s.now = () => 1001 + DAY_MS;
-    page = await getCharacterPage(s, id);
+    page = await birkiPage(s);
     ({ cards: [card] } = await getCharacterCards(s));
     expect(page).toMatchObject({ tracksKnown: true, tracksLoading: false, tracksError: null, priority: { approximate: false } });
     expect(card).toMatchObject({ tracksKnown: true, tracksLoading: false, tracksError: null });

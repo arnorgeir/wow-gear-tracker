@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { AutoAddCharacter } from '@/components/auto-add-character/AutoAddCharacter';
 import { CharacterAlerts } from '@/components/character-page/CharacterAlerts';
 import { CharacterHeader } from '@/components/character-page/CharacterHeader';
 import { DungeonPriority } from '@/components/character-page/DungeonPriority';
@@ -12,6 +13,7 @@ import { BackgroundSync } from '@/components/background-sync/BackgroundSync';
 import { SetupNotice } from '@/components/setup-notice/SetupNotice';
 import { SimcPaste } from '@/components/simc-paste/SimcPaste';
 import { StaleSync } from '@/components/stale-sync/StaleSync';
+import { memberKeyFromPath } from '@/core/characters/member-key';
 import { isMissingConfigError } from '@/core/config';
 import { isStale } from '@/core/sync/character-sync';
 import { LIST_TYPES, type ListType } from '@/core/types';
@@ -20,10 +22,12 @@ import { getCharacterPage } from '@/server/views/character-page';
 
 export const dynamic = 'force-dynamic';
 
-type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ list?: string }> };
+type Props = { params: Promise<{ region: string; realm: string; name: string }>; searchParams: Promise<{ list?: string }> };
 
 export default async function CharacterPage({ params, searchParams }: Props) {
-  const [{ id }, { list }] = await Promise.all([params, searchParams]);
+  const [{ region, realm, name }, { list }] = await Promise.all([params, searchParams]);
+  const key = memberKeyFromPath(region, realm, name);
+  if (!key) notFound();
   let services: Services;
   try {
     services = await getServices();
@@ -32,8 +36,15 @@ export default async function CharacterPage({ params, searchParams }: Props) {
     throw err;
   }
   const listType = (LIST_TYPES as readonly string[]).includes(list ?? '') ? (list as ListType) : undefined;
-  const view = await getCharacterPage(services, Number(id), listType);
-  if (!view) notFound();
+  const view = await getCharacterPage(services, key, listType);
+  if (view.status === 'untracked') {
+    return (
+      <main className="mx-auto flex max-w-[1440px] flex-col gap-8 px-4 py-10 sm:px-16">
+        <Link href="/" className="text-sm">&larr; All characters</Link>
+        <AutoAddCharacter character={view} />
+      </main>
+    );
+  }
   const now = services.now();
 
   return (
@@ -47,7 +58,7 @@ export default async function CharacterPage({ params, searchParams }: Props) {
         <CrestSummary crests={view.crests} now={now} />
       </section>
       <CharacterSettings id={view.id} specs={view.specs} spec={view.spec} activeSpec={view.activeSpec} priorityList={view.priorityList} />
-      <ListTabs id={view.id} listType={view.listType} counts={view.counts} />
+      <ListTabs href={view.href} listType={view.listType} counts={view.counts} />
       <div className="grid grid-cols-1 gap-8 min-[1380px]:grid-cols-[860px_minmax(0,1fr)] min-[1380px]:items-start">
         <GearTable rows={view.rows} tracksKnown={view.tracksKnown} bisLoading={view.bisLoading} />
         <div className="flex flex-col gap-8">

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addMember, decodeGroupCookie, encodeGroupCookie, findByMemberKey, formatMemberKey, groupHref,
-  memberKeyOf, parseMemberKey, parseMemberKeys, removeMember, selectGroup, type MemberKey,
+  addMember, characterHref, decodeGroupCookie, encodeGroupCookie, findByMemberKey, formatMemberKey, groupHref,
+  memberKeyFromParts, memberKeyFromPath, memberKeyOf, parseMemberKey, parseMemberKeys, removeMember, selectGroup, type MemberKey,
 } from './member-key';
 
 const birki: MemberKey = { region: 'eu', realmSlug: 'argent-dawn', nameKey: 'birkibjörn' };
@@ -91,5 +91,42 @@ describe('member keys', () => {
     expect(decodeGroupCookie('%E0%A4%A')).toEqual([]);
     expect(decodeGroupCookie(undefined)).toEqual([]);
     expect(decodeGroupCookie(encodeGroupCookie([]))).toEqual([]);
+  });
+});
+
+describe('character paths', () => {
+  const rusty: MemberKey = { region: 'eu', realmSlug: 'tarren-mill', nameKey: 'rustý' };
+
+  it('links to the folded, encoded name', () => {
+    expect(characterHref({ region: 'eu', realmSlug: 'tarren-mill', name: 'Rustý' })).toBe('/characters/eu/tarren-mill/rust%C3%BD');
+  });
+
+  it('builds a key from parts in any case', () => {
+    expect(memberKeyFromParts('EU', 'Tarren-Mill', 'RUSTÝ')).toEqual(rusty);
+    expect(memberKeyFromParts('eu', 'argent-dawn', 'Birkibjörn')).toEqual(birki);
+  });
+
+  it('rejects parts that are not region, realm slug and a name of letters', () => {
+    expect(memberKeyFromParts('xx', 'tarren-mill', 'rustý')).toBeNull();
+    expect(memberKeyFromParts('eu', 'tarren mill', 'rustý')).toBeNull();
+    expect(memberKeyFromParts('eu', '-mill', 'rustý')).toBeNull();
+    expect(memberKeyFromParts('eu', 'tarren-mill', 'rusty2')).toBeNull();
+    expect(memberKeyFromParts('eu', 'tarren-mill', 'rus.ty')).toBeNull();
+    expect(memberKeyFromParts('eu', 'tarren-mill', '')).toBeNull();
+  });
+
+  it('reads a path whether or not Next already decoded it', () => {
+    expect(memberKeyFromPath('eu', 'tarren-mill', 'rust%C3%BD')).toEqual(rusty);
+    expect(memberKeyFromPath('eu', 'tarren-mill', 'rustý')).toEqual(rusty);
+    expect(memberKeyFromPath('EU', 'Tarren-Mill', 'RUST%C3%9D')).toEqual(rusty);
+  });
+
+  it('round-trips a link back to its key', () => {
+    const [, , region, realm, name] = characterHref({ region: 'eu', realmSlug: 'tarren-mill', name: 'Rustý' }).split('/');
+    expect(memberKeyFromPath(region!, realm!, name!)).toEqual(rusty);
+  });
+
+  it('treats a segment that will not decode as no key', () => {
+    expect(memberKeyFromPath('eu', 'tarren-mill', '%E0%A4%A')).toBeNull();
   });
 });
