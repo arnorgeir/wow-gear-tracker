@@ -4,6 +4,7 @@ import { useLayoutEffect, useMemo, useState, useTransition, type KeyboardEvent }
 import { useRouter } from 'next/navigation';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { usePendingCharacter } from '@/components/pending-character/PendingCharacterProvider';
+import { addingText } from '@/components/shared/loading-copy';
 import { LABEL_CLASS } from '@/components/shared/field-classes';
 import { REGIONS, type Region } from '@/core/types';
 import { activeIndex, keyAction, type Highlight } from './highlight';
@@ -126,8 +127,11 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
       {/* Three paragraphs, not one with a precedence: the search hint explains the realm dropdown, a failed
           add request needs its own line, and the "Adding…" status has to keep showing through the
           refresh that follows a successful add, well after `busy` itself has cleared. On a page with a
-          PendingCharacterProvider, the skeleton card in the grid says it instead. */}
-      {!shared && showing && <p role="status" className="w-full text-sm text-muted">Adding {showing}…</p>}
+          PendingCharacterProvider, the skeleton card in the grid shows it, and an always-mounted sr-only
+          status announces it. */}
+      {shared
+        ? <span role="status" className="sr-only">{showing ? addingText(showing) : ''}</span>
+        : showing && <p role="status" className="w-full text-sm text-muted">{addingText(showing)}</p>}
       {error && <p role="alert" className="w-full text-sm text-[#f3c9a2]">{error}</p>}
       {searchError && <p role="status" className="w-full text-sm text-[#f3c9a2]">{searchError}</p>}
     </section>

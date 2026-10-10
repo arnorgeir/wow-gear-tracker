@@ -19,6 +19,11 @@ describe('list switch', () => {
     expect(html.match(/aria-current="page"/g)).toHaveLength(1);
   });
 
+  it('keeps one empty status mounted by the tabs, so screen readers announce a switch when its text arrives', () => {
+    const html = renderToStaticMarkup(createElement(ListSwitchProvider, { listType: 'raid' }, createElement(ListTabs, { href, counts })));
+    expect(html).toContain('<span role="status" class="sr-only"></span>');
+  });
+
   it('shows the settled content when nothing is pending', () => {
     const html = renderToStaticMarkup(createElement(ListSwitchProvider, { listType: 'raid' },
       createElement(WhileListSettled, { fallback: createElement('p', null, 'skeleton') }, createElement('p', null, 'gear'))));

@@ -12,7 +12,6 @@ import { VaultSection } from '@/components/character-page/VaultSection';
 import { VaultSectionSkeleton } from '@/components/character-page/VaultSectionSkeleton';
 import { ListSwitchProvider } from '@/components/list-switch/ListSwitchProvider';
 import { WhileListSettled } from '@/components/list-switch/WhileListSettled';
-import { LIST_LOADING } from '@/components/shared/loading-copy';
 import { CharacterSettings } from '@/components/character-settings/CharacterSettings';
 import { CrestSummary } from '@/components/crest-summary/CrestSummary';
 import { BackgroundSync } from '@/components/background-sync/BackgroundSync';
@@ -67,7 +66,7 @@ export default async function CharacterPage({ params, searchParams }: Props) {
       <ListSwitchProvider listType={view.listType}>
         <ListTabs href={view.href} counts={view.counts} />
         <div className="grid grid-cols-1 gap-8 min-[1380px]:grid-cols-[860px_minmax(0,1fr)] min-[1380px]:items-start">
-          <WhileListSettled fallback={<GearTableSkeleton status={LIST_LOADING} />}>
+          <WhileListSettled fallback={<GearTableSkeleton />}>
             <GearTable rows={view.rows} tracksKnown={view.tracksKnown} bisLoading={view.bisLoading} />
           </WhileListSettled>
           <div className="flex flex-col gap-8">

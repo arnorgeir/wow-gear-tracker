@@ -16,7 +16,8 @@ export function CharacterCardSkeleton({ name }: { name?: string }) {
       </div>
       <CardProgressSkeleton />
       <div className="mt-auto flex items-center justify-between border-t border-line pt-3">
-        {name ? <span role="status" className="text-sm text-muted">{addingText(name)}</span> : <Skeleton className="h-4 w-36 rounded-md" />}
+        {/* No role="status": the card mounts with its text, so the add bar's always-mounted status announces it. */}
+        {name ? <span className="text-sm text-muted">{addingText(name)}</span> : <Skeleton className="h-4 w-36 rounded-md" />}
       </div>
     </article>
   );

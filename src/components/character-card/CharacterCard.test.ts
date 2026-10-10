@@ -50,10 +50,10 @@ describe('CharacterCardSkeleton', () => {
     expect(statuses(html)).toBe(0);
   });
 
-  it('shows the name and says it is being added', () => {
+  it('shows the name and says it is being added, leaving the announcement to the add bar', () => {
     const html = renderToStaticMarkup(createElement(CharacterCardSkeleton, { name: 'Birkibjörn' }));
     expect(html).toContain('>Birkibjörn<');
-    expect(html).toMatch(/<span role="status" class="text-sm text-muted">Adding Birkibjörn…<\/span>/);
-    expect(statuses(html)).toBe(1);
+    expect(html).toContain('<span class="text-sm text-muted">Adding Birkibjörn…</span>');
+    expect(statuses(html)).toBe(0);
   });
 });
