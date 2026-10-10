@@ -1,8 +1,9 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { GroupBody } from '@/components/group-body/GroupBody';
+import { PANEL_BOX } from '@/components/group-body/panel-box';
 import { GroupEditsProvider } from '@/components/group-edits/GroupEditsProvider';
 import { GroupGrid } from '@/components/group-grid/GroupGrid';
-import { GroupLayout } from '@/components/group-layout/GroupLayout';
 import { GroupMembers } from '@/components/group-members/GroupMembers';
 import { GroupPriority } from '@/components/group-priority/GroupPriority';
 import { GroupVault } from '@/components/group-vault/GroupVault';
@@ -19,9 +20,6 @@ import { getGroupPage } from '@/server/views/group-page';
 import { resolveGroupRequest } from '@/server/views/group-page-params';
 
 export const dynamic = 'force-dynamic';
-
-// Below xl the Dungeons and Vault panels are boxes of their own; at xl they sit inside the rail's box.
-const PANEL_BOX = 'rounded-2xl border border-line bg-surface p-4 xl:rounded-none xl:border-0 xl:bg-transparent xl:p-0';
 
 type Props = { searchParams: Promise<{ chars?: string | string[] }> };
 
@@ -50,20 +48,17 @@ export default async function GroupPage({ searchParams }: Props) {
             <p key={`${d.region}-${d.name}`} className="text-sm text-muted">{d.name} ({d.region.toUpperCase()}) dropped: group members must share a region.</p>
           ))}
         </div>
-        {view.members.length === 0 ? (
-          <p className="text-muted">Pick up to five characters to compare their gear and rank dungeons for the group.</p>
-        ) : (
-          <>
-            {view.tracksLoading && <p role="status" className="text-muted">{TRACKS_LOADING}</p>}
-            <GroupLayout
-              dungeonCount={view.priority.ranking?.dungeons.length ?? 0}
-              legend={<StateLegend />}
-              gear={<GroupGrid members={view.members} grid={view.grid} tracksKnown={view.tracksKnown} />}
-              dungeons={<div className={PANEL_BOX}><GroupPriority priority={view.priority} /></div>}
-              vault={<div className={PANEL_BOX}><GroupVault vault={view.vault} now={now} /></div>}
-            />
-          </>
-        )}
+        <GroupBody
+          legend={<StateLegend />}
+          empty={<p className="text-muted">Pick up to five characters to compare their gear and rank dungeons for the group.</p>}
+          content={view.members.length === 0 ? null : {
+            notice: view.tracksLoading ? <p role="status" className="text-muted">{TRACKS_LOADING}</p> : null,
+            gear: <GroupGrid members={view.members} grid={view.grid} tracksKnown={view.tracksKnown} />,
+            dungeons: <div className={PANEL_BOX}><GroupPriority priority={view.priority} /></div>,
+            vault: <div className={PANEL_BOX}><GroupVault vault={view.vault} now={now} /></div>,
+            dungeonCount: view.priority.ranking?.dungeons.length ?? 0,
+          }}
+        />
       </GroupEditsProvider>
       <RememberGroup keys={view.keys} />
       <StaleSync ids={view.staleIds} />
