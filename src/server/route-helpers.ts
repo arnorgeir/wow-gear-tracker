@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { isMissingConfigError } from '@/core/config';
 import { UserError, isUserError } from '@/core/errors';
-import { REGIONS, type Region } from '@/core/types';
+import type { RowRef } from '@/core/bis/edits';
+import { LIST_TYPES, REGIONS, type ListType, type Region } from '@/core/types';
 
 export const parseRegion = (value: unknown): Region | null =>
   typeof value === 'string' && (REGIONS as readonly string[]).includes(value) ? (value as Region) : null;
@@ -17,6 +18,17 @@ export function parseSpecOverride(value: unknown, specs: readonly string[]): str
   if (value === null || value === '') return null;
   if (typeof value === 'string' && specs.includes(value)) return value;
   throw new UserError('Unknown spec for this class.');
+}
+
+export function parseListType(value: unknown): ListType {
+  if (typeof value === 'string' && (LIST_TYPES as readonly string[]).includes(value)) return value as ListType;
+  throw new UserError('Unknown list.');
+}
+
+export function parseRowRef(body: Record<string, unknown>): RowRef {
+  if (typeof body.specSlug !== 'string' || !body.specSlug) throw new UserError('Unknown spec.');
+  if (typeof body.slotKey !== 'string' || !body.slotKey) throw new UserError('Unknown slot.');
+  return { specSlug: body.specSlug, listType: parseListType(body.listType), slotKey: body.slotKey };
 }
 
 export function errorResponse(err: unknown) {
