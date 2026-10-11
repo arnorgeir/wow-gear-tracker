@@ -10,6 +10,8 @@ import { creditView, rowView } from './member';
 import type { GearRow } from '@/core/gear/evaluate';
 import { gearToSnapshotItems, saveSnapshotIfChanged } from '@/core/db/queries/snapshots';
 import { insertCharacter, updateCharacter } from '@/core/db/queries/characters';
+import { updateSpecSettings, upsertOverride } from '@/core/db/queries/bis-settings';
+import { upsertCatalogItem } from '@/core/db/queries/item-catalog';
 import { replaceSeason } from '@/core/db/queries/season';
 import { setMeta } from '@/core/db/queries/meta';
 import { SEASON_META_KEY } from '@/core/sync/season-sync';
@@ -80,7 +82,29 @@ describe('getCharacterPage', () => {
     expect(page!.rows[1]!.equipped).toMatchObject({ name: 'Best Neck', trackLabel: 'Hero 5/6', iconUrl: 'https://i/20.jpg' });
     expect(page!.rows[0]!.bis).toMatchObject({ itemId: 10, iconUrl: 'https://i/10.jpg', isTier: true });
     expect(page!.vault.map((r) => r.slot)).toEqual(['NECK']);
-    expect(page!.counts.mythicPlus).toEqual({ bis: 2, total: 2 });
+  });
+
+  it('compares against the spec’s list from settings', async () => {
+    const s = await services({ ...lists, overall: lists.mythicPlus.slice(1) });
+    await seed(s);
+    await prime(s);
+    await updateSpecSettings(s.db, 1, 'guardian-druid', { listType: 'overall' });
+    const page = await birkiPage(s);
+    expect(page.listType).toBe('overall');
+    expect(page.rows).toHaveLength(1);
+    const { cards } = await getCharacterCards(s);
+    expect(cards[0]).toMatchObject({ listType: 'overall' });
+  });
+
+  it('applies an override for every character of the spec', async () => {
+    const s = await services();
+    await seed(s);
+    await prime(s);
+    await upsertCatalogItem(s.db, { itemId: 21, name: 'Other Neck', inventoryType: 'NECK', armorType: null, quality: 'EPIC', isTier: false }, 1);
+    await upsertOverride(s.db, 1, 'guardian-druid', 'mythicPlus', { slotKey: 'Neck#1', itemId: 21, catalyst: false });
+    const page = await birkiPage(s);
+    expect(page.rows[1]!.bis).toMatchObject({ itemId: 21 });
+    expect(page.rows[1]!.state).toBe('missing');
   });
 
   it('shows every row as missing before the first sync', async () => {
@@ -113,7 +137,6 @@ describe('getCharacterPage', () => {
     await prime(s);
     const page = await birkiPage(s);
     expect(page!.rows[0]).toMatchObject({ state: 'wrongStats', equippedStats: ['CRIT_RATING', 'MASTERY_RATING'], bis: { targetStats: ['HASTE_RATING', 'MASTERY_RATING'] } });
-    expect(page!.counts.mythicPlus).toEqual({ bis: 1, total: 2 });
   });
 
   it('borrows a pasted piece’s stats from the Blizzard snapshot of the same piece', async () => {

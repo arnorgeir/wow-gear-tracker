@@ -12,7 +12,7 @@ describe('openDb', () => {
   it('creates the tables', async () => {
     const db = await openTestDb();
     const [row] = await db.insert(characters).values(character).returning();
-    expect(row).toMatchObject({ id: 1, priorityList: 'mythicPlus', status: 'ok' });
+    expect(row).toMatchObject({ id: 1, status: 'ok' });
   });
 
   it('rejects a duplicate character identity', async () => {

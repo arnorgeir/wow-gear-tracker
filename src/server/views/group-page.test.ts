@@ -5,6 +5,9 @@ import type { BlizzardClient } from '@/core/blizzard/client';
 import { insertCharacter, updateCharacter } from '@/core/db/queries/characters';
 import { gearToSnapshotItems, saveSnapshotIfChanged } from '@/core/db/queries/snapshots';
 import { replaceSeason } from '@/core/db/queries/season';
+import { updateSpecSettings, upsertOverride } from '@/core/db/queries/bis-settings';
+import { upsertCatalogItem } from '@/core/db/queries/item-catalog';
+import { dungeonLoot } from '@/core/db/schema';
 import { setMeta } from '@/core/db/queries/meta';
 import { SEASON_META_KEY } from '@/core/sync/season-sync';
 import { syncReference } from '@/core/sync/reference-run';
@@ -81,6 +84,32 @@ const prime = (s: Services) =>
 const keys = (...names: string[]) => parseMemberKeys(names.map((n) => `eu.argent-dawn.${n}`).join(','));
 
 describe('getGroupPage', () => {
+  it('applies one override to every member of a spec, in the grid and the ranking', async () => {
+    const { s } = await services();
+    await track(s, 'Birkibjörn', 'Druid', 'Guardian', [worn('FINGER_1', 42), worn('FINGER_2', 40), worn('MAIN_HAND', 60)]);
+    await track(s, 'Sólrún', 'Druid', 'Guardian', [worn('FINGER_1', 42), worn('FINGER_2', 40), worn('MAIN_HAND', 60)]);
+    await season(s);
+    await s.db.insert(dungeonLoot).values({ challengeModeId: 504, encounterId: 4, encounterName: 'Boss', itemId: 62, itemName: 'Item 62', inventoryType: 'FINGER', armorType: null });
+    await upsertCatalogItem(s.db, { itemId: 62, name: 'Item 62', inventoryType: 'FINGER', armorType: null, quality: 'EPIC', isTier: false }, 1);
+    await upsertOverride(s.db, 1, 'guardian-druid', 'mythicPlus', { slotKey: 'Ring#2', itemId: 62, catalyst: false });
+    await prime(s);
+    const page = await getGroupPage(s, keys('birkibjörn', 'sólrún'));
+    const rings = page.grid.filter((r) => r.label.startsWith('Ring'));
+    expect(rings.flatMap((r) => r.cells.map((c) => c?.bis.kind === 'item' && c.bis.itemId))).toContain(62);
+    expect(rings.flatMap((r) => r.cells).filter((c) => c?.bis.kind === 'item' && c.bis.itemId === 62)).toHaveLength(2);
+    const delta = page.priority.ranking!.dungeons.find((d) => d.name === 'Delta Deep')!;
+    expect(delta.members.map((m) => [m.name, m.credits.map((c) => c.kind === 'item' && c.item.itemId)])).toEqual([['Birkibjörn', [62]], ['Sólrún', [62]]]);
+  });
+
+  it('falls back to Overall when the chosen Raid list is empty', async () => {
+    const { s } = await services();
+    await track(s, 'Hrafnhildur', 'Warrior', 'Protection', [worn('MAIN_HAND', 71)]);
+    await updateSpecSettings(s.db, 1, 'protection-warrior', { listType: 'raid' });
+    await prime(s);
+    const page = await getGroupPage(s, keys('hrafnhildur'));
+    expect(page.members.map((m) => [m.listType, m.fellBack])).toEqual([['overall', true]]);
+  });
+
   it('aligns members by evaluated slot, with rings where they sit and an empty off hand', async () => {
     const { s } = await services();
     await track(s, 'Birkibjörn', 'Druid', 'Guardian', [worn('FINGER_1', 42), worn('FINGER_2', 40), worn('MAIN_HAND', 60)]);

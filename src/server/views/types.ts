@@ -51,7 +51,6 @@ export interface CharacterSummary {
   status: 'ok' | 'notFound';
   lastSyncedAt: number | null;
   lastSyncError: string | null;
-  priorityList: 'mythicPlus' | 'overall';
   snapshot: { source: SnapshotSource; createdAt: number } | null;
   /** When the current gear was captured: the paste time for SimC, the last sync for Blizzard. */
   sourceAt: number | null;
@@ -65,6 +64,8 @@ export interface CharacterSummary {
 }
 
 export interface CharacterCardView extends CharacterSummary {
+  /** The list the card's counts come from: the spec's choice, or Overall after a fallback. */
+  listType: ListType;
   counts: Record<ItemState, number> | null;
   tracksError: string | null;
   /** False until Raidbots data is stored: states that depend on upgrade tracks can't be told apart. */
@@ -99,7 +100,8 @@ export interface CharacterPageView extends CharacterSummary {
   vaultChoices: VaultChoiceView[];
   vaultChoicesAt: number | null;
   crests: CrestView | null;
-  counts: Record<ListType, { bis: number; total: number }>;
+  /** Rows an account override replaced on this spec's lists. */
+  editedCount: number;
   bisFetchedAt: number | null;
   bisError: string | null;
   bisLoading: boolean;

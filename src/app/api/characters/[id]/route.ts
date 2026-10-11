@@ -12,16 +12,15 @@ export async function PATCH(request: NextRequest, { params }: Context) {
     const { db, blizzard } = await getServices();
     const character = await getCharacter(db, id);
     if (!character) return NextResponse.json({ error: 'Unknown character' }, { status: 404 });
-    const body = (await request.json()) as { specOverride?: unknown; priorityList?: unknown };
+    const body = (await request.json()) as { specOverride?: unknown };
     const patch: Parameters<typeof updateCharacter>[2] = {};
-    // Specs load only when setting an override, so priority changes and clearing work without Blizzard.
+    // Specs load only when setting an override, so clearing works without Blizzard.
     if (body.specOverride !== undefined) {
       const clearing = body.specOverride === null || body.specOverride === '';
       const classes = clearing ? [] : await blizzard.getClasses(character.region);
       const specs = classes.find((cls) => cls.name === character.className)?.specs ?? [];
       patch.specOverride = parseSpecOverride(body.specOverride, specs) ?? null;
     }
-    if (body.priorityList === 'mythicPlus' || body.priorityList === 'overall') patch.priorityList = body.priorityList;
     await updateCharacter(db, id, patch);
     return NextResponse.json({ ok: true });
   } catch (err) {

@@ -3,6 +3,7 @@ import { formatAge } from '@/core/format';
 import type { CharacterCardView } from '@/server/views/types';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { classTextColor } from '@/components/shared/class-colors';
+import { LIST_NAMES } from '@/components/shared/list-names';
 import { RemoveCharacterButton } from '@/components/remove-character-button/RemoveCharacterButton';
 import { CrestChip } from '@/components/crest-chip/CrestChip';
 import { BIS_LOADING, TRACKS_LOADING } from '@/components/shared/loading-copy';
@@ -19,7 +20,7 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
   const source = card.snapshot && card.sourceAt !== null
     ? `${card.snapshot.source === 'simc' ? 'SimC, pasted' : 'Blizzard, synced'} ${formatAge(card.sourceAt, now)}`
     : 'Not synced yet';
-  const listName = card.priorityList === 'mythicPlus' ? 'Mythic+ BiS' : 'Overall BiS';
+  const listName = `${LIST_NAMES[card.listType]} BiS`;
   const crests = crestLine({ crests: card.crests, gearFromSimc: card.snapshot?.source === 'simc', upgradesReady: card.upgradesReady, tracksKnown: card.tracksKnown }, now);
 
   return (

@@ -1,6 +1,7 @@
 import { listCharacters } from '@/core/db/queries/characters';
 import { crestCostsByGroup } from '@/core/gear/crests';
 import { countStates, evaluateGear } from '@/core/gear/evaluate';
+import { choosePriorityList } from '@/core/priority/list';
 import { ensureClassIcons, readTracks } from '@/core/sync/reference-sync';
 import { createBisLookup, referenceDue, type SpecBis } from './bis-lookup';
 import type { Services } from '../services';
@@ -23,10 +24,12 @@ export async function getCharacterCards(services: Services): Promise<{ cards: Ch
     const summary = summarize(c, gear.current, classIcons);
     const bis = await bisFor(summary.specSlug, c.region);
     specs.push(bis);
-    const bisRows = bis.lists?.[c.priorityList] ?? [];
-    const rows = evaluateGear({ equipped: gear.equipped, bisRows, tracks, bagItemIds: gear.bagItemIds, targets: bis.targets });
+    const { listType } = choosePriorityList(bis.lists, bis.listType);
+    const bisRows = bis.lists?.[listType] ?? [];
+    const rows = evaluateGear({ equipped: gear.equipped, bisRows, tracks, bagItemIds: gear.bagItemIds, targets: bis.targets, statsMatter: bis.statsMatter });
     return {
       ...summary,
+      listType,
       counts: bis.lists ? countStates(rows) : null,
       total: rows.length,
       bisError: bis.error,

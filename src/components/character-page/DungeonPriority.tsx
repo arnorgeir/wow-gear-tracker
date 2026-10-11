@@ -1,13 +1,13 @@
 import { BrandIcon } from '@/components/brand-icon/BrandIcon';
 import { DungeonDisclosure } from '@/components/dungeon-disclosure/DungeonDisclosure';
 import { ItemCard } from '@/components/item-card/ItemCard';
+import { LIST_NAMES } from '@/components/shared/list-names';
 import { BIS_LOADING } from '@/components/shared/loading-copy';
 import { APPROXIMATE, SEASON_FAILED, SEASON_LOADING, SEASON_STALE, SPLIT_DUNGEON } from '@/components/shared/priority-copy';
 import type { PriorityCreditView, PriorityView } from '@/server/views/types';
 import { creditDetail } from './credit-detail';
 import { DungeonRowsSkeleton } from './DungeonRowsSkeleton';
 
-const LIST_NAMES = { mythicPlus: 'Mythic+ list', overall: 'Overall list', raid: 'Raid list' } as const;
 
 function Credit({ credit }: { credit: PriorityCreditView }) {
   if (credit.kind !== 'any') {
@@ -56,7 +56,7 @@ export function DungeonPriority({ priority, specLabel }: { priority: PriorityVie
       {/* items-center, not items-baseline: the heading is a flex row with an icon, so it has no text baseline to share. */}
       <div className="flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2.5 font-display text-2xl font-bold"><BrandIcon name="dungeons" size={28} className="text-gold" />Dungeon priority</h2>
-        <span className="text-sm text-muted">{LIST_NAMES[priority.listType]}</span>
+        <span className="text-sm text-muted">{LIST_NAMES[priority.listType]} list</span>
       </div>
       {priority.fellBack && <p className="text-sm text-muted">Using the Overall list: Method has no Mythic+ list for {specLabel}.</p>}
       {priority.approximate && <p className="text-sm text-muted">{APPROXIMATE}</p>}

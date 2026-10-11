@@ -37,7 +37,7 @@ export async function loadMember(ctx: MemberContext, character: CharacterRow, cl
   const summary = summarize(character, gear.current, classIcons);
   const bis = await ctx.bisFor(summary.specSlug, character.region);
   const evaluate = (list: ListType) => evaluateGear({ equipped: gear.equipped, bisRows: bis.lists?.[list] ?? [], tracks: ctx.tracks, bagItemIds: gear.bagItemIds, targets: bis.targets, statsMatter: bis.statsMatter });
-  const choice = choosePriorityList(bis.lists, character.priorityList);
+  const choice = choosePriorityList(bis.lists, bis.listType);
   return {
     character, summary, gear, bis, choice, evaluate,
     priorityRows: evaluate(choice.listType),

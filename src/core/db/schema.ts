@@ -15,7 +15,6 @@ export const characters = sqliteTable('characters', {
   faction: text('faction').$type<Faction>(),
   avatarUrl: text('avatar_url'),
   specOverride: text('spec_override'),
-  priorityList: text('priority_list').$type<'mythicPlus' | 'overall'>().notNull().default('mythicPlus'),
   status: text('status').$type<'ok' | 'notFound'>().notNull().default('ok'),
   lastSyncedAt: integer('last_synced_at'),
   lastSyncError: text('last_sync_error'),
