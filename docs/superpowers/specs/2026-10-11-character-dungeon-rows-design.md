@@ -1,6 +1,6 @@
 # Character page dungeon rows match the group page
 
-Status: design approved in chat on 2026-10-11.
+Status: design approved in chat on 2026-10-11. Spec review passed on 2026-10-11; its notes on art fallback and skeleton height are folded in.
 Date: 2026-10-11
 Issue: #80. Match the character page's dungeon priority headers to the group page
 
@@ -36,7 +36,7 @@ Out of scope:
 
 `DungeonPriorityView` in `src/server/views/types.ts` gains `shortName: string` and `imageUrl: string | null`, the same fields as `GroupDungeonView`.
 
-`getCharacterPage` in `src/server/views/character-page.ts` fills them with `dungeonArt(season.dungeons, d.challengeModeId)` from `src/server/views/dungeon-art.ts`, the same way `group-page.ts` does. `dungeonArt` already returns `''` and `null` when the season has no art for a dungeon.
+`getCharacterPage` in `src/server/views/character-page.ts` fills them with `dungeonArt(season.dungeons, d.challengeModeId)` from `src/server/views/dungeon-art.ts`, the same way `group-page.ts` does. A season dungeon with no image keeps its short name and gets `imageUrl: null`, so the row shows the short-name tile. `dungeonArt` returns `''` and `null` only for an ID missing from the season, which the loader can't produce: ranking reads the same season list.
 
 ### Components
 
@@ -47,11 +47,11 @@ Out of scope:
 
 ### Skeleton
 
-`character-page/DungeonRowsSkeleton.tsx` draws the new shape: one open row, a 52 px header with two `ItemCard`-sized blocks under it, then three 52 px collapsed rows, with `gap-1.5`. `DungeonPrioritySkeleton` keeps using it unchanged.
+`character-page/DungeonRowsSkeleton.tsx` draws the new shape: one open row, a 58 px header with two `ItemCard`-sized blocks under it, then three 58 px collapsed rows, with `gap-1.5`. 58 px is the loaded summary: a 36 px thumbnail, 20 px of padding and the 2 px border. Treat it as approximate and confirm it in the hand check. The group page skeleton keeps its 52 px rows. `DungeonPrioritySkeleton` keeps using it unchanged.
 
 ## Testing
 
-- **Loader:** a `getCharacterPage` test in `src/server/views/views.test.ts` checks that each priority dungeon carries `shortName` and `imageUrl` from season data, and `''` and `null` when the season has no art for it.
+- **Loader:** a `getCharacterPage` test in `src/server/views/views.test.ts` checks that each priority dungeon carries `shortName` and `imageUrl` from season data, and `imageUrl: null` with the short name kept when a dungeon has no image. The unmatched-ID fallback is already covered by `dungeon-art.test.ts`; do not mock ranking to reach it.
 - **Markup:** a `renderToStaticMarkup` test of the character page's `DungeonPriority`, like `GroupPriority.test.ts`, checks that the first dungeon's `details` is open and the rest are closed, that the summary has the rank, name in an `h3` and score, and that the split note sits inside the body.
 - **Group page:** existing group priority tests pass unchanged.
 - **Thumbnail:** `thumbnail-label.test.ts` passes from its new directory.
