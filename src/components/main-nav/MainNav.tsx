@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BrandIcon } from '@/components/brand-icon/BrandIcon';
-import { isActiveLink } from './active-link';
+import { isActiveLink } from '@/components/shared/active-link';
 
-const LINKS = [{ href: '/', label: 'Characters', icon: 'characters' }, { href: '/group', label: 'Group', icon: 'group' }] as const;
+const LINKS = [{ href: '/', label: 'Characters', icon: 'characters' }, { href: '/group', label: 'Group', icon: 'group' }, { href: '/settings', label: 'Settings', icon: 'settings' }] as const;
 
 // Phones: equal tabs in their own row, icon above label. From sm up: tabs beside the brand, standing on the header line.
 const TAB = 'relative flex flex-1 flex-col items-center gap-1 pb-2.5 pt-2 text-[13px] font-semibold no-underline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold sm:flex-none sm:flex-row sm:gap-2 sm:px-4 sm:py-0 sm:text-[15px]';

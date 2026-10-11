@@ -163,3 +163,33 @@ export interface GroupPageView {
   tracked: { region: Region; realmId: number; name: string }[];
   staleIds: number[];
 }
+
+export type SpecFetchState = { kind: 'tracked' } | { kind: 'notFetched' } | { kind: 'fetched'; at: number } | { kind: 'failed' };
+
+export interface SpecPickerView {
+  classes: { className: string; iconUrl: string | null; specs: { slug: string; specName: string; tracked: boolean; state: SpecFetchState }[] }[];
+}
+
+export interface SettingsSlotView {
+  slotKey: string;
+  slotLabel: string;
+  /** Method's own pick for the slot. */
+  method: BisView;
+  override: (ItemView & { catalyst: boolean }) | null;
+  /** Whether the catalyst can turn an item here into a tier piece. */
+  tierSlot: boolean;
+}
+
+export interface SettingsSpecView {
+  slug: string;
+  className: string;
+  specName: string;
+  /** The list the account compares against. */
+  listType: ListType;
+  statsMatter: boolean;
+  /** The list the editor shows. */
+  editing: ListType;
+  hasLists: boolean;
+  fetchState: SpecFetchState;
+  lists: Record<ListType, { slots: SettingsSlotView[]; orphans: (ItemView & { slotKey: string })[] }>;
+}

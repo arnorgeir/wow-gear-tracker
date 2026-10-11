@@ -11,8 +11,8 @@ describe('MainNav', () => {
   const links = html.split('<a ').slice(1);
 
   it('shows each decorative icon at every width, with the label as the link text', () => {
-    expect(links).toHaveLength(2);
-    for (const [link, label] of [[links[0]!, 'Characters'], [links[1]!, 'Group']] as const) {
+    expect(links).toHaveLength(3);
+    for (const [link, label] of [[links[0]!, 'Characters'], [links[1]!, 'Group'], [links[2]!, 'Settings']] as const) {
       expect(link).toMatch(/<svg[^>]*aria-hidden="true"[^>]*class="shrink-0"/);
       expect(link).toContain(`</svg>${label}`);
     }

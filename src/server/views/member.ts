@@ -10,7 +10,7 @@ import type { BisRow, ListType, Region, SlotType, TierTarget, Track } from '@/co
 import type { SpecBis } from './bis-lookup';
 import { itemView } from './item-view';
 import { loadGear, summarize, upgradeFor, type GearContext } from './summarize';
-import type { CharacterSummary, GearRowView, PriorityCreditView, VaultChoiceView } from './types';
+import type { BisView, CharacterSummary, GearRowView, PriorityCreditView, VaultChoiceView } from './types';
 
 export interface MemberContext {
   db: Db;
@@ -45,6 +45,21 @@ export async function loadMember(ctx: MemberContext, character: CharacterRow, cl
   };
 }
 
+/** Method's pick for a row, as the character page and the settings editor show it. */
+export function bisView(row: BisRow, icons: ReadonlyMap<number, string | null>, targets: ReadonlyMap<number, TierTarget>): BisView {
+  return row.kind === 'item'
+    ? {
+        kind: 'item' as const,
+        ...itemView({ itemId: row.itemId, name: row.name, itemLevel: null, quality: 'EPIC', bonusIds: row.bonusIds }, icons, null),
+        isTier: row.isTier,
+        isCatalyst: row.isCatalyst,
+        source: row.source,
+        targetStats: row.isTier ? targets.get(row.itemId)?.secondaryStats ?? null : null,
+        targetIsTierPiece: row.isTier && (targets.get(row.itemId)?.isTier ?? false),
+      }
+    : { kind: 'any' as const, minItemLevel: row.minItemLevel, source: row.source };
+}
+
 export function rowView(
   r: GearRow, icons: ReadonlyMap<number, string | null>, costs: ReadonlyMap<number, CrestCost>, balances: ReadonlyMap<number, number>,
   targets: ReadonlyMap<number, TierTarget>,
@@ -55,17 +70,7 @@ export function rowView(
     state: r.state,
     equipped: r.equipped && itemView(r.equipped, icons, r.track),
     equippedStats: r.equipped?.secondaryStats ?? null,
-    bis: r.row.kind === 'item'
-      ? {
-          kind: 'item' as const,
-          ...itemView({ itemId: r.row.itemId, name: r.row.name, itemLevel: null, quality: 'EPIC', bonusIds: r.row.bonusIds }, icons, null),
-          isTier: r.row.isTier,
-          isCatalyst: r.row.isCatalyst,
-          source: r.row.source,
-          targetStats: r.row.isTier ? targets.get(r.row.itemId)?.secondaryStats ?? null : null,
-          targetIsTierPiece: r.row.isTier && (targets.get(r.row.itemId)?.isTier ?? false),
-        }
-      : { kind: 'any' as const, minItemLevel: r.row.minItemLevel, source: r.row.source },
+    bis: bisView(r.row, icons, targets),
     upgrade: upgradeFor(r, costs, balances),
   };
 }
