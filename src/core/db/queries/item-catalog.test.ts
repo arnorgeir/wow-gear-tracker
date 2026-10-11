@@ -14,6 +14,7 @@ async function withLoot() {
     loot: [
       { challengeModeId: 1, encounterId: 3, encounterName: 'Boss', itemId: 600, itemName: 'Æther Band', inventoryType: 'FINGER', armorType: null, quality: 'EPIC', isTier: false },
       { challengeModeId: 1, encounterId: 3, encounterName: 'Boss', itemId: 601, itemName: 'Old Cloak', inventoryType: null, armorType: null, quality: null, isTier: false },
+      { challengeModeId: 1, encounterId: 3, encounterName: 'Boss', itemId: 602, itemName: 'Season Three Helm', inventoryType: 'HEAD', armorType: 'cloth', quality: null, isTier: false },
     ],
   });
   return db;
@@ -36,6 +37,11 @@ describe('item catalog', () => {
   it('treats a loot row without a slot as unknown', async () => {
     const db = await withLoot();
     expect(await findLocalItem(db, 601)).toBeNull();
+  });
+
+  it('treats a loot row from before quality and tier were stored as unknown', async () => {
+    const db = await withLoot();
+    expect(await findLocalItem(db, 602)).toBeNull();
   });
 
   it('searches names case-insensitively beyond ASCII, and exact IDs', async () => {

@@ -25,9 +25,9 @@ export async function upsertCatalogItem(db: Db, item: CatalogItem, now: number) 
 export async function findLocalItem(db: Db, itemId: number): Promise<CatalogItem | null> {
   const cataloged = await db.select().from(itemCatalog).where(eq(itemCatalog.itemId, itemId)).get();
   if (cataloged) return fromCatalog(cataloged);
-  // A row without an inventory type predates season.v4 or lost its details: not complete enough to trust.
+  // A row without an inventory type or quality predates season.v4 or lost its details: not complete enough to trust.
   const loot = await db.select().from(dungeonLoot).where(eq(dungeonLoot.itemId, itemId)).get();
-  return loot && loot.inventoryType !== null ? fromLoot(loot) : null;
+  return loot && loot.inventoryType !== null && loot.quality !== null ? fromLoot(loot) : null;
 }
 
 // ponytail: loads the whole catalog and season loot per search (a few hundred rows); index by name if it grows.
