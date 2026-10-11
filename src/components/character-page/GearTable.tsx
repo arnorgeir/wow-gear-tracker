@@ -5,15 +5,18 @@ import { ROW_TONE_STYLES, rowTone } from '@/components/shared/row-tone';
 import { trackText } from '@/components/shared/track-label';
 import { StateBadge } from '@/components/state-badge/StateBadge';
 import { UpgradeBadge } from '@/components/upgrade-badge/UpgradeBadge';
+import type { ListType } from '@/core/types';
 import type { GearRowView } from '@/server/views/types';
 import { BisTarget } from '@/components/bis-target/BisTarget';
 import { GEAR_COLUMNS, GearTableHeader } from './GearTableHeader';
 import { GearRowsSkeleton } from './GearTableSkeleton';
 
-export function GearTable({ rows, tracksKnown, bisLoading }: { rows: GearRowView[]; tracksKnown: boolean; bisLoading: boolean }) {
+interface Props { rows: GearRowView[]; tracksKnown: boolean; bisLoading: boolean; listType: ListType; specSlug: string; editedCount: number }
+
+export function GearTable({ rows, tracksKnown, bisLoading, listType, specSlug, editedCount }: Props) {
   return (
     <section aria-label="Gear by slot" className="flex flex-col rounded-2xl border border-line bg-surface py-1">
-      <GearTableHeader />
+      <GearTableHeader source={{ listType, specSlug, editedCount }} />
       {rows.length === 0 && (bisLoading
         ? <><span role="status" className="sr-only">{BIS_LOADING}</span><GearRowsSkeleton /></>
         : <p className="p-6 text-muted">No BiS list to compare against yet.</p>)}

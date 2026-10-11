@@ -11,7 +11,7 @@ export function FetchButton({ specSlug, label }: { specSlug: string; label: 'Fet
         className="h-9 rounded-lg border border-line-strong bg-surface-2 px-3 text-sm font-semibold disabled:opacity-60">
         {busy ? 'Fetching…' : label}
       </button>
-      {error && <span role="alert" className="text-sm text-danger">{error}</span>}
+      {error && <span role="alert" className="text-sm text-missing">{error}</span>}
     </span>
   );
 }

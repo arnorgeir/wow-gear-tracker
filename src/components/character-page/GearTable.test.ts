@@ -10,7 +10,16 @@ const row: GearRowView = {
   bis: { kind: 'item', ...equipped, isTier: false, isCatalyst: false, source: '', targetStats: null, targetIsTierPiece: false },
 };
 const render = (rows: GearRowView[], bisLoading: boolean) =>
-  renderToStaticMarkup(createElement(GearTable, { rows, tracksKnown: true, bisLoading })).replace(/<link[^>]*\/>/g, '');
+  renderToStaticMarkup(createElement(GearTable, { rows, tracksKnown: true, bisLoading, listType: 'raid', specSlug: 'guardian-druid', editedCount: 2 })).replace(/<link[^>]*\/>/g, '');
+
+describe('GearTable source', () => {
+  it('names the compared list and links the source badge to its settings', () => {
+    const html = render([row], false);
+    expect(html).toContain('BiS · Raid');
+    expect(html).toContain('href="/settings/bis/guardian-druid"');
+    expect(html).toContain('Method · 2 edited');
+  });
+});
 
 describe('GearTable loading', () => {
   it('shows skeleton rows under the real header while the BiS list loads', () => {
