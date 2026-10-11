@@ -13,9 +13,12 @@ export async function getSpecSettings(db: Db, accountId: number, specSlug: strin
 }
 
 export async function updateSpecSettings(db: Db, accountId: number, specSlug: string, patch: Partial<SpecSettings>) {
-  const next = { ...(await getSpecSettings(db, accountId, specSlug)), ...patch };
-  await withWriteLock(db, () => db.insert(specSettings).values({ accountId, specSlug, ...next })
-    .onConflictDoUpdate({ target: [specSettings.accountId, specSettings.specSlug], set: next }));
+  // Read inside the lock: overlapping partial patches must each see the other's write.
+  await withWriteLock(db, async () => {
+    const next = { ...(await getSpecSettings(db, accountId, specSlug)), ...patch };
+    await db.insert(specSettings).values({ accountId, specSlug, ...next })
+      .onConflictDoUpdate({ target: [specSettings.accountId, specSettings.specSlug], set: next });
+  });
 }
 
 export async function listOverrides(db: Db, accountId: number, specSlug: string): Promise<Record<ListType, BisOverride[]>> {

@@ -25,6 +25,16 @@ describe('spec settings', () => {
     expect(await getSpecSettings(db, 1, SLUG)).toEqual({ listType: 'raid', statsMatter: false });
   });
 
+  it.each([['no row yet', false], ['an existing row', true]])('keeps both fields when partial patches overlap, with %s', async (_label, seeded) => {
+    const db = await openTestDb();
+    if (seeded) await updateSpecSettings(db, 1, SLUG, { listType: 'overall', statsMatter: true });
+    await Promise.all([
+      updateSpecSettings(db, 1, SLUG, { listType: 'raid' }),
+      updateSpecSettings(db, 1, SLUG, { statsMatter: false }),
+    ]);
+    expect(await getSpecSettings(db, 1, SLUG)).toEqual({ listType: 'raid', statsMatter: false });
+  });
+
   it('keeps accounts apart', async () => {
     const db = await twoAccounts();
     await updateSpecSettings(db, 1, SLUG, { listType: 'overall' });
