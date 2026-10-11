@@ -6,6 +6,9 @@ import { insertCharacter, updateCharacter } from '../db/queries/characters';
 import type { BisLists, Region } from '../types';
 import { readBisLists, readTierTargets, readTracks } from './reference-sync';
 import { syncReference, type ReferenceSyncDeps } from './reference-run';
+import { upsertOverride } from '../db/queries/bis-settings';
+import { upsertCatalogItem } from '../db/queries/item-catalog';
+import { listSpecs } from '../db/queries/specs';
 
 const tierRobe: BisLists['mythicPlus'][number] = { kind: 'item', slotLabel: 'Chest', slots: ['CHEST'], itemId: 10, name: 'Tier Robe', bonusIds: [], isTier: true, isCatalyst: false, source: '' };
 const lists: BisLists = { overall: [], raid: [], mythicPlus: [tierRobe] };
@@ -27,6 +30,20 @@ async function track(db: Db, name: string, className: string, specName: string, 
 }
 
 describe('syncReference', () => {
+  it('fetches stats for override items and fills the spec catalog', async () => {
+    const db = await openTestDb();
+    await track(db, 'Birkibjörn', 'Mage', 'Frost');
+    await upsertCatalogItem(db, { itemId: 301, name: 'Woven Hood', inventoryType: 'HEAD', armorType: 'cloth', quality: 'EPIC', isTier: false }, 1);
+    await upsertOverride(db, 1, 'frost-mage', 'mythicPlus', { slotKey: 'Head#1', itemId: 301, catalyst: true });
+    const { d, calls } = deps(db);
+    d.blizzard = { ...d.blizzard, getClasses: async () => [{ id: 8, name: 'Mage', specs: ['Frost'] }] } as unknown as BlizzardClient;
+    await syncReference(d);
+    expect(calls.items).toContain('eu:301');
+    expect((await listSpecs(db)).map((s) => s.methodSlug)).toEqual(['frost-mage']);
+    const scope = { region: 'eu' as const, specSlug: 'frost-mage', lists, extraItemIds: [301] };
+    expect((await readTierTargets(db, scope, 1000)).due).toBe(false);
+  });
+
   it('fetches tracks and each distinct spec once, without repeating tier requests across regions', async () => {
     const db = await openTestDb();
     await track(db, 'Birkibjörn', 'Druid', 'Guardian');

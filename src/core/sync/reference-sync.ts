@@ -5,6 +5,8 @@ import { getBisLists, replaceBisLists } from '../db/queries/bis-lists';
 import { getClassIconMap, upsertClassIcons, getItemDetailsMap, upsertItemDetails, getItemIcons, upsertItemIcons, getTierTargetRows, upsertTierTargets, type TierTargetRow } from '../db/queries/media';
 import { getBonusQualityMap, replaceBonusQualities, getTrackMap, replaceTracks } from '../db/queries/tracks';
 import { getMeta, setMeta } from '../db/queries/meta';
+import { replaceSpecs } from '../db/queries/specs';
+import { methodSpecSlug } from '../method/method';
 import { isHttpError } from '../http';
 import type { RaidbotsData } from '../raidbots/tracks';
 import { LIST_TYPES, type BisLists, type BisSource, type Quality, type Region, type TierTarget, type Track } from '../types';
@@ -159,7 +161,7 @@ export async function ensureItemDetails(
   return getItemDetailsMap(db, unique);
 }
 
-export interface TierScope { region: Region; specSlug: string; lists: BisLists | null }
+export interface TierScope { region: Region; specSlug: string; lists: BisLists | null; extraItemIds?: number[] }
 
 // One entry per spec and region: a thrown tier request stores no row, so this is what holds the retry back.
 const tierFailedKey = ({ region, specSlug }: TierScope) => `tiers.${region}.${specSlug}.failedAt`;
@@ -173,7 +175,7 @@ const needsStats = (row: TierTargetRow | undefined, now: number) =>
 
 /** The scope's stored rows, and the items a sync would request now: none while a failure is within the hour. */
 async function tierState(db: Db, scope: TierScope, now: number) {
-  const ids = tierItemIds(scope.lists);
+  const ids = [...new Set([...tierItemIds(scope.lists), ...(scope.extraItemIds ?? [])])];
   const rows = await getTierTargetRows(db, ids);
   const failed = await getMeta(db, tierFailedKey(scope));
   const backingOff = failed !== null && now - failed.updatedAt < RETRY_MS;
@@ -207,6 +209,27 @@ export async function syncTierTargets(deps: { db: Db; blizzard: BlizzardClient; 
   const found = fetched.filter((entry): entry is { itemId: number; info: ItemInfo | null } => entry !== null);
   if (found.length > 0) await upsertTierTargets(db, found, now);
   if (found.length < pending.length) await setMeta(db, tierFailedKey(scope), String(now), now);
+  return true;
+}
+
+const SPECS_META_KEY = 'specs.fetchedAt';
+const SPECS_FAILED_META_KEY = 'specs.failedAt';
+
+/** Refreshes the spec catalog when a day old. Keeps old rows on failure; never throws for an upstream failure. */
+export async function syncSpecs(deps: { db: Db; blizzard: BlizzardClient; now: number }, region: Region): Promise<boolean> {
+  const { db, blizzard, now } = deps;
+  const fetchedAt = await getMeta(db, SPECS_META_KEY);
+  const failed = await getMeta(db, SPECS_FAILED_META_KEY);
+  if (!timing(fetchedAt?.updatedAt ?? null, failed, now).due) return false;
+  try {
+    const classes = await blizzard.getClasses(region);
+    const rows = classes.flatMap((c) => c.specs.map((specName) => ({ methodSlug: methodSpecSlug(specName, c.name), classId: c.id, className: c.name, specName })));
+    if (rows.length === 0) throw new Error('No specs in the class index');
+    await replaceSpecs(db, rows, now);
+    await setMeta(db, SPECS_META_KEY, String(now), now);
+  } catch {
+    await setMeta(db, SPECS_FAILED_META_KEY, String(now), now);
+  }
   return true;
 }
 
