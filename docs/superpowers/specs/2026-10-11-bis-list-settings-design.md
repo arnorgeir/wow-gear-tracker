@@ -99,9 +99,9 @@ Logic modules in `src/core/bis/`, pure functions:
 
 Tier target stats are fetched per spec and region for the tier item IDs in that spec's lists. Overrides can add tier IDs Method's lists don't have, so both paths take the effective tier IDs:
 
-- `TierScope` in `src/core/sync/reference-sync.ts` replaces `lists` with `itemIds: number[]`, the tier item IDs to cover. `tierItemIds(lists)` stays as the helper callers use to build it.
-- Read path: `createBisLookup` builds the scope from the account's effective lists, after the overlay, so `readTierTargets` reports `due` when an override names a tier item with no stored stats. Reads stay database-only.
-- Write path: `runPass` in `src/core/sync/reference-run.ts` builds each tracked spec's scope from Method's lists plus every tier item named by any account's overrides for that spec, read with one query on `bis_overrides` joined to `item_catalog`, keeping overrides that are `catalyst` or whose item `is_tier`. A catalyst override's base item is a target like Method's catalyst bases, so its stat pair is fetched the same way. The union across accounts keeps the sync free of a current account: it serves whoever is looking.
+- `TierScope` in `src/core/sync/reference-sync.ts` gains `extraItemIds?: number[]`. The IDs it covers are `tierItemIds(lists)` plus those.
+- Read path: `createBisLookup` builds the scope from the account's effective lists, after the overlay, passing the overlaid lists as `lists`, so `readTierTargets` reports `due` when an override names a tier item with no stored stats. Reads stay database-only.
+- Write path: `runPass` in `src/core/sync/reference-run.ts` passes each tracked spec's Method lists, and as `extraItemIds` every tier item named by any account's overrides for that spec, read with one query on `bis_overrides` joined to `item_catalog`, keeping overrides that are `catalyst` or whose item `is_tier`. A catalyst override's base item is a target like Method's catalyst bases, so its stat pair is fetched the same way. The union across accounts keeps the sync free of a current account: it serves whoever is looking.
 - Refresh after an override changes: saving a tier override makes the next page read report due work, the page's existing background sync key fires `runPass`, and the stats arrive on the following render. No route fetches stats directly.
 
 ### Stats checkbox
