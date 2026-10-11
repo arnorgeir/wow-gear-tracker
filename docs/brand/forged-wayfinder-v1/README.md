@@ -9,7 +9,7 @@ name, initials, or wordmark is baked into the assets.
 - `logos/`: editable flat SVG masters in gold, parchment, charcoal and
   `currentColor`; transparent PNGs at 256, 512 and 1024 px; a small-size SVG;
   and a separate transparent metallic illustration for larger artwork.
-- `icons/`: Characters, Group, Dungeons, Vault, Upgrades and Bags. Gold SVGs
+- `icons/`: Characters, Group, Dungeons, Vault, Upgrades, Bags and Settings. Gold SVGs
   use a 64-unit grid and a 3.2-unit stroke. `current-color/` contains inline
   SVG variants that inherit CSS color. `png/` has 24, 32, 64 and 128 px exports.
 - `favicon/`: dark-backed SVG and 16, 32, 48 and 64 px PNGs. `favicon.ico`
@@ -22,6 +22,8 @@ name, initials, or wordmark is baked into the assets.
 - `preview.png` and `preview.svg`: a portrait overview of the actual vector
   assets. The size samples are at their stated sizes in the 900 px-wide
   original, but chat and browser previews may scale the entire sheet.
+- `settings-preview.png` and `settings-preview.svg`: Settings icon alongside
+  existing icons and at 24, 32 and 64 px.
 - `validation.txt`: asset validation results.
 
 ## Source and fidelity
@@ -69,7 +71,7 @@ masters here when the artwork changes.
 | `src/app/apple-icon.png` | `app-icons/apple-touch-icon.png` |
 | `public/brand/open-crest-metallic.png` (setup notice) | `logos/open-crest-metallic.png` |
 | `src/components/brand-mark/BrandMark.tsx` (inline paths) | `logos/open-crest-mono.svg` |
-| `src/components/brand-icon/BrandIcon.tsx` (inline paths: characters, group, dungeons, vault) | `icons/current-color/` |
+| `src/components/brand-icon/BrandIcon.tsx` (inline paths: characters, group, dungeons, vault, settings) | `icons/current-color/` |
 | `src/components/setup-notice/CornerFrame.tsx` (one corner, mirrored) | `motifs/corner-frame.svg` |
 | Header bottom line with a gold diamond, `src/app/layout.tsx` (drawn in CSS) | `motifs/divider.svg` |
 
