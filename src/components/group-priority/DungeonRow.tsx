@@ -3,7 +3,7 @@ import { classTextColor } from '@/components/shared/class-colors';
 import { SPLIT_DUNGEON } from '@/components/shared/priority-copy';
 import type { GroupDungeonView } from '@/server/views/types';
 import { CreditChip } from './CreditChip';
-import { DungeonThumbnail } from './DungeonThumbnail';
+import { DungeonThumbnail } from '@/components/dungeon-thumbnail/DungeonThumbnail';
 
 /** One ranked dungeon as a native disclosure: who benefits in the summary, their needs inside. */
 export function DungeonRow({ dungeon, rank }: { dungeon: GroupDungeonView; rank: number }) {
