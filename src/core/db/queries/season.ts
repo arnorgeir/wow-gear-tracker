@@ -1,7 +1,7 @@
 import { and, asc, eq } from 'drizzle-orm';
 import type { Db } from '../client';
 import { dungeonLoot, seasonDungeons } from '../schema';
-import type { ArmorType, SeasonLoot } from '../../types';
+import type { ArmorType, Quality, SeasonLoot } from '../../types';
 import { withWriteLock } from './write-lock';
 import { decodeStats } from '../../gear/stat-pair';
 
@@ -16,6 +16,8 @@ export interface DungeonLootRow {
   armorType: ArmorType | null;
   /** Encoded as in snapshot_items; absent or null when unknown. */
   secondaryStats?: string | null;
+  quality?: Quality | null;
+  isTier?: boolean;
 }
 export interface SeasonData { slug: string; dungeons: SeasonDungeonRow[]; loot: DungeonLootRow[] }
 
