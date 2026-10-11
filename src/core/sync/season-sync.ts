@@ -11,7 +11,7 @@ import { DAY_MS } from './reference-sync';
 
 // The version in the key marks the stored tables' format. Bump it when season_dungeons or
 // dungeon_loot gain columns, so installs reload the season instead of trusting old rows.
-export const SEASON_META_KEY = 'season.v3';
+export const SEASON_META_KEY = 'season.v4';
 const SEASON_FAILED_META_KEY = 'season.failedAt';
 const SEASON_RETRY_MS = 60 * 60 * 1000;
 
@@ -64,6 +64,8 @@ export async function loadSeasonLoot(blizzard: BlizzardClient, region: Region, s
       inventoryType: infos.get(item.itemId)?.inventoryType ?? null,
       armorType: infos.get(item.itemId)?.armorType ?? null,
       secondaryStats: encodeStats(infos.get(item.itemId)?.secondaryStats),
+      quality: infos.get(item.itemId)?.quality ?? null,
+      isTier: infos.get(item.itemId)?.isTier ?? false,
     }));
   }));
   const rows: SeasonDungeonRow[] = dungeons.map((d) => ({

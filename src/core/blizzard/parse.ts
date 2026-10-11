@@ -71,6 +71,7 @@ const ARMOR_CLASS_ID = 4;
 const ARMOR_SUBCLASS: Record<number, ArmorType> = { 1: 'cloth', 2: 'leather', 3: 'mail', 4: 'plate' };
 
 export interface RawItem {
+  name?: string;
   quality?: { type: string };
   preview_item?: { set?: unknown; stats?: RawStat[] };
   inventory_type?: { type: string };
@@ -81,6 +82,7 @@ export interface RawItem {
 /** Item details plus slot and armor type. Only armor (item class 4) has an armor type. */
 export function parseItemInfo(raw: RawItem): ItemInfo {
   return {
+    name: raw.name ?? null,
     quality: (raw.quality?.type as Quality | undefined) ?? null,
     isTier: Boolean(raw.preview_item?.set),
     inventoryType: raw.inventory_type?.type ?? null,
