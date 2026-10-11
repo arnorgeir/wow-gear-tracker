@@ -2,6 +2,7 @@ import { createElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { CharacterPageSkeleton } from './CharacterPageSkeleton';
+import { DungeonRowsSkeleton } from './DungeonRowsSkeleton';
 import { DungeonPrioritySkeleton } from './DungeonPrioritySkeleton';
 import { GearTableSkeleton } from './GearTableSkeleton';
 import { VaultSectionSkeleton } from './VaultSectionSkeleton';
@@ -32,5 +33,13 @@ describe('character page skeletons', () => {
     expect(page).toContain('aria-label="Dungeon priority"');
     expect(page).toContain('aria-label="Great Vault"');
     expect(statuses(page)).toBe(0);
+  });
+
+  it('draws one open dungeon row and three closed ones', () => {
+    const rows = html(createElement(DungeonRowsSkeleton));
+    expect(rows).toContain('flex flex-col gap-1.5');
+    expect(rows.match(/<li/g)).toHaveLength(4);
+    expect(rows.match(/h-\[58px\]/g)).toHaveLength(4);
+    expect(rows.match(/h-\[62px\]/g)).toHaveLength(2);
   });
 });

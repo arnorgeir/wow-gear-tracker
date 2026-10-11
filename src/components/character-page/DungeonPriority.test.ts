@@ -13,7 +13,7 @@ describe('DungeonPriority', () => {
   it('ranks dungeons with their credits and lists the rest apart', () => {
     const html = render({
       ...base,
-      dungeons: [{ challengeModeId: 501, name: 'Alpha Hollow', score: 7, split: false, credits: [
+      dungeons: [{ challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: null, score: 7, split: false, credits: [
         { kind: 'tier', slotLabel: 'Chest', weight: 4, fit: 'alternative', dropStats: ['MASTERY_RATING', 'VERSATILITY'], targetName: 'Primordial Robe of Rites', targetStats: ['HASTE_RATING', 'MASTERY_RATING'],
           item: { itemId: 80, name: 'Hoarded Harvest Wrap', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } },
         { kind: 'any', slotLabel: 'Shoulders', weight: 3, minItemLevel: 334 },
@@ -61,12 +61,27 @@ describe('DungeonPriority', () => {
   });
 
   it('marks a split dungeon', () => {
-    const html = render({ ...base, dungeons: [{ challengeModeId: 502, name: 'Streets of Beta', score: 3, split: true, credits: [] }] });
+    const html = render({ ...base, dungeons: [{ challengeModeId: 502, name: 'Streets of Beta', shortName: 'STRT', imageUrl: null, score: 3, split: true, credits: [] }] });
     expect(html).toContain('Split dungeon');
   });
 
   it('puts a gold dungeons icon in the heading, beside its text', () => {
     const html = render(base);
     expect(html).toMatch(/<h2 class="flex items-center gap-2\.5[^"]*"><svg[^>]*aria-hidden="true"[^>]*class="shrink-0 text-gold"[^>]*>.*<\/svg>Dungeon priority<\/h2>/);
+  });
+
+  it('makes each dungeon a details row like the group page, the first one open', () => {
+    const d = (challengeModeId: number, name: string, score: number, split = false) =>
+      ({ challengeModeId, name, shortName: '', imageUrl: null, score, split, credits: [{ kind: 'any' as const, slotLabel: 'Boots', weight: score, minItemLevel: 334 }] });
+    const html = render({ ...base, dungeons: [d(501, 'Alpha Hollow', 8), d(502, 'Streets of Beta', 3, true)] });
+    expect(html.match(/<details/g)).toHaveLength(2);
+    expect(html.match(/<details open=""/g)).toHaveLength(1);
+    expect(html.indexOf('<details open=""')).toBeLessThan(html.indexOf('Alpha Hollow'));
+    expect(html).toMatch(/<h3 class="min-w-0 truncate[^"]*">Alpha Hollow<\/h3>/);
+    expect(html).toContain('<span class="sr-only">Score </span>8');
+    expect(html).toMatch(/>2<\/span>/);
+    const second = html.slice(html.lastIndexOf('<details'));
+    expect(second.indexOf('Split dungeon')).toBeGreaterThan(second.indexOf('</summary>'));
+    expect(second.indexOf('Any item, level 334+')).toBeGreaterThan(second.indexOf('</summary>'));
   });
 });

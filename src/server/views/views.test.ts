@@ -236,6 +236,7 @@ describe('any rows on the character page', () => {
 });
 
 describe('dungeon priority', () => {
+  const AH_ART = 'https://cdn.raiderio.net/images/dungeons/alpha-hollow.jpg';
   const needs: BisLists = {
     overall: [],
     raid: [],
@@ -246,7 +247,7 @@ describe('dungeon priority', () => {
     await replaceSeason(s.db, {
       slug: 'season-test-2',
       dungeons: [
-        { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11, imageUrl: null },
+        { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11, imageUrl: AH_ART },
         { challengeModeId: 502, name: 'Beta Spire', shortName: 'BS', journalInstanceId: 902, mapId: 22, imageUrl: null },
       ],
       loot: [{ challengeModeId: 501, encounterId: 1, encounterName: 'Hollow King', itemId: 30, itemName: 'Cloak of the Hollow', inventoryType: 'CLOAK', armorType: 'cloth' }],
@@ -262,7 +263,7 @@ describe('dungeon priority', () => {
     const page = await birkiPage(s);
     expect(page!.priority).toMatchObject({ listType: 'mythicPlus', fellBack: false, season: 'ready', needsSync: false, approximate: false, nothingFrom: ['Beta Spire'] });
     expect(page!.priority.dungeons).toEqual([{
-      challengeModeId: 501, name: 'Alpha Hollow', score: 3, split: false,
+      challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: AH_ART, score: 3, split: false,
       credits: [{ kind: 'item', slotLabel: 'Cloak', weight: 3, item: expect.objectContaining({ itemId: 30, iconUrl: 'https://i/30.jpg' }) }],
     }]);
   });
@@ -277,7 +278,7 @@ describe('dungeon priority', () => {
     await replaceSeason(s.db, {
       slug: 'season-test-2',
       dungeons: [
-        { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11, imageUrl: null },
+        { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 901, mapId: 11, imageUrl: AH_ART },
         { challengeModeId: 502, name: 'Beta Spire', shortName: 'BS', journalInstanceId: 902, mapId: 22, imageUrl: null },
       ],
       loot: [
@@ -294,6 +295,9 @@ describe('dungeon priority', () => {
       item: expect.objectContaining({ itemId: 40, name: 'Hollow Jerkin', iconUrl: 'https://i/40.jpg' }), targetName: 'Tier Catalyst Robe',
     }]);
     expect(credits('Beta Spire')[0]).toMatchObject({ item: { itemId: 41, name: 'Spire Vest', iconUrl: 'https://i/41.jpg' }, targetName: 'Tier Catalyst Robe' });
+    const art = (name: string) => { const d = page!.priority.dungeons.find((x) => x.name === name)!; return { shortName: d.shortName, imageUrl: d.imageUrl }; };
+    expect(art('Alpha Hollow')).toEqual({ shortName: 'AH', imageUrl: AH_ART });
+    expect(art('Beta Spire')).toEqual({ shortName: 'BS', imageUrl: null });
   });
 
   it('asks for a sync and says loading before any season is stored', async () => {

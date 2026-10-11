@@ -1,4 +1,5 @@
 import { BrandIcon } from '@/components/brand-icon/BrandIcon';
+import { DungeonDisclosure } from '@/components/dungeon-disclosure/DungeonDisclosure';
 import { ItemCard } from '@/components/item-card/ItemCard';
 import { BIS_LOADING } from '@/components/shared/loading-copy';
 import { APPROXIMATE, SEASON_FAILED, SEASON_LOADING, SEASON_STALE, SPLIT_DUNGEON } from '@/components/shared/priority-copy';
@@ -33,15 +34,13 @@ function Ranking({ priority }: { priority: PriorityView }) {
   if (priority.dungeons.length === 0) return <p className="text-muted">No season dungeon drops anything you still need.</p>;
   return (
     <>
-      <ol className="flex flex-col gap-4">
-        {priority.dungeons.map((d) => (
-          <li key={d.challengeModeId} className="flex flex-col gap-2">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="font-semibold">{d.name}</span>
-              <span className="font-mono text-gold">{d.score}</span>
-            </div>
-            {d.split && <span className="text-xs text-muted">{SPLIT_DUNGEON}</span>}
-            {d.credits.map((credit, i) => <Credit key={i} credit={credit} />)}
+      <ol className="flex flex-col gap-1.5">
+        {priority.dungeons.map((d, i) => (
+          <li key={d.challengeModeId} className="min-w-0">
+            <DungeonDisclosure rank={i + 1} name={d.name} score={d.score} imageUrl={d.imageUrl} shortName={d.shortName}>
+              {d.split && <p className="text-xs text-muted">{SPLIT_DUNGEON}</p>}
+              {d.credits.map((credit, j) => <Credit key={j} credit={credit} />)}
+            </DungeonDisclosure>
           </li>
         ))}
       </ol>
