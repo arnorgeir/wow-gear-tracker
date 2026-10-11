@@ -7,7 +7,7 @@ import { getBonusQualityMap, replaceBonusQualities, getTrackMap, replaceTracks }
 import { getMeta, setMeta } from '../db/queries/meta';
 import { replaceSpecs } from '../db/queries/specs';
 import { methodSpecSlug } from '../method/method';
-import { isHttpError } from '../http';
+import { createLimiter, isHttpError } from '../http';
 import type { RaidbotsData } from '../raidbots/tracks';
 import { LIST_TYPES, type BisLists, type BisSource, type Quality, type Region, type TierTarget, type Track } from '../types';
 
@@ -212,7 +212,8 @@ export async function syncTierTargets(deps: { db: Db; blizzard: BlizzardClient; 
   return true;
 }
 
-const SPECS_META_KEY = 'specs.fetchedAt';
+const SPEC_ICON_PARALLEL = 6;
+const SPECS_META_KEY = 'specs.v2.fetchedAt';
 const SPECS_FAILED_META_KEY = 'specs.failedAt';
 
 /** Refreshes the spec catalog when a day old. Keeps old rows on failure; never throws for an upstream failure. */
@@ -223,7 +224,18 @@ export async function syncSpecs(deps: { db: Db; blizzard: BlizzardClient; now: n
   if (!timing(fetchedAt?.updatedAt ?? null, failed, now).due) return false;
   try {
     const classes = await blizzard.getClasses(region);
-    const rows = classes.flatMap((c) => c.specs.map((specName) => ({ methodSlug: methodSpecSlug(specName, c.name), classId: c.id, className: c.name, specName })));
+    const limit = createLimiter(SPEC_ICON_PARALLEL);
+    // A spec whose icon can't be fetched keeps a null icon: views fall back to the class icon.
+    const iconOf = (specId: number | undefined) => limit(async () => {
+      try {
+        return specId === undefined ? null : await blizzard.getSpecIconUrl(region, specId);
+      } catch {
+        return null;
+      }
+    });
+    const rows = await Promise.all(classes.flatMap((c) => c.specs.map(async (specName, i) => ({
+      methodSlug: methodSpecSlug(specName, c.name), classId: c.id, className: c.name, specName, iconUrl: await iconOf(c.specIds?.[i]),
+    }))));
     if (rows.length === 0) throw new Error('No specs in the class index');
     await replaceSpecs(db, rows, now);
     await setMeta(db, SPECS_META_KEY, String(now), now);

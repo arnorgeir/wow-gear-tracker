@@ -20,6 +20,7 @@ function fakeBlizzard(overrides: Partial<BlizzardClient> = {}) {
     getItemDetails: async () => null,
     getCharacterMedia: async () => 'https://render/avatar.jpg',
     getClassIconUrl: async () => null,
+    getSpecIconUrl: async () => null,
     getRealms: async () => [],
     getClasses: async () => [],
     getKeystoneDungeon: async () => { throw new Error('not used in these tests'); },

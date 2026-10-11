@@ -158,6 +158,7 @@ export const specs = sqliteTable('specs', {
   classId: integer('class_id').notNull(),
   className: text('class_name').notNull(),
   specName: text('spec_name').notNull(),
+  iconUrl: text('icon_url'),
   fetchedAt: integer('fetched_at').notNull(),
 });
 

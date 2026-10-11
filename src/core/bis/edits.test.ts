@@ -26,7 +26,7 @@ const info = (over: Partial<ItemInfo>): ItemInfo => ({ name: 'Woven Robe', quali
 
 async function setup(getItemDetails: BlizzardClient['getItemDetails'] = async () => info({})) {
   const db = await openTestDb();
-  await replaceSpecs(db, [{ methodSlug: 'frost-mage', classId: 8, className: 'Mage', specName: 'Frost' }, { methodSlug: 'fire-mage', classId: 8, className: 'Mage', specName: 'Fire' }], 1);
+  await replaceSpecs(db, [{ methodSlug: 'frost-mage', classId: 8, className: 'Mage', specName: 'Frost', iconUrl: null }, { methodSlug: 'fire-mage', classId: 8, className: 'Mage', specName: 'Fire', iconUrl: null }], 1);
   await replaceBisLists(db, 'frost-mage', lists, 1);
   const blizzard = { getItemDetails } as unknown as BlizzardClient;
   return { db, deps: { db, blizzard, now: 5, accountId: 1 } };

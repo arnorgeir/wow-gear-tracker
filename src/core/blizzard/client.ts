@@ -17,6 +17,7 @@ export interface BlizzardClient {
   getEquipment(ref: CharacterRef): Promise<GearItem[]>;
   getCharacterMedia(ref: CharacterRef): Promise<string | null>;
   getClassIconUrl(region: Region, classId: number): Promise<string | null>;
+  getSpecIconUrl(region: Region, specId: number): Promise<string | null>;
   getItemIconUrl(region: Region, itemId: number): Promise<string | null>;
   getItemDetails(region: Region, itemId: number): Promise<ItemInfo | null>;
   getRealms(region: Region): Promise<Realm[]>;
@@ -92,6 +93,10 @@ export function createBlizzardClient(options: Options): BlizzardClient {
       return mediaAsset(region, `/data/wow/media/playable-class/${classId}`, 'static', 'icon');
     },
 
+    getSpecIconUrl(region, specId) {
+      return mediaAsset(region, `/data/wow/media/playable-specialization/${specId}`, 'static', 'icon');
+    },
+
     async getItemIconUrl(region, itemId) {
       try {
         const media = await api<{ assets?: { key: string; value: string }[] }>(region, `/data/wow/media/item/${itemId}`, 'static');
@@ -144,8 +149,9 @@ export function createBlizzardClient(options: Options): BlizzardClient {
         cached = (async () => {
           const index = await api<{ classes: { id: number; name: string }[] }>(region, '/data/wow/playable-class/index', 'static');
           return Promise.all(index.classes.map(async (cls) => {
-            const detail = await api<{ specializations?: { name: string }[] }>(region, `/data/wow/playable-class/${cls.id}`, 'static');
-            return { id: cls.id, name: cls.name, specs: (detail.specializations ?? []).map((s) => s.name) };
+            const detail = await api<{ specializations?: { id: number; name: string }[] }>(region, `/data/wow/playable-class/${cls.id}`, 'static');
+            const specs = detail.specializations ?? [];
+            return { id: cls.id, name: cls.name, specs: specs.map((s) => s.name), specIds: specs.map((s) => s.id) };
           }));
         })();
         cached.catch(() => classCache.delete(region));

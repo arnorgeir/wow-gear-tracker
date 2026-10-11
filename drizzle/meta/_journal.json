@@ -85,6 +85,13 @@
       "when": 1791744948440,
       "tag": "0011_drop-priority-list",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1791747646097,
+      "tag": "0012_spec-icons",
+      "breakpoints": true
     }
   ]
 }

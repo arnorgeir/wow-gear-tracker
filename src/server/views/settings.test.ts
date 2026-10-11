@@ -20,11 +20,11 @@ const lists: BisLists = {
   ],
 };
 const SPECS = [
-  { methodSlug: 'balance-druid', classId: 11, className: 'Druid', specName: 'Balance' },
-  { methodSlug: 'feral-druid', classId: 11, className: 'Druid', specName: 'Feral' },
-  { methodSlug: 'guardian-druid', classId: 11, className: 'Druid', specName: 'Guardian' },
-  { methodSlug: 'restoration-druid', classId: 11, className: 'Druid', specName: 'Restoration' },
-  { methodSlug: 'frost-mage', classId: 8, className: 'Mage', specName: 'Frost' },
+  { methodSlug: 'balance-druid', classId: 11, className: 'Druid', specName: 'Balance', iconUrl: null },
+  { methodSlug: 'feral-druid', classId: 11, className: 'Druid', specName: 'Feral', iconUrl: null },
+  { methodSlug: 'guardian-druid', classId: 11, className: 'Druid', specName: 'Guardian', iconUrl: null },
+  { methodSlug: 'restoration-druid', classId: 11, className: 'Druid', specName: 'Restoration', iconUrl: null },
+  { methodSlug: 'frost-mage', classId: 8, className: 'Mage', specName: 'Frost', iconUrl: null },
 ];
 
 async function setup(withCatalog = true) {

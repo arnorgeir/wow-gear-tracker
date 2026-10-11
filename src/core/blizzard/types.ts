@@ -12,7 +12,8 @@ export interface CharacterProfile {
   faction: Faction | null;
 }
 export interface Realm { id: number; name: string; slug: string }
-export interface PlayableClass { id: number; name: string; specs: string[] }
+/** `specIds` runs parallel to `specs`: the specialization IDs the media API is keyed by. */
+export interface PlayableClass { id: number; name: string; specs: string[]; specIds: number[] }
 
 export interface ItemDetails { quality: Quality | null; isTier: boolean }
 

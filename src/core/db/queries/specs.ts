@@ -3,9 +3,9 @@ import type { Db } from '../client';
 import { specs } from '../schema';
 import { withWriteLock } from './write-lock';
 
-export interface SpecRow { methodSlug: string; classId: number; className: string; specName: string }
+export interface SpecRow { methodSlug: string; classId: number; className: string; specName: string; iconUrl: string | null }
 
-const toRow = (r: typeof specs.$inferSelect): SpecRow => ({ methodSlug: r.methodSlug, classId: r.classId, className: r.className, specName: r.specName });
+const toRow = (r: typeof specs.$inferSelect): SpecRow => ({ methodSlug: r.methodSlug, classId: r.classId, className: r.className, specName: r.specName, iconUrl: r.iconUrl });
 
 export async function replaceSpecs(db: Db, rows: SpecRow[], now: number) {
   await withWriteLock(db, () => db.transaction(async (tx) => {
