@@ -3,7 +3,7 @@ import type { CharacterRow } from '@/core/db/queries/characters';
 import type { SnapshotItemInput } from '@/core/db/queries/snapshots';
 import type { CrestCost } from '@/core/gear/crests';
 import { evaluateGear, type GearRow } from '@/core/gear/evaluate';
-import { choosePriorityList, type PriorityListType } from '@/core/priority/list';
+import { choosePriorityList } from '@/core/priority/list';
 import type { Credit, PriorityCharacter } from '@/core/priority/rank';
 import { decodeTrack } from '@/core/raidbots/tracks';
 import type { BisRow, ListType, Region, SlotType, TierTarget, Track } from '@/core/types';
@@ -24,7 +24,7 @@ export interface MemberData {
   summary: CharacterSummary;
   gear: GearContext;
   bis: SpecBis;
-  choice: { listType: PriorityListType; fellBack: boolean };
+  choice: { listType: ListType; fellBack: boolean };
   /** Rows for the priority list in `choice`. */
   priorityRows: GearRow[];
   evaluate: (list: ListType) => GearRow[];
@@ -86,5 +86,5 @@ export function creditView(cr: Credit, icons: ReadonlyMap<number, string | null>
 }
 
 export const priorityCharacter = (m: MemberData, tracks: ReadonlyMap<number, Track>): PriorityCharacter => ({
-  id: m.character.id, name: m.character.name, className: m.character.className, rows: m.priorityRows, equipped: m.gear.equipped, tracks, targets: m.bis.targets,
+  id: m.character.id, name: m.character.name, className: m.character.className, rows: m.priorityRows, equipped: m.gear.equipped, tracks, targets: m.bis.targets, statsMatter: true,
 });

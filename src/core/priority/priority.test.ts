@@ -17,8 +17,8 @@ const loot = (itemId: number, inventoryType: string | null = null, armorType: Ar
 const dungeon = (challengeModeId: number, name: string, items: LootItem[], split = false): SeasonLoot =>
   ({ challengeModeId, name, shortName: '', imageUrl: null, split, loot: items });
 
-const character = (rows: BisRow[], equipped: GearItem[], className = 'Druid', id = 1, name = 'Birkibjörn', targets: ReadonlyMap<number, TierTarget> = new Map()): PriorityCharacter =>
-  ({ id, name, className, rows: evaluateGear({ equipped, bisRows: rows, tracks, targets }), equipped, tracks, targets });
+const character = (rows: BisRow[], equipped: GearItem[], className = 'Druid', id = 1, name = 'Birkibjörn', targets: ReadonlyMap<number, TierTarget> = new Map(), statsMatter = true): PriorityCharacter =>
+  ({ id, name, className, rows: evaluateGear({ equipped, bisRows: rows, tracks, targets, statsMatter }), equipped, tracks, targets, statsMatter });
 const scores = (ranks: ReturnType<typeof rankDungeons>) => ranks.map((r) => [r.name, r.score]);
 
 describe('rankDungeons', () => {
@@ -131,6 +131,14 @@ describe('choosePriorityList', () => {
     expect(choosePriorityList(lists(2, 0), 'mythicPlus')).toEqual({ listType: 'overall', fellBack: true });
   });
 
+  it('falls back to Overall from an empty Raid list', () => {
+    expect(choosePriorityList(lists(2, 2), 'raid')).toEqual({ listType: 'overall', fellBack: true });
+  });
+
+  it('never falls back from Overall', () => {
+    expect(choosePriorityList({ ...lists(0, 2), raid: [named(['NECK'], 1)] }, 'overall')).toEqual({ listType: 'overall', fellBack: false });
+  });
+
   it('keeps the choice when there is nothing to fall back to', () => {
     expect(choosePriorityList(null, 'mythicPlus')).toEqual({ listType: 'mythicPlus', fellBack: false });
     expect(choosePriorityList(lists(0, 0), 'mythicPlus')).toEqual({ listType: 'mythicPlus', fellBack: false });
@@ -155,6 +163,12 @@ describe('tier credits by stat pair', () => {
     expect(credit(ranks, 'Altar of Fangs')).toMatchObject({ fit: 'bis', itemId: 273785, weight: 5, targetName: 'BiS 273785', targetStats: HM });
     expect(credit(ranks, 'Murder Row')).toMatchObject({ fit: 'bis', itemId: 251139, weight: 5 });
     expect(credit(ranks, 'Den of Nalorakk')).toMatchObject({ fit: 'alternative', itemId: 251147, weight: 4, dropStats: MV });
+  });
+
+  it('credits any drop in the slot at full weight when stats do not matter', () => {
+    const c = character([chestRow], [], 'Mage', 1, 'Birkibjörn', new Map([[273785, { secondaryStats: HM, isTier: false }]]), false);
+    expect(credit(rankDungeons([c], [dungeon(502, 'Den of Nalorakk', [loot(251147, 'CHEST', 'cloth', MV)])]), 'Den of Nalorakk'))
+      .toMatchObject({ fit: 'any', itemId: 251147, weight: 5 });
   });
 
   it('floors an alternative at weight 1', () => {

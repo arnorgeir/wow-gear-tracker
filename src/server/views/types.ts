@@ -82,7 +82,7 @@ export type PriorityCreditView =
   | { kind: 'any'; slotLabel: string; weight: number; minItemLevel: number };
 export interface DungeonPriorityView { challengeModeId: number; name: string; shortName: string; imageUrl: string | null; score: number; split: boolean; credits: PriorityCreditView[] }
 export interface PriorityView {
-  listType: 'mythicPlus' | 'overall';
+  listType: ListType;
   fellBack: boolean;
   season: 'loading' | 'failed' | 'ready' | 'stale';
   needsSync: boolean;
@@ -128,7 +128,7 @@ export interface GroupMemberView {
   bisLoading: boolean;
   /** Ready but without rows: no BiS list to compare against. */
   hasRows: boolean;
-  listType: 'mythicPlus' | 'overall';
+  listType: ListType;
   fellBack: boolean;
   crests: CrestView | null;
 }

@@ -8,6 +8,7 @@ export function chipLabel(credit: PriorityCreditView): string {
     case 'tier': {
       const head = `${credit.item.name} (${credit.slotLabel})`;
       if (credit.fit === 'alternative') return `${head}, catalyst alternative: ${statPairLabel(credit.dropStats ?? [])}, Method BiS wants ${statPairLabel(credit.targetStats ?? [])}`;
+      if (credit.fit === 'any') return `${head}, catalyst into tier`;
       if (credit.fit === 'unverified') return `${head}, catalyst into tier, stats unverified`;
       return credit.targetStats ? `${head}, Method BiS stats ${statPairLabel(credit.targetStats)}: catalyst into tier` : `${head}, Method BiS item: catalyst into tier`;
     }

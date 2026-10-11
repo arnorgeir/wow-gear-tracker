@@ -19,6 +19,8 @@ interface Input {
   tracks: ReadonlyMap<number, Track>;
   bagItemIds?: ReadonlySet<number>;
   targets?: ReadonlyMap<number, TierTarget>;
+  /** False when the spec ignores tier stats: a tier piece with other stats is not Wrong stats. */
+  statsMatter?: boolean;
 }
 
 const isMatch = (row: BisRow, item: GearItem | undefined) => {
@@ -27,18 +29,18 @@ const isMatch = (row: BisRow, item: GearItem | undefined) => {
   return row.isTier ? item.isTier : item.itemId === row.itemId;
 };
 
-function stateFor(row: BisRow, matched: boolean, track: Track | null, bagItemIds: ReadonlySet<number>, stats: StatMatch | null): ItemState {
+function stateFor(row: BisRow, matched: boolean, track: Track | null, bagItemIds: ReadonlySet<number>, stats: StatMatch | null, statsMatter: boolean): ItemState {
   // An "Any" row asks only for an item level, so track states and bags don't apply to it.
   if (row.kind === 'any') return matched ? 'done' : 'missing';
   if (!matched) return !row.isTier && bagItemIds.has(row.itemId) ? 'inBags' : 'missing';
   // The catalyst keeps the base item's stats: a tier piece with other stats fills the set but is not Method's piece.
-  if (stats === 'different') return 'wrongStats';
+  if (statsMatter && stats === 'different') return 'wrongStats';
   if (!track) return 'done';
   if (track.name === 'Myth') return track.step >= track.max ? 'done' : 'mythUpgradable';
   return 'belowMyth';
 }
 
-export function evaluateGear({ equipped, bisRows, tracks, bagItemIds = new Set(), targets = new Map() }: Input): GearRow[] {
+export function evaluateGear({ equipped, bisRows, tracks, bagItemIds = new Set(), targets = new Map(), statsMatter = true }: Input): GearRow[] {
   const bySlot = new Map(equipped.map((item) => [item.slot, item]));
   const used = new Set<SlotType>();
   const rows = bisRows.filter((row) => row.slots.length > 0);
@@ -63,7 +65,7 @@ export function evaluateGear({ equipped, bisRows, tracks, bagItemIds = new Set()
     const stats = matched && row.kind === 'item' && row.isTier && item
       ? compareStats({ itemId: row.itemId, stats: targets.get(row.itemId)?.secondaryStats }, { itemId: item.itemId, stats: item.secondaryStats })
       : null;
-    return { row, slot, equipped: item, track, matched, stats, state: stateFor(row, matched, track, bagItemIds, stats) };
+    return { row, slot, equipped: item, track, matched, stats, state: stateFor(row, matched, track, bagItemIds, stats, statsMatter) };
   });
 }
 

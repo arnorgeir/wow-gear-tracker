@@ -7,7 +7,7 @@ import type { PriorityCreditView, PriorityView } from '@/server/views/types';
 import { creditDetail } from './credit-detail';
 import { DungeonRowsSkeleton } from './DungeonRowsSkeleton';
 
-const LIST_NAMES = { mythicPlus: 'Mythic+ list', overall: 'Overall list' } as const;
+const LIST_NAMES = { mythicPlus: 'Mythic+ list', overall: 'Overall list', raid: 'Raid list' } as const;
 
 function Credit({ credit }: { credit: PriorityCreditView }) {
   if (credit.kind !== 'any') {
