@@ -50,6 +50,16 @@ describe('DungeonPriority', () => {
     expect(html).not.toContain('Loading this season’s loot…');
   });
 
+  it('shows skeleton rows under the real heading while the season or BiS list loads', () => {
+    for (const p of [{ ...base, season: 'loading' as const }, { ...base, bisLoading: true }]) {
+      const html = render(p);
+      expect(html).toContain('Dungeon priority</h2>');
+      expect(html).toContain('animate-pulse');
+      expect(html.match(/role="status"/g)).toHaveLength(1);
+    }
+    expect(render({ ...base, season: 'loading' })).toMatch(/<span role="status" class="sr-only">Loading this season’s loot…<\/span>/);
+  });
+
   it('marks a split dungeon', () => {
     const html = render({ ...base, dungeons: [{ challengeModeId: 502, name: 'Streets of Beta', score: 3, split: true, credits: [] }] });
     expect(html).toContain('Split dungeon');

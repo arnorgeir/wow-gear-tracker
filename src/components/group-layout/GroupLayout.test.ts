@@ -27,4 +27,9 @@ describe('GroupLayout', () => {
       expect(button).toMatch(new RegExp(`</svg>${label}$`));
     }
   });
+
+  it('hides the dungeon count when it is unknown', () => {
+    const html = renderToStaticMarkup(createElement(GroupLayout, { legend: null, gear: null, dungeons: null, vault: null, dungeonCount: null }));
+    expect(html).not.toContain('font-mono text-xs text-muted');
+  });
 });

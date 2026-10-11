@@ -1,6 +1,8 @@
 import { BackgroundSync } from '@/components/background-sync/BackgroundSync';
 import { AddCharacterBar } from '@/components/add-character-bar/AddCharacterBar';
 import { CharacterCard } from '@/components/character-card/CharacterCard';
+import { CharacterGrid } from '@/components/character-grid/CharacterGrid';
+import { PendingCharacterProvider } from '@/components/pending-character/PendingCharacterProvider';
 import { SetupNotice } from '@/components/setup-notice/SetupNotice';
 import { StaleSync } from '@/components/stale-sync/StaleSync';
 import { StateLegend } from '@/components/state-legend/StateLegend';
@@ -29,15 +31,13 @@ export default async function CharactersPage() {
         <h1 className="font-display text-4xl font-bold tracking-wide">Characters</h1>
         <p className="text-[17px] text-muted">BiS progress against Method&rsquo;s lists</p>
       </div>
-      <AddCharacterBar trackedCharacters={cards.map((c) => ({ region: c.region, realmId: c.realmId, name: c.name }))} />
-      <StateLegend />
-      {cards.length === 0 ? (
-        <p className="text-muted">No characters yet. Search for one above.</p>
-      ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <PendingCharacterProvider>
+        <AddCharacterBar trackedCharacters={cards.map((c) => ({ region: c.region, realmId: c.realmId, name: c.name }))} />
+        <StateLegend />
+        <CharacterGrid count={cards.length} empty={<p className="text-muted">No characters yet. Search for one above.</p>}>
           {cards.map((card) => <CharacterCard key={card.id} card={card} now={now} />)}
-        </div>
-      )}
+        </CharacterGrid>
+      </PendingCharacterProvider>
       <StaleSync ids={staleIds} />
       <BackgroundSync url="/api/reference/sync" due={referenceDue} />
     </main>

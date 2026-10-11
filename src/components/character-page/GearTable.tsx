@@ -7,21 +7,21 @@ import { StateBadge } from '@/components/state-badge/StateBadge';
 import { UpgradeBadge } from '@/components/upgrade-badge/UpgradeBadge';
 import type { GearRowView } from '@/server/views/types';
 import { BisTarget } from '@/components/bis-target/BisTarget';
+import { GEAR_COLUMNS, GearTableHeader } from './GearTableHeader';
+import { GearRowsSkeleton } from './GearTableSkeleton';
 
 export function GearTable({ rows, tracksKnown, bisLoading }: { rows: GearRowView[]; tracksKnown: boolean; bisLoading: boolean }) {
   return (
     <section aria-label="Gear by slot" className="flex flex-col rounded-2xl border border-line bg-surface py-1">
-      <div className="hidden grid-cols-[110px_minmax(0,1fr)_minmax(0,1fr)_190px] gap-3 border-b border-line px-4 py-3 text-[13px] font-semibold uppercase tracking-wider text-muted md:grid">
-        <span>Slot</span><span>Equipped</span><span>BiS</span><span>State</span>
-      </div>
+      <GearTableHeader />
       {rows.length === 0 && (bisLoading
-        ? <p role="status" className="p-6 text-muted">{BIS_LOADING}</p>
+        ? <><span role="status" className="sr-only">{BIS_LOADING}</span><GearRowsSkeleton /></>
         : <p className="p-6 text-muted">No BiS list to compare against yet.</p>)}
       {rows.map((row, index) => {
         const tone = rowTone(row.state, tracksKnown);
         return (
         <div key={`${row.slot}-${index}`} style={tone ? ROW_TONE_STYLES[tone] : undefined}
-          className="mx-2 my-1 grid grid-cols-1 gap-3 rounded-[10px] px-3 py-2 md:grid-cols-[110px_minmax(0,1fr)_minmax(0,1fr)_190px] md:items-center">
+          className={`mx-2 my-1 grid grid-cols-1 gap-3 rounded-[10px] px-3 py-2 ${GEAR_COLUMNS} md:items-center`}>
           <span className="font-semibold text-muted">{row.slotLabel}</span>
           {row.equipped ? (
             <ItemCard itemId={row.equipped.itemId} name={row.equipped.name} quality={row.equipped.quality} iconUrl={row.equipped.iconUrl}

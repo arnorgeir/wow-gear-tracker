@@ -5,8 +5,10 @@ import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { classTextColor } from '@/components/shared/class-colors';
 import { RemoveCharacterButton } from '@/components/remove-character-button/RemoveCharacterButton';
 import { CrestChip } from '@/components/crest-chip/CrestChip';
-import { TRACKS_LOADING } from '@/components/shared/loading-copy';
+import { BIS_LOADING, TRACKS_LOADING } from '@/components/shared/loading-copy';
+import { Skeleton } from '@/components/skeleton/Skeleton';
 import { barSegments, bisSummary } from './bis-summary';
+import { CardProgressSkeleton } from './CardProgressSkeleton';
 import { crestLine } from './crest-line';
 
 export function CharacterCard({ card, now }: { card: CharacterCardView; now: number }) {
@@ -50,15 +52,17 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
             <div style={{ flexGrow: bar.rest }} />
           </div>
           {card.tracksLoading
-            ? <span role="status" className="text-sm text-muted">{TRACKS_LOADING}</span>
+            ? <><span role="status" className="sr-only">{TRACKS_LOADING}</span><Skeleton className="h-4 w-40 rounded-md" /></>
             : summary && <span className="text-sm text-muted">{summary}</span>}
           <span className="flex flex-wrap items-center gap-1.5">
             {crests.balances.map((b) => <CrestChip key={b.currencyId} balance={b} />)}
             {crests.text && <span className={`text-sm ${crests.tone}`}>{crests.text}</span>}
           </span>
         </div>
+      ) : card.bisError ? (
+        <p className="text-sm text-muted">{card.bisError}</p>
       ) : (
-        <p className="text-sm text-muted">{card.bisError ?? 'Loading BiS list…'}</p>
+        <><span role="status" className="sr-only">{BIS_LOADING}</span><CardProgressSkeleton /></>
       )}
 
       {card.tracksError && card.status === 'ok' && <p className="text-sm text-[#f3c9a2]">{card.tracksError}.</p>}

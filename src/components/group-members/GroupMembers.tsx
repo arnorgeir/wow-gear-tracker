@@ -8,6 +8,7 @@ import { useGroupEdits } from '@/components/group-edits/GroupEditsProvider';
 import { RemoveFromGroupButton } from '@/components/remove-from-group/RemoveFromGroupButton';
 import { classTextColor } from '@/components/shared/class-colors';
 import { LABEL_CLASS } from '@/components/shared/field-classes';
+import { GROUP_UPDATING } from '@/components/shared/loading-copy';
 import { MAX_GROUP_SIZE } from '@/core/characters/member-key';
 import type { Region } from '@/core/types';
 import type { GroupMemberView } from '@/server/views/types';
@@ -38,7 +39,8 @@ export function GroupMembers({ members, region, available, tracked }: Props) {
         {keys.length < MAX_GROUP_SIZE
           ? <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="h-12 rounded-full border border-line-strong bg-raised px-5 font-semibold">Add character</button>
           : <span className="text-sm text-muted">Group is full ({MAX_GROUP_SIZE})</span>}
-        {pending && <span role="status" className="text-sm text-muted">Updating group…</span>}
+        {/* Always mounted: screen readers skip a live region that arrives with its text. */}
+        <span role="status" className="sr-only">{pending ? GROUP_UPDATING : ''}</span>
       </div>
       {open && keys.length < MAX_GROUP_SIZE && (
         <div className="flex flex-col gap-3">
