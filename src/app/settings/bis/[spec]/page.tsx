@@ -27,13 +27,13 @@ export default async function SpecSettingsPage({ params, searchParams }: Props) 
   if (!first) notFound();
   const view = asked ? first : { ...first, editing: first.listType };
   return (
-    <section aria-label={`${view.specName} ${view.className}`} className="flex flex-col gap-6">
+    <section aria-label={`${view.specName} ${view.className}`} className="flex flex-col gap-5 md:gap-7">
       <Link href="/settings/bis" className="text-sm">&larr; All specs</Link>
-      {view.hasLists ? <BisEditor view={view} /> : (
+      {view.hasLists ? <BisEditor view={view} now={services.now()} /> : (
         <div className="flex flex-col items-start gap-3">
           <h2 className="font-display text-2xl font-bold">{view.specName} {view.className}</h2>
           <p className="text-muted">Method has no list for this spec yet. Fetch it first.</p>
-          <FetchButton specSlug={view.slug} label="Fetch Method list" />
+          <FetchButton specSlug={view.slug} label="Fetch" size="md" />
         </div>
       )}
     </section>

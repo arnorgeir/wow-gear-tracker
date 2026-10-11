@@ -56,7 +56,7 @@ export default async function CharacterPage({ params }: Props) {
       </section>
       <CharacterSettings id={view.id} specs={view.specs} spec={view.spec} activeSpec={view.activeSpec} />
       <div className="grid grid-cols-1 gap-8 min-[1380px]:grid-cols-[860px_minmax(0,1fr)] min-[1380px]:items-start">
-        <GearTable rows={view.rows} tracksKnown={view.tracksKnown} bisLoading={view.bisLoading} listType={view.listType} specSlug={view.specSlug} editedCount={view.editedCount} />
+        <GearTable rows={view.rows} tracksKnown={view.tracksKnown} bisLoading={view.bisLoading} listType={view.listType} specSlug={view.specSlug} editedCount={view.editedCount} doneCount={view.doneCount} fellBackFrom={view.fellBackFrom} />
         <div className="flex flex-col gap-8">
           <DungeonPriority priority={view.priority} specLabel={`${view.spec} ${view.className}`} />
           <VaultSection vault={view.vault} vaultChoices={view.vaultChoices} vaultChoicesAt={view.vaultChoicesAt} now={now} />

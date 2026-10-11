@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import type { ItemChoice, RowRef } from '@/core/bis/edits';
+import { parseItemInput } from '@/core/bis/item-input';
 import { runApiAction } from '@/components/shared/api-action';
 import { searchPlan } from './search-plan';
 
 const DEBOUNCE_MS = 250;
 
 interface SearchReply { results: ItemChoice[]; unusable: ItemChoice | null }
-export interface ItemSearchState { results: ItemChoice[]; unusable: ItemChoice | null; busy: boolean; error: string | null }
+/** `looking` is the item ID being fetched from Blizzard, while a lookup is in flight. */
+export interface ItemSearchState { results: ItemChoice[]; unusable: ItemChoice | null; busy: boolean; looking: number | null; error: string | null }
 
-const IDLE: ItemSearchState = { results: [], unusable: null, busy: false, error: null };
+const IDLE: ItemSearchState = { results: [], unusable: null, busy: false, looking: null, error: null };
 
 /** Debounced search of local items for one slot, falling through to a Blizzard lookup for an unknown ID or link. */
 export function useItemSearch(row: RowRef, query: string): ItemSearchState {
@@ -29,15 +31,16 @@ export function useItemSearch(row: RowRef, query: string): ItemSearchState {
       if (!local.ok || !local.data) return setState({ ...IDLE, error: local.error });
       const next = local.data;
       const plan = searchPlan(query, next.unusable ? 1 : next.results.length);
-      if (plan.kind !== 'lookup') return setState({ ...next, busy: false, error: null });
+      if (plan.kind !== 'lookup') return setState({ ...next, busy: false, looking: null, error: null });
+      setState({ ...IDLE, busy: true, looking: parseItemInput(plan.input) });
       const found = await runApiAction<ItemChoice>(fetch, '/api/items/lookup', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...ref, input: plan.input }),
       });
       if (stale) return;
       if (!found.ok || !found.data) return setState({ ...IDLE, error: found.error });
       setState(found.data.canUse.ok
-        ? { results: [found.data], unusable: null, busy: false, error: null }
-        : { results: [], unusable: found.data, busy: false, error: null });
+        ? { ...IDLE, results: [found.data] }
+        : { ...IDLE, unusable: found.data });
     }, DEBOUNCE_MS);
     return () => {
       stale = true;

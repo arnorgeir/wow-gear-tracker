@@ -12,6 +12,7 @@ import { gearToSnapshotItems, saveSnapshotIfChanged } from '@/core/db/queries/sn
 import { insertCharacter, updateCharacter } from '@/core/db/queries/characters';
 import { updateSpecSettings, upsertOverride } from '@/core/db/queries/bis-settings';
 import { upsertCatalogItem } from '@/core/db/queries/item-catalog';
+import { replaceSpecs } from '@/core/db/queries/specs';
 import { replaceSeason } from '@/core/db/queries/season';
 import { setMeta } from '@/core/db/queries/meta';
 import { SEASON_META_KEY } from '@/core/sync/season-sync';
@@ -82,6 +83,7 @@ describe('getCharacterPage', () => {
     expect(page!.rows[1]!.equipped).toMatchObject({ name: 'Best Neck', trackLabel: 'Hero 5/6', iconUrl: 'https://i/20.jpg' });
     expect(page!.rows[0]!.bis).toMatchObject({ itemId: 10, iconUrl: 'https://i/10.jpg', isTier: true });
     expect(page!.vault.map((r) => r.slot)).toEqual(['NECK']);
+    expect(page).toMatchObject({ doneCount: 1, fellBackFrom: null });
   });
 
   it('compares against the spec’s list from settings', async () => {
@@ -340,6 +342,7 @@ describe('dungeon priority', () => {
     const page = await birkiPage(s);
     expect(page!.priority).toMatchObject({ listType: 'overall', fellBack: true });
     expect(page!.priority.dungeons.map((d) => d.name)).toEqual(['Alpha Hollow']);
+    expect(page).toMatchObject({ listType: 'overall', fellBackFrom: 'mythicPlus' });
   });
 });
 
@@ -349,7 +352,9 @@ describe('identity', () => {
     const id = await seed(s);
     await prime(s);
     let page = await birkiPage(s);
-    expect(page).toMatchObject({ identity: 'Guardian Druid', race: null, faction: null, avatarUrl: null, classIconUrl: 'https://i/class-11.jpg' });
+    expect(page).toMatchObject({ identity: 'Guardian Druid', race: null, faction: null, avatarUrl: null, classIconUrl: 'https://i/class-11.jpg', specIconUrl: 'https://i/class-11.jpg' });
+    await replaceSpecs(s.db, [{ methodSlug: 'guardian-druid', classId: 11, className: 'Druid', specName: 'Guardian', iconUrl: 'https://i/spec-104.jpg' }], 1);
+    expect((await birkiPage(s)).specIconUrl).toBe('https://i/spec-104.jpg');
 
     await updateCharacter(s.db, id, { race: 'Troll', faction: 'HORDE', avatarUrl: 'https://render/a.jpg', specOverride: 'Feral' });
     await prime(s);

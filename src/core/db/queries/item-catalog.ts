@@ -1,6 +1,6 @@
 import { eq, inArray } from 'drizzle-orm';
 import type { Db } from '../client';
-import { dungeonLoot, itemCatalog } from '../schema';
+import { dungeonLoot, itemCatalog, seasonDungeons } from '../schema';
 import type { CatalogItem } from '../../types';
 import { withWriteLock } from './write-lock';
 
@@ -31,12 +31,16 @@ export async function findLocalItem(db: Db, itemId: number): Promise<CatalogItem
 }
 
 // ponytail: loads the whole catalog and season loot per search (a few hundred rows); index by name if it grows.
-export async function searchLocalItems(db: Db, query: string): Promise<CatalogItem[]> {
+export async function searchLocalItems(db: Db, query: string): Promise<(CatalogItem & { source: string | null })[]> {
   const q = query.trim().toLocaleLowerCase();
   if (!q) return [];
-  const byId = new Map<number, CatalogItem>();
-  for (const r of await db.select().from(itemCatalog)) byId.set(r.itemId, fromCatalog(r));
-  for (const r of await db.select().from(dungeonLoot)) if (!byId.has(r.itemId)) byId.set(r.itemId, fromLoot(r));
+  const dungeonOf = new Map<number, string>();
+  const loot = await db.select({ loot: dungeonLoot, dungeon: seasonDungeons.name }).from(dungeonLoot)
+    .innerJoin(seasonDungeons, eq(seasonDungeons.challengeModeId, dungeonLoot.challengeModeId));
+  for (const r of loot) if (!dungeonOf.has(r.loot.itemId)) dungeonOf.set(r.loot.itemId, r.dungeon);
+  const byId = new Map<number, CatalogItem & { source: string | null }>();
+  for (const r of await db.select().from(itemCatalog)) byId.set(r.itemId, { ...fromCatalog(r), source: dungeonOf.get(r.itemId) ?? null });
+  for (const r of loot) if (!byId.has(r.loot.itemId)) byId.set(r.loot.itemId, { ...fromLoot(r.loot), source: r.dungeon });
   return [...byId.values()]
     .filter((i) => String(i.itemId) === q || i.name.toLocaleLowerCase().includes(q))
     .sort((a, b) => a.name.localeCompare(b.name));

@@ -102,6 +102,12 @@ export interface CharacterPageView extends CharacterSummary {
   crests: CrestView | null;
   /** Rows an account override replaced on this spec's lists. */
   editedCount: number;
+  /** Rows in the compared list that are done, out of `rows.length`. */
+  doneCount: number;
+  /** The list the spec asked for when Method has none and Overall is shown instead; otherwise null. */
+  fellBackFrom: ListType | null;
+  /** The spec's icon, else the class icon. */
+  specIconUrl: string | null;
   bisFetchedAt: number | null;
   bisError: string | null;
   bisLoading: boolean;
@@ -166,8 +172,25 @@ export interface GroupPageView {
 
 export type SpecFetchState = { kind: 'tracked' } | { kind: 'notFetched' } | { kind: 'fetched'; at: number } | { kind: 'failed' };
 
+/** A tracked character, as a chip or portrait that links to its page. */
+export interface CharacterChipView { name: string; href: string; className: string; avatarUrl: string | null; classIconUrl: string | null }
+
+export interface PickerSpecView {
+  slug: string;
+  specName: string;
+  /** The spec's icon, or its class icon when Blizzard gave none. */
+  iconUrl: string | null;
+  tracked: boolean;
+  state: SpecFetchState;
+  characters: CharacterChipView[];
+  /** The list this spec compares against; only shown for a tracked spec. */
+  compares: ListType;
+}
+
 export interface SpecPickerView {
-  classes: { className: string; iconUrl: string | null; specs: { slug: string; specName: string; tracked: boolean; state: SpecFetchState }[] }[];
+  /** One card per tracked spec. */
+  tracked: (PickerSpecView & { className: string; editedCount: number })[];
+  classes: { className: string; iconUrl: string | null; trackedCount: number; specs: PickerSpecView[] }[];
 }
 
 export interface SettingsSlotView {
@@ -191,5 +214,10 @@ export interface SettingsSpecView {
   editing: ListType;
   hasLists: boolean;
   fetchState: SpecFetchState;
-  lists: Record<ListType, { slots: SettingsSlotView[]; orphans: (ItemView & { slotKey: string })[] }>;
+  /** When Method's lists were last stored, whether or not the spec is tracked. */
+  fetchedAt: number | null;
+  iconUrl: string | null;
+  classIconUrl: string | null;
+  characters: CharacterChipView[];
+  lists: Record<ListType, { slots: SettingsSlotView[]; orphans: (ItemView & { slotKey: string })[]; editedCount: number }>;
 }

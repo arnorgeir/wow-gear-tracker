@@ -14,7 +14,8 @@ import { slotKeys } from './slot-keys';
 
 export interface EditDeps { db: Db; blizzard: BlizzardClient; now: number; accountId: number }
 export interface RowRef { specSlug: string; listType: ListType; slotKey: string }
-export interface ItemChoice extends CatalogItem { canUse: CanUse; canCatalyst: boolean }
+/** `source` is the season dungeon the item drops in; null for an item looked up by ID or link. */
+export interface ItemChoice extends CatalogItem { canUse: CanUse; canCatalyst: boolean; source: string | null }
 
 const SEARCH_LIMIT = 20;
 
@@ -39,8 +40,8 @@ async function resolveRow(db: Db, ref: RowRef): Promise<{ row: BisRow; className
   return { row: rows[index]!, className };
 }
 
-const choice = (item: CatalogItem, className: string, row: BisRow): ItemChoice =>
-  ({ ...item, canUse: classCanUse(item, className, row), canCatalyst: canCatalyst(item, row.slots) });
+const choice = (item: CatalogItem & { source?: string | null }, className: string, row: BisRow): ItemChoice =>
+  ({ ...item, source: item.source ?? null, canUse: classCanUse(item, className, row), canCatalyst: canCatalyst(item, row.slots) });
 
 /** The item from local data, else one Blizzard request, cached. Writes nothing when Blizzard fails. */
 async function ensureItem(deps: EditDeps, itemId: number): Promise<CatalogItem> {

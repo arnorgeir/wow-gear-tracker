@@ -1,5 +1,6 @@
 import type { MemberKey } from '@/core/characters/member-key';
 import { findCharacterByKey } from '@/core/db/queries/characters';
+import { getSpec } from '@/core/db/queries/specs';
 import { crestCostsByGroup } from '@/core/gear/crests';
 import { rankDungeons } from '@/core/priority/rank';
 import { ensureClassIcons, ensureItemIcons, readTracks } from '@/core/sync/reference-sync';
@@ -51,6 +52,9 @@ export async function getCharacterPage(services: Services, key: MemberKey): Prom
     vaultChoicesAt: gear.simc?.createdAt ?? null,
     crests: crestView(gear, costs),
     editedCount: bis.editedCount,
+    doneCount: rows.filter((r) => r.state === 'done').length,
+    fellBackFrom: choice.fellBack ? bis.listType : null,
+    specIconUrl: (await getSpec(db, summary.specSlug))?.iconUrl ?? classIcons.get(character.className) ?? null,
     bisFetchedAt: bis.fetchedAt,
     bisError: bis.error,
     bisLoading: bis.status === 'loading',

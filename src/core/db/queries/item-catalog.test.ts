@@ -52,4 +52,11 @@ describe('item catalog', () => {
     expect((await searchLocalItems(db, '600')).map((i) => i.itemId)).toEqual([600]);
     expect(await searchLocalItems(db, '  ')).toEqual([]);
   });
+
+  it('names the dungeon a season item drops in, and nothing for a looked-up item', async () => {
+    const db = await withLoot();
+    await upsertCatalogItem(db, ROBE, 1);
+    expect((await searchLocalItems(db, 'æther'))[0]!.source).toBe('Alpha Hollow');
+    expect((await searchLocalItems(db, 'björn'))[0]!.source).toBeNull();
+  });
 });

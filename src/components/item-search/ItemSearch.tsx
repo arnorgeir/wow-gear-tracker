@@ -5,25 +5,37 @@ import type { ItemChoice, RowRef } from '@/core/bis/edits';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { QUALITY_STYLES } from '@/components/item-card/quality-styles';
 import { wowheadData } from '@/components/item-card/wowhead';
+import { resultDetail } from './result-detail';
 import { useItemSearch } from './use-item-search';
 
-function ItemLink({ item }: { item: ItemChoice }) {
+const BUTTON = 'h-9 shrink-0 rounded-lg border border-line-strong bg-raised px-3.5 text-sm font-semibold text-ink disabled:opacity-60 md:h-9';
+
+function ItemName({ item }: { item: ItemChoice }) {
   const q = QUALITY_STYLES[item.quality ?? 'EPIC'];
   return (
     <a href={`https://www.wowhead.com/item=${item.itemId}`} data-wowhead={wowheadData(item.itemId, [], null)} target="_blank" rel="noreferrer"
-      className="font-semibold no-underline hover:underline" style={{ color: q.text }}>
+      className="text-[15px] font-semibold no-underline hover:underline" style={{ color: q.text }}>
       {item.name}
     </a>
   );
 }
 
-/** Search by name, ID or Wowhead link for the item that replaces one slot of Method's list. */
+function RarityBox({ item }: { item: ItemChoice }) {
+  return <span aria-hidden="true" className="size-[34px] shrink-0 rounded-md border-2 bg-surface" style={{ borderColor: QUALITY_STYLES[item.quality ?? 'EPIC'].ring }} />;
+}
+
+const WarnIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0"><path d="M12 3l10 18H2zM12 10v5M12 18v.5" /></svg>
+);
+
+/** The panel that opens under a slot: search by name, ID or Wowhead link, then choose, then (on a tier slot) say whether to catalyze. */
 export function ItemSearch({ row, slotLabel, onDone }: { row: RowRef; slotLabel: string; onDone: () => void }) {
   const [query, setQuery] = useState('');
   const [chosen, setChosen] = useState<ItemChoice | null>(null);
   const [catalyst, setCatalyst] = useState(false);
-  const { results, unusable, busy, error } = useItemSearch(row, query);
+  const { results, unusable, busy, looking, error } = useItemSearch(row, query);
   const save = useApiAction();
+  const inputId = `search-${row.slotKey.replace(/\W/g, '-')}`;
 
   async function saveItem(item: ItemChoice, asCatalyst: boolean) {
     const result = await save.run('/api/bis/overrides', {
@@ -43,44 +55,59 @@ export function ItemSearch({ row, slotLabel, onDone }: { row: RowRef; slotLabel:
 
   const message = save.error ?? error;
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface-2 p-3">
-      <input type="search" value={query} onChange={(e) => { setQuery(e.target.value); setChosen(null); }}
+    <div className="flex flex-col gap-2.5 rounded-xl border border-line-strong bg-surface-2 p-3.5">
+      <label htmlFor={inputId} className="text-[13px] font-bold uppercase tracking-wider text-muted">Replace Method&apos;s {slotLabel} pick</label>
+      <input id={inputId} type="search" value={query} onChange={(e) => { setQuery(e.target.value); setChosen(null); }}
         onKeyDown={(e) => { if (e.key === 'Escape') onDone(); }}
-        placeholder="Search by name, ID or Wowhead link" aria-label={`Search items for ${slotLabel}`} autoFocus
-        className="h-11 rounded-xl border border-line-strong bg-surface px-3 text-ink" />
-      <span role="status" className="sr-only">{busy ? 'Searching…' : ''}</span>
-      {message && <p role="alert" className="text-sm text-missing">{message}</p>}
+        placeholder="Search by name, ID or Wowhead link" autoFocus
+        className={`h-[46px] rounded-[10px] bg-bg px-3.5 text-base text-ink ${query ? 'border-2 border-gold' : 'border border-line-strong'}`} />
+      {looking !== null && (
+        <span role="status" className="flex items-center gap-2.5 text-sm text-muted">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true" className="shrink-0 animate-spin text-gold"><path d="M12 3a9 9 0 1 0 9 9" /></svg>
+          Looking up item {looking} on Blizzard…
+        </span>
+      )}
+      {looking === null && <span role="status" className="sr-only">{busy ? 'Searching…' : ''}</span>}
+      {message && <p role="alert" className="flex items-center gap-2.5 text-sm text-missing"><WarnIcon />{message}</p>}
+
       {chosen ? (
-        <div className="flex flex-wrap items-center gap-4">
-          <ItemLink item={chosen} />
-          <label className="flex items-center gap-2 font-semibold">
-            <input type="checkbox" checked={catalyst} onChange={(e) => setCatalyst(e.target.checked)} className="size-[18px] accent-[var(--color-gold)]" />
+        <div className="flex flex-col gap-3 rounded-xl border border-line-strong bg-surface-2 p-3.5">
+          <div className="flex items-center gap-3"><RarityBox item={chosen} /><ItemName item={chosen} /></div>
+          <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px] font-semibold">
+            <input type="checkbox" role="switch" checked={catalyst} onChange={(e) => setCatalyst(e.target.checked)} className="size-5 accent-[var(--color-gold)]" />
             Catalyst into tier
           </label>
-          <button type="button" disabled={save.busy} onClick={() => void saveItem(chosen, catalyst)}
-            className="h-9 rounded-lg border border-line-strong bg-raised px-3 text-sm font-semibold disabled:opacity-60">
-            {save.busy ? 'Saving…' : 'Save'}
-          </button>
+          <span className="text-[13px] text-muted">Any tier {slotLabel.toLowerCase()} will count. Its stats are checked against this item&apos;s.</span>
+          <div className="flex gap-2">
+            <button type="button" disabled={save.busy} onClick={() => void saveItem(chosen, catalyst)}
+              className="h-10 rounded-lg border border-gold bg-gold-soft px-4 text-sm font-bold text-gold disabled:opacity-60">
+              {save.busy ? 'Saving…' : 'Save'}
+            </button>
+            <button type="button" disabled={save.busy} onClick={() => setChosen(null)} className={`${BUTTON} h-10 px-4`}>Cancel</button>
+          </div>
         </div>
-      ) : (
-        <ul className="flex flex-col gap-1.5">
+      ) : (results.length > 0 || unusable) && (
+        <ul aria-label="Matching items" className="flex flex-col gap-0.5">
           {results.map((item) => (
-            <li key={item.itemId} className="flex items-center justify-between gap-3">
-              <ItemLink item={item} />
-              <button type="button" disabled={save.busy} onClick={() => choose(item)}
-                className="h-9 rounded-lg border border-line-strong bg-raised px-3 text-sm font-semibold disabled:opacity-60">
-                Choose
-              </button>
+            <li key={item.itemId} className="flex min-h-[52px] items-center gap-3 rounded-lg px-2 hover:bg-surface">
+              <RarityBox item={item} />
+              <span className="flex min-w-0 grow flex-col gap-px"><ItemName item={item} /><span className="text-[13px] text-muted">{resultDetail(item)}</span></span>
+              <button type="button" disabled={save.busy} onClick={() => choose(item)} className={BUTTON}>Choose</button>
             </li>
           ))}
           {unusable && (
-            <li className="flex flex-wrap items-center gap-x-3 text-muted">
-              <span>{unusable.name}</span>
-              <span className="text-sm">{unusable.canUse.ok ? '' : unusable.canUse.reason}</span>
+            <li className="flex min-h-[52px] items-center gap-3 rounded-lg bg-surface px-2">
+              <span aria-hidden="true" className="size-[34px] shrink-0 rounded-md border-2 border-line-strong bg-surface" />
+              <span className="flex min-w-0 grow flex-col gap-px">
+                <span className="text-[15px] font-semibold text-dim">{unusable.name}</span>
+                <span className="text-[13px] text-legacy">{unusable.canUse.ok ? '' : unusable.canUse.reason}</span>
+              </span>
+              <span className="text-[13px] text-dim">Can&apos;t choose</span>
             </li>
           )}
         </ul>
       )}
+      <span className="text-[13px] text-muted">Searches this season&apos;s dungeon loot. Paste an item ID or Wowhead link for anything else.</span>
     </div>
   );
 }

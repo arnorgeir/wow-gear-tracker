@@ -2,26 +2,25 @@
 
 import type { RowRef } from '@/core/bis/edits';
 import { useApiAction } from '@/components/hooks/use-api-action';
-import { QUALITY_STYLES } from '@/components/item-card/quality-styles';
-import { wowheadData } from '@/components/item-card/wowhead';
 import type { SettingsSpecView } from '@/server/views/types';
+import { orphanLabel } from './editor-text';
+import { PickLine } from './PickLine';
 
 type Orphan = SettingsSpecView['lists']['overall']['orphans'][number];
 
 function OrphanRow({ orphan, row }: { orphan: Orphan; row: RowRef }) {
   const { busy, error, run } = useApiAction();
-  const q = QUALITY_STYLES[orphan.quality];
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-1">
-      <a href={`https://www.wowhead.com/item=${orphan.itemId}`} data-wowhead={wowheadData(orphan.itemId, [], null)} target="_blank" rel="noreferrer"
-        className="font-semibold no-underline hover:underline" style={{ color: q.text }}>{orphan.name}</a>
-      <span className="text-sm text-muted">{orphan.slotKey}</span>
+    <li className="flex min-h-[52px] flex-wrap items-center gap-x-3.5 gap-y-1">
+      <div className="min-w-0 grow">
+        <PickLine itemId={orphan.itemId} name={orphan.name} quality={orphan.quality} iconUrl={orphan.iconUrl} detail={orphanLabel(orphan.slotKey)} />
+      </div>
       <button type="button" disabled={busy}
         onClick={() => run('/api/bis/overrides', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(row) })}
-        className="h-9 rounded-lg border border-line-strong bg-surface-2 px-3 text-sm font-semibold disabled:opacity-60">
+        className="h-10 rounded-lg border border-line-strong bg-raised px-3.5 text-sm font-semibold disabled:opacity-60">
         {busy ? 'Removing…' : 'Remove'}
       </button>
-      {error && <span role="alert" className="text-sm text-missing">{error}</span>}
+      {error && <span role="alert" className="w-full text-sm text-missing">{error}</span>}
     </li>
   );
 }
@@ -30,8 +29,11 @@ function OrphanRow({ orphan, row }: { orphan: Orphan; row: RowRef }) {
 export function OrphanList({ orphans, specSlug, listType }: { orphans: Orphan[]; specSlug: string; listType: RowRef['listType'] }) {
   if (orphans.length === 0) return null;
   return (
-    <section aria-label="No longer in Method's list" className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-4">
-      <h3 className="font-semibold">No longer in Method&apos;s list</h3>
+    <section aria-labelledby="orphans" className="flex flex-col gap-3 rounded-xl border border-missing-line bg-header p-3.5 md:rounded-[14px] md:px-6 md:py-5">
+      <div className="flex flex-col gap-1">
+        <h3 id="orphans" className="text-base font-bold md:text-[17px]">No longer in Method&apos;s list</h3>
+        <span className="text-[13px] text-muted md:text-sm">Method dropped these slots. Your picks for them aren&apos;t applied.</span>
+      </div>
       <ul className="flex flex-col gap-2">
         {orphans.map((o) => <OrphanRow key={o.slotKey} orphan={o} row={{ specSlug, listType, slotKey: o.slotKey }} />)}
       </ul>
