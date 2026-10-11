@@ -65,7 +65,7 @@ export async function getCharacterPage(services: Services, key: MemberKey): Prom
     specs,
     priority: {
       listType: choice.listType,
-      fellBack: choice.fellBack,
+      fellBackFrom: choice.fellBack ? bis.listType : null,
       season: season.status,
       needsSync: season.needsSync,
       bisLoading: bis.status === 'loading',

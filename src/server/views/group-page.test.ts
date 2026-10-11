@@ -108,6 +108,7 @@ describe('getGroupPage', () => {
     await prime(s);
     const page = await getGroupPage(s, keys('hrafnhildur'));
     expect(page.members.map((m) => [m.listType, m.fellBack])).toEqual([['overall', true]]);
+    expect(page.priority.fellBack).toEqual([{ name: 'Hrafnhildur', from: 'raid' }]);
   });
 
   it('aligns members by evaluated slot, with rings where they sit and an empty off hand', async () => {
@@ -135,7 +136,7 @@ describe('getGroupPage', () => {
     await season(s);
     await prime(s);
     const { priority } = await getGroupPage(s, keys('birkibjörn', 'hrafnhildur'));
-    expect(priority).toMatchObject({ season: 'ready', covered: ['Birkibjörn', 'Hrafnhildur'], excluded: [], fellBack: ['Hrafnhildur'] });
+    expect(priority).toMatchObject({ season: 'ready', covered: ['Birkibjörn', 'Hrafnhildur'], excluded: [], fellBack: [{ name: 'Hrafnhildur', from: 'mythicPlus' }] });
     const [first, ...rest] = priority.ranking!.dungeons;
     expect(first).toMatchObject({ name: 'Alpha Hollow', split: false });
     expect(first!.members.map((m) => [m.name, m.credits.map((c) => c.kind === 'item' && c.item.itemId)])).toEqual([

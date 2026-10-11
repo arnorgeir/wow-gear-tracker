@@ -84,7 +84,8 @@ export type PriorityCreditView =
 export interface DungeonPriorityView { challengeModeId: number; name: string; shortName: string; imageUrl: string | null; score: number; split: boolean; credits: PriorityCreditView[] }
 export interface PriorityView {
   listType: ListType;
-  fellBack: boolean;
+  /** The list the spec asked for when Method has none and Overall is ranked instead; otherwise null. */
+  fellBackFrom: ListType | null;
   season: 'loading' | 'failed' | 'ready' | 'stale';
   needsSync: boolean;
   bisLoading: boolean;
@@ -148,7 +149,8 @@ export interface GroupPriorityView {
   approximate: boolean;
   covered: string[];
   excluded: { name: string; reason: string }[];
-  fellBack: string[];
+  /** Members ranked on Overall because Method has no rows for the list their spec chose. */
+  fellBack: { name: string; from: ListType }[];
   /** Null when no member is eligible: the ranking is unavailable, which is not the same as nothing needed. */
   ranking: { dungeons: GroupDungeonView[]; nothingFrom: string[] } | null;
 }

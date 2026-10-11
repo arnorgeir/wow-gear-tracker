@@ -87,7 +87,7 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
       approximate: !tracksKnown,
       covered: eligible.map((l) => l.view.name),
       excluded: loaded.filter((l) => l.reason !== null).map((l) => ({ name: l.view.name, reason: l.reason! })),
-      fellBack: eligible.filter((l) => l.view.fellBack).map((l) => l.view.name),
+      fellBack: eligible.filter((l) => l.view.fellBack).map((l) => ({ name: l.view.name, from: l.data!.bis.listType })),
       ranking: ranks && {
         dungeons: ranks.filter((d) => d.score > 0).map((d) => ({
           challengeModeId: d.challengeModeId,

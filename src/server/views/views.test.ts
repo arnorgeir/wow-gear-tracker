@@ -287,7 +287,7 @@ describe('dungeon priority', () => {
     await withSeason(s);
     await prime(s);
     const page = await birkiPage(s);
-    expect(page!.priority).toMatchObject({ listType: 'mythicPlus', fellBack: false, season: 'ready', needsSync: false, approximate: false, nothingFrom: ['Beta Spire'] });
+    expect(page!.priority).toMatchObject({ listType: 'mythicPlus', fellBackFrom: null, season: 'ready', needsSync: false, approximate: false, nothingFrom: ['Beta Spire'] });
     expect(page!.priority.dungeons).toEqual([{
       challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: AH_ART, score: 3, split: false,
       credits: [{ kind: 'item', slotLabel: 'Cloak', weight: 3, item: expect.objectContaining({ itemId: 30, iconUrl: 'https://i/30.jpg' }) }],
@@ -340,7 +340,7 @@ describe('dungeon priority', () => {
     await withSeason(s);
     await prime(s);
     const page = await birkiPage(s);
-    expect(page!.priority).toMatchObject({ listType: 'overall', fellBack: true });
+    expect(page!.priority).toMatchObject({ listType: 'overall', fellBackFrom: 'mythicPlus' });
     expect(page!.priority.dungeons.map((d) => d.name)).toEqual(['Alpha Hollow']);
     expect(page).toMatchObject({ listType: 'overall', fellBackFrom: 'mythicPlus' });
   });

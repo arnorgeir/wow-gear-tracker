@@ -58,7 +58,7 @@ export function DungeonPriority({ priority, specLabel }: { priority: PriorityVie
         <h2 className="flex items-center gap-2.5 font-display text-2xl font-bold"><BrandIcon name="dungeons" size={28} className="text-gold" />Dungeon priority</h2>
         <span className="text-sm text-muted">{LIST_NAMES[priority.listType]} list</span>
       </div>
-      {priority.fellBack && <p className="text-sm text-muted">Using the Overall list: Method has no Mythic+ list for {specLabel}.</p>}
+      {priority.fellBackFrom && <p className="text-sm text-muted">Using the Overall list: Method has no {LIST_NAMES[priority.fellBackFrom]} list for {specLabel}.</p>}
       {priority.approximate && <p className="text-sm text-muted">{APPROXIMATE}</p>}
       {priority.season === 'stale' && <p className="text-sm text-muted">{SEASON_STALE}</p>}
       <Ranking priority={priority} />
