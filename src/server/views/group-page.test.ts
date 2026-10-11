@@ -42,6 +42,7 @@ async function services() {
     syncer: { sync: async () => 'skipped' },
     now: () => 10_000_000,
     fetchFn: fetch,
+    currentAccountId: () => 1,
   };
   return { s, fetched };
 }

@@ -37,6 +37,11 @@ export type BisRow = BisItemRow | BisAnyRow;
 
 export type BisLists = Record<ListType, BisRow[]>;
 
+export interface BisOverride { slotKey: string; itemId: number; catalyst: boolean }
+export interface CatalogItem { itemId: number; name: string; inventoryType: string | null; armorType: ArmorType | null; quality: Quality | null; isTier: boolean }
+export interface SpecSettings { listType: ListType; statsMatter: boolean }
+export const LOCAL_ACCOUNT_ID = 1;
+
 export interface BisSource {
   name: string;
   fetchLists(specSlug: string): Promise<BisLists>;

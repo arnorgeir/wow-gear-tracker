@@ -71,6 +71,13 @@
       "when": 1791336864890,
       "tag": "0009_catalyst-stat-pairs",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1791744560589,
+      "tag": "0010_bis-settings",
+      "breakpoints": true
     }
   ]
 }

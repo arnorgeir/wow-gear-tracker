@@ -51,6 +51,7 @@ async function services(bisLists: BisLists = lists): Promise<Services> {
     syncer: { sync: async () => 'skipped' },
     now: () => 1000,
     fetchFn: fetch,
+    currentAccountId: () => 1,
   };
 }
 

@@ -144,4 +144,49 @@ export const dungeonLoot = sqliteTable('dungeon_loot', {
   inventoryType: text('inventory_type'),
   armorType: text('armor_type').$type<ArmorType>(),
   secondaryStats: text('secondary_stats'),
+  quality: text('quality').$type<Quality>(),
+  isTier: integer('is_tier', { mode: 'boolean' }).notNull().default(false),
 }, (t) => [primaryKey({ columns: [t.challengeModeId, t.encounterId, t.itemId] })]);
+
+export const accounts = sqliteTable('accounts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+});
+
+/** Every class and spec, from Blizzard's playable classes. Keyed by the Method slug the views use. */
+export const specs = sqliteTable('specs', {
+  methodSlug: text('method_slug').primaryKey(),
+  classId: integer('class_id').notNull(),
+  className: text('class_name').notNull(),
+  specName: text('spec_name').notNull(),
+  fetchedAt: integer('fetched_at').notNull(),
+});
+
+/** An account's choices for one spec. A missing row means the defaults. */
+export const specSettings = sqliteTable('spec_settings', {
+  accountId: integer('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  specSlug: text('spec_slug').notNull(),
+  listType: text('list_type').$type<ListType>().notNull().default('mythicPlus'),
+  statsMatter: integer('stats_matter', { mode: 'boolean' }).notNull().default(true),
+}, (t) => [primaryKey({ columns: [t.accountId, t.specSlug] })]);
+
+/** One slot of a Method list replaced by an account. `slot_key` is `<slotLabel>#<n>`. */
+export const bisOverrides = sqliteTable('bis_overrides', {
+  accountId: integer('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  specSlug: text('spec_slug').notNull(),
+  listType: text('list_type').$type<ListType>().notNull(),
+  slotKey: text('slot_key').notNull(),
+  itemId: integer('item_id').notNull(),
+  catalyst: integer('catalyst', { mode: 'boolean' }).notNull().default(false),
+}, (t) => [primaryKey({ columns: [t.accountId, t.specSlug, t.listType, t.slotKey] })]);
+
+/** Every item an override names: complete, factual metadata from Blizzard or the season sync. */
+export const itemCatalog = sqliteTable('item_catalog', {
+  itemId: integer('item_id').primaryKey(),
+  name: text('name').notNull(),
+  inventoryType: text('inventory_type'),
+  armorType: text('armor_type').$type<ArmorType>(),
+  quality: text('quality').$type<Quality>(),
+  isTier: integer('is_tier', { mode: 'boolean' }).notNull(),
+  fetchedAt: integer('fetched_at').notNull(),
+});
