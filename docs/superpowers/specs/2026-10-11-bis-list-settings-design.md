@@ -52,7 +52,7 @@ Out of scope, each a follow-up issue:
 New tables in `src/core/db/schema.ts`:
 
 - `accounts`: `id` (primary key), `name`. The migration inserts `{ id: 1, name: 'Local' }`.
-- `specs`: `spec_id` (primary key, Blizzard's playable specialization ID), `class_id`, `class_name`, `spec_name`, `method_slug`, `fetched_at`. `method_slug` comes from `methodSpecSlug(specName, className)`, so the catalog and the views agree on slugs.
+- `specs`: `method_slug` (primary key), `class_id`, `class_name`, `spec_name`, `fetched_at`. `method_slug` comes from `methodSpecSlug(specName, className)`, so the catalog and the views agree on slugs.
 - `spec_settings`: `account_id` (references `accounts`, cascade), `spec_slug`, `list_type` (`ListType`, default `'mythicPlus'`), `stats_matter` (boolean, default true). Primary key `(account_id, spec_slug)`. A missing row means the defaults. The second spec adds the source choice here.
 - `bis_overrides`: `account_id` (references `accounts`, cascade), `spec_slug`, `list_type`, `slot_key`, `item_id`, `catalyst` (boolean, default false). Primary key `(account_id, spec_slug, list_type, slot_key)`.
 - `item_catalog`: `item_id` (primary key), `name`, `inventory_type`, `armor_type`, `quality` (nullable), `is_tier`, `fetched_at`. Every item an override names is in here. It is separate from `item_details`, which belongs to the tier-stat lookup and has its own freshness rules, and from `dungeon_loot`, which means "drops in this dungeon" and drives dungeon credit.
@@ -70,7 +70,7 @@ Changed tables:
 
 ### Spec catalog
 
-A new Blizzard client call reads the playable specialization index, and the existing `getClasses` gives class names. A sync step stores them in `specs`. It runs with the reference sync, at most once a day, through `fetchJson` and `createLimiter`. A failed catalog sync keeps the old rows. Until the first sync succeeds, the picker shows only tracked specs, built from `characters` as today.
+The existing `getClasses` client call already returns every class with its spec names. A sync step stores one row per spec in `specs`, using the region of the first tracked character, and does nothing when no character is tracked. It runs with the reference sync, at most once a day, through `fetchJson` and `createLimiter`. A failed catalog sync keeps the old rows. Until the first sync succeeds, the picker shows only tracked specs, built from `characters` as today.
 
 ### Compared list
 
@@ -107,7 +107,7 @@ Tier target stats are fetched per spec and region for the tier item IDs in that 
 ### Stats checkbox
 
 - `evaluateGear` gains `statsMatter: boolean`. With it false, the `wrongStats` branch is skipped and the row falls through to its track state, so an upgradable tier piece stays upgradable. The "stats unverified" label is not shown.
-- Dungeon ranking in `src/core/priority/rank.ts` gains `statsMatter`. With it false, a catalyst alternative is not ranked below a drop with the list's stats.
+- Dungeon ranking in `src/core/priority/rank.ts` gains `statsMatter`. With it false, a catalyst alternative is not ranked below a drop with the list's stats: every drop that fits the slot credits at full weight, with a new fit `any` that reads "catalyst into tier" and names no stats.
 - The control is a checkbox labelled "Tier pieces must have the list's stats", checked when `stats_matter` is true, checked by default. A line beneath it reads "Uncheck if the set bonus is all that matters for this spec."
 
 ### Data flow
@@ -142,7 +142,7 @@ All writes go through `withWriteLock`. Nothing writes on `GET`.
 | `PUT /api/bis/overrides` | `{ specSlug, listType, slotKey, itemId, catalyst }` | Fills the catalog if needed, validates and upserts one override |
 | `DELETE /api/bis/overrides` | `{ specSlug, listType, slotKey }` | Removes one override, including an orphan |
 | `PATCH /api/bis/settings` | `{ specSlug, listType?, statsMatter? }` | Upserts `spec_settings` |
-| `POST /api/bis/fetch` | `{ specSlug }` | Runs `syncBisLists` for one spec |
+| `POST /api/bis/fetch` | `{ specSlug }` | Runs `syncBisLists` for one spec. The slug must be in `specs` or belong to a tracked character, so a client can't aim the fetch at an arbitrary Method page |
 
 Fetching a Method list needs no Blizzard call. It still goes through `getServices()`, which needs credentials like every other route today.
 
