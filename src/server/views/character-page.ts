@@ -9,6 +9,7 @@ import { LIST_TYPES, type ListType } from '@/core/types';
 import type { Services } from '../services';
 import type { CharacterPageView, UntrackedCharacterView } from './types';
 import { createBisLookup, referenceDue } from './bis-lookup';
+import { dungeonArt } from './dungeon-art';
 import { crestView } from './summarize';
 import { creditView, loadMember, priorityCharacter, rowView, vaultChoicesFor } from './member';
 
@@ -78,6 +79,7 @@ export async function getCharacterPage(services: Services, key: MemberKey, listT
       dungeons: ranks.filter((d) => d.score > 0).map((d) => ({
         challengeModeId: d.challengeModeId,
         name: d.name,
+        ...dungeonArt(season.dungeons, d.challengeModeId),
         score: d.score,
         split: d.split,
         credits: d.characters.flatMap((c) => c.credits).map((cr) => creditView(cr, icons)),

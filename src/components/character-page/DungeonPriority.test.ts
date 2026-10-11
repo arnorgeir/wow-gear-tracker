@@ -13,7 +13,7 @@ describe('DungeonPriority', () => {
   it('ranks dungeons with their credits and lists the rest apart', () => {
     const html = render({
       ...base,
-      dungeons: [{ challengeModeId: 501, name: 'Alpha Hollow', score: 7, split: false, credits: [
+      dungeons: [{ challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: null, score: 7, split: false, credits: [
         { kind: 'tier', slotLabel: 'Chest', weight: 4, fit: 'alternative', dropStats: ['MASTERY_RATING', 'VERSATILITY'], targetName: 'Primordial Robe of Rites', targetStats: ['HASTE_RATING', 'MASTERY_RATING'],
           item: { itemId: 80, name: 'Hoarded Harvest Wrap', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } },
         { kind: 'any', slotLabel: 'Shoulders', weight: 3, minItemLevel: 334 },
@@ -61,7 +61,7 @@ describe('DungeonPriority', () => {
   });
 
   it('marks a split dungeon', () => {
-    const html = render({ ...base, dungeons: [{ challengeModeId: 502, name: 'Streets of Beta', score: 3, split: true, credits: [] }] });
+    const html = render({ ...base, dungeons: [{ challengeModeId: 502, name: 'Streets of Beta', shortName: 'STRT', imageUrl: null, score: 3, split: true, credits: [] }] });
     expect(html).toContain('Split dungeon');
   });
 

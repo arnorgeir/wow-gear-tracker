@@ -80,7 +80,7 @@ export type PriorityCreditView =
   | { kind: 'item'; slotLabel: string; weight: number; item: ItemView }
   | { kind: 'tier'; slotLabel: string; weight: number; fit: TierFit; item: ItemView; dropStats: string[] | null; targetName: string; targetStats: string[] | null }
   | { kind: 'any'; slotLabel: string; weight: number; minItemLevel: number };
-export interface DungeonPriorityView { challengeModeId: number; name: string; score: number; split: boolean; credits: PriorityCreditView[] }
+export interface DungeonPriorityView { challengeModeId: number; name: string; shortName: string; imageUrl: string | null; score: number; split: boolean; credits: PriorityCreditView[] }
 export interface PriorityView {
   listType: 'mythicPlus' | 'overall';
   fellBack: boolean;
