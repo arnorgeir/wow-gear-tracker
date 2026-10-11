@@ -20,6 +20,7 @@ This is the first of two specs split out of #103. The second adds other BiS sour
 - `/settings/bis/<spec-slug>` shows Method's Overall, Raid and Mythic+ lists for the spec. Each slot row can be overridden with an item found by name, ID or Wowhead link, and reset to Method's pick.
 - The same page sets which list the spec's characters compare against, Mythic+ by default. Raid is choosable for the first time. A chosen list Method doesn't have falls back to Overall, with the existing notice.
 - The character page has no list tabs and no per-character list choice. It shows the spec's compared list.
+- On a tier slot, an override can be the tier piece itself, or a regular item with "Catalyst into tier" switched on. The second reads like Method's own catalyst rows: any tier piece in the slot matches, and its stats are compared with the chosen item's.
 - Item search only offers items the class can use in that slot: a mage never sees plate, and every class sees cloth cloaks. A pasted ID for an unusable item shows the item with the reason instead of hiding it.
 - An override applies to every character of that spec on the account, on the character page, the group page and in dungeon priority. An overridden tier item gets its stat pair fetched like Method's own tier items.
 - When Method changes its list, untouched slots follow Method and overrides stay. An override whose slot no longer exists in Method's list is listed for removal and is not applied.
@@ -53,7 +54,7 @@ New tables in `src/core/db/schema.ts`:
 - `accounts`: `id` (primary key), `name`. The migration inserts `{ id: 1, name: 'Local' }`.
 - `specs`: `spec_id` (primary key, Blizzard's playable specialization ID), `class_id`, `class_name`, `spec_name`, `method_slug`, `fetched_at`. `method_slug` comes from `methodSpecSlug(specName, className)`, so the catalog and the views agree on slugs.
 - `spec_settings`: `account_id` (references `accounts`, cascade), `spec_slug`, `list_type` (`ListType`, default `'mythicPlus'`), `stats_matter` (boolean, default true). Primary key `(account_id, spec_slug)`. A missing row means the defaults. The second spec adds the source choice here.
-- `bis_overrides`: `account_id` (references `accounts`, cascade), `spec_slug`, `list_type`, `slot_key`, `item_id`. Primary key `(account_id, spec_slug, list_type, slot_key)`.
+- `bis_overrides`: `account_id` (references `accounts`, cascade), `spec_slug`, `list_type`, `slot_key`, `item_id`, `catalyst` (boolean, default false). Primary key `(account_id, spec_slug, list_type, slot_key)`.
 - `item_catalog`: `item_id` (primary key), `name`, `inventory_type`, `armor_type`, `quality` (nullable), `is_tier`, `fetched_at`. Every item an override names is in here. It is separate from `item_details`, which belongs to the tier-stat lookup and has its own freshness rules, and from `dungeon_loot`, which means "drops in this dungeon" and drives dungeon credit.
 
 Changed tables:
@@ -85,10 +86,11 @@ Logic modules in `src/core/bis/`, pure functions:
 
 - `slotKeys(rows: BisRow[]): string[]` names each row `<slotLabel>#<n>`, where `n` counts rows with the same `slotLabel` in list order, from 1. Two "Ring" rows become `Ring#1` and `Ring#2`. Method's slot labels are stable across updates, so keys survive a refetch that only changes items.
 - `applyOverrides(rows, overrides, catalog)` returns `{ rows, editedCount, orphans }`.
-  - A row whose key has an override becomes `kind: 'item'` with the override's `itemId`, and with `name` and `isTier` from `catalog`, empty `bonusIds`, `isCatalyst: false`, and the original row's `slotLabel`, `slots` and `source`. It gains `edited: { methodPick: BisRow }`.
+  - A row whose key has an override becomes `kind: 'item'` with the override's `itemId` and `name` from `catalog`, empty `bonusIds`, and `isTier` and `isCatalyst` as follows: a catalyst override gives `isTier: true, isCatalyst: true`, the same shape the Method parser gives a base marked for the catalyst; otherwise `isTier` is the catalog's and `isCatalyst` is false. It keeps the original row's `slotLabel`, `slots` and `source`. It gains `edited: { methodPick: BisRow }`.
   - An override whose key matches no row goes into `orphans` and is not applied.
   - An override whose item is missing from `catalog` is treated as an orphan, so a broken row never reaches the gear logic.
 - `classCanUse(item, className, slots)` returns `{ ok: true }` or `{ ok: false, reason }`. The item's `slotsForInventoryType(inventoryType)` must overlap the row's `slots`. When any of those slots is in `ARMOR_SLOTS` from `src/core/priority/slots.ts`, the item's armor type must match `armorTypeForClass(className)`. Cloaks are BACK, outside `ARMOR_SLOTS`, so a cloth cloak passes for every class, the same rule the ranker's `fitsSlot` uses.
+- `canCatalyst(item, slots)` is true when any of the row's `slots` is in `TIER_SLOTS` and the item is not itself a tier piece. `TIER_SLOTS` (HEAD, SHOULDER, CHEST, HANDS, LEGS) is added to `src/core/priority/slots.ts`.
 - `parseItemInput(input)` returns an item ID from a bare number or a Wowhead URL (`/item=(\d+)/`), or `null`.
 
 `BisRow` gains an optional `edited` field in `src/core/types.ts`.
@@ -99,7 +101,7 @@ Tier target stats are fetched per spec and region for the tier item IDs in that 
 
 - `TierScope` in `src/core/sync/reference-sync.ts` replaces `lists` with `itemIds: number[]`, the tier item IDs to cover. `tierItemIds(lists)` stays as the helper callers use to build it.
 - Read path: `createBisLookup` builds the scope from the account's effective lists, after the overlay, so `readTierTargets` reports `due` when an override names a tier item with no stored stats. Reads stay database-only.
-- Write path: `runPass` in `src/core/sync/reference-run.ts` builds each tracked spec's scope from Method's lists plus every tier item named by any account's overrides for that spec, read with one query on `bis_overrides` joined to `item_catalog` where `is_tier`. The union across accounts keeps the sync free of a current account: it serves whoever is looking.
+- Write path: `runPass` in `src/core/sync/reference-run.ts` builds each tracked spec's scope from Method's lists plus every tier item named by any account's overrides for that spec, read with one query on `bis_overrides` joined to `item_catalog`, keeping overrides that are `catalyst` or whose item `is_tier`. A catalyst override's base item is a target like Method's catalyst bases, so its stat pair is fetched the same way. The union across accounts keeps the sync free of a current account: it serves whoever is looking.
 - Refresh after an override changes: saving a tier override makes the next page read report due work, the page's existing background sync key fires `runPass`, and the stats arrive on the following render. No route fetches stats directly.
 
 ### Stats checkbox
@@ -137,7 +139,7 @@ All writes go through `withWriteLock`. Nothing writes on `GET`.
 |---|---|---|
 | `GET /api/items/search` | `q`, `specSlug`, `listType`, `slotKey` | Local search, filtered for the spec's class and the row's slots |
 | `POST /api/items/lookup` | `{ input, specSlug, listType, slotKey }` | Parses the input, fetches and caches an unknown item, returns it with its `classCanUse` result |
-| `PUT /api/bis/overrides` | `{ specSlug, listType, slotKey, itemId }` | Fills the catalog if needed, validates and upserts one override |
+| `PUT /api/bis/overrides` | `{ specSlug, listType, slotKey, itemId, catalyst }` | Fills the catalog if needed, validates and upserts one override |
 | `DELETE /api/bis/overrides` | `{ specSlug, listType, slotKey }` | Removes one override, including an orphan |
 | `PATCH /api/bis/settings` | `{ specSlug, listType?, statsMatter? }` | Upserts `spec_settings` |
 | `POST /api/bis/fetch` | `{ specSlug }` | Runs `syncBisLists` for one spec |
@@ -156,6 +158,7 @@ Loaders in `src/server/views/`: `settings-bis.ts` for the picker, `settings-spec
   - Tabs for Overall, Raid and Mythic+, choosing which list to edit. The tab for the compared list is marked "Compared". A list Method doesn't have shows "Method has no <type> list for this spec."
   - One row per Method slot: the slot label, Method's pick as a rarity-colored Wowhead link (or "Any <item level>"), and an "Override" button.
   - An overridden row shows the chosen item, an "Edited" tag in words, Method's pick struck through beside it, and Reset.
+  - On a tier slot, a picked item that `canCatalyst` gets a "Catalyst into tier" switch before saving, off by default. An overridden catalyst row reads "<item> → catalyst into tier".
   - Override opens an item search input with the placeholder "Search by name, ID or Wowhead link". Input is debounced. Results are rarity-colored Wowhead links. Unusable exact matches show greyed with their reason and can't be picked.
   - Orphans sit below the list, under "No longer in Method's list", each with its item and Remove.
   - A spec with no cached list shows the Fetch button instead of the editor.
@@ -180,6 +183,7 @@ These are `UserError`s, so they show as 400s:
 - "Couldn't read that item from Blizzard." when an item comes back with no name or slot.
 - "<Class> can't wear <armor type>." or "That item doesn't fit the <slot label> slot." when an override fails `classCanUse`.
 - "Method has no list for this spec yet. Fetch it first." when overriding a spec with no cached list.
+- "Only regular items in tier slots can be catalyzed." when `catalyst` is true and `canCatalyst` is false.
 - "That slot isn't in Method's list." when an override names an unknown slot key.
 
 A Blizzard request that fails for any other reason during lookup or save shows "Couldn't reach Blizzard. Try again." as a `UserError` and writes nothing. A failed Method fetch reuses `syncBisLists`'s failure meta and never clears a cached list.
@@ -190,8 +194,9 @@ Failing tests first. Real in-memory SQLite through `openTestDb()`, fake `fetch` 
 
 - Core:
   - `slotKeys` with repeated labels.
-  - `applyOverrides` for replace, tier override, orphan and missing catalog item.
+  - `applyOverrides` for replace, tier override, catalyst override, orphan and missing catalog item.
   - `classCanUse`: cloth chest rejected and cloth cloak accepted for a Warrior, slot mismatch, non-armor items.
+  - `canCatalyst` for a regular chest, a tier chest and a ring.
   - `parseItemInput` for numbers, Wowhead URLs with and without locale paths, and junk.
   - `choosePriorityList` for Raid and Mythic+ falling back to Overall, and Overall never falling back.
   - `evaluateGear` with `statsMatter` false: a wrong-stat Myth 3/6 tier piece reads `mythUpgradable`, a wrong-stat 6/6 reads `done`, and true keeps `wrongStats`.
@@ -199,7 +204,7 @@ Failing tests first. Real in-memory SQLite through `openTestDb()`, fake `fetch` 
   - `parseItemInfo` keeps the name.
 - Sync:
   - The season sync stores quality and tier identity.
-  - `runPass` requests stats for a tier item that only an override names. After the sync, `bisFor` returns its target, `evaluateGear` shows `wrongStats` for a mismatched equipped piece, and the ranking prefers a matching drop.
+  - `runPass` requests stats for a tier item that only an override names, and for a catalyst override's base item. After the sync, `bisFor` returns its target, `evaluateGear` shows `wrongStats` for a mismatched equipped piece, and the ranking prefers a matching drop.
   - Catalog sync keeps old rows on failure.
 - Queries: override upsert and delete; settings defaults (Mythic+, stats matter); a second account sees none of the first account's rows; `item_catalog` filled from a `dungeon_loot` row, from a Blizzard item when the item isn't local, and nothing written when that request fails.
 - Views: `bisFor` returns overlaid lists, `listType`, `editedCount`, `orphans` and `statsMatter`, and reports targets due for an overridden tier item with no stats; the character page and group page use the spec's compared list; the picker loader marks tracked, untracked, fetched and failed specs; the editor loader pairs each row with its override.
