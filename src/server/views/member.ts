@@ -36,7 +36,7 @@ export async function loadMember(ctx: MemberContext, character: CharacterRow, cl
   const gear = await loadGear(ctx.db, character.id);
   const summary = summarize(character, gear.current, classIcons);
   const bis = await ctx.bisFor(summary.specSlug, character.region);
-  const evaluate = (list: ListType) => evaluateGear({ equipped: gear.equipped, bisRows: bis.lists?.[list] ?? [], tracks: ctx.tracks, bagItemIds: gear.bagItemIds, targets: bis.targets });
+  const evaluate = (list: ListType) => evaluateGear({ equipped: gear.equipped, bisRows: bis.lists?.[list] ?? [], tracks: ctx.tracks, bagItemIds: gear.bagItemIds, targets: bis.targets, statsMatter: bis.statsMatter });
   const choice = choosePriorityList(bis.lists, character.priorityList);
   return {
     character, summary, gear, bis, choice, evaluate,
@@ -86,5 +86,5 @@ export function creditView(cr: Credit, icons: ReadonlyMap<number, string | null>
 }
 
 export const priorityCharacter = (m: MemberData, tracks: ReadonlyMap<number, Track>): PriorityCharacter => ({
-  id: m.character.id, name: m.character.name, className: m.character.className, rows: m.priorityRows, equipped: m.gear.equipped, tracks, targets: m.bis.targets, statsMatter: true,
+  id: m.character.id, name: m.character.name, className: m.character.className, rows: m.priorityRows, equipped: m.gear.equipped, tracks, targets: m.bis.targets, statsMatter: m.bis.statsMatter,
 });

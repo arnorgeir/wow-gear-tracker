@@ -16,7 +16,7 @@ export async function getCharacterCards(services: Services): Promise<{ cards: Ch
   const costs = crestCostsByGroup(tracks.values());
   const characters = await listCharacters(db);
   const classIcons = await ensureClassIcons({ db, blizzard, now: time }, characters[0]?.region ?? 'eu');
-  const bisFor = createBisLookup(db, time);
+  const bisFor = createBisLookup(db, time, services.currentAccountId());
   const specs: SpecBis[] = [];
   const cards = await Promise.all(characters.map(async (c) => {
     const gear = await loadGear(db, c.id);

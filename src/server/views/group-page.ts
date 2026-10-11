@@ -29,7 +29,7 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
   const all = await listCharacters(db);
   const classIcons = await ensureClassIcons({ db, blizzard, now: time }, region ?? 'eu');
   // Reads only: members load in sequence, and the lookup shares one read per spec.
-  const bisFor = createBisLookup(db, time);
+  const bisFor = createBisLookup(db, time, services.currentAccountId());
 
   const loaded: Loaded[] = [];
   for (const key of selected) {
