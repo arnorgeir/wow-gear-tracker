@@ -1,0 +1,1 @@
+ALTER TABLE `specs` ADD `icon_url` text;

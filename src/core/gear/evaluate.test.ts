@@ -149,3 +149,18 @@ describe('tier stat pairs', () => {
     expect(countStates(rows).wrongStats).toBe(1);
   });
 });
+
+describe('statsMatter', () => {
+  const crown = row(['HEAD'], 10, true);
+  const targets = new Map([[10, { secondaryStats: ['HASTE_RATING', 'MASTERY_RATING'], isTier: true }]]);
+  const piece = (bonus: number): GearItem => ({ ...item('HEAD', 11, [bonus], true), secondaryStats: ['CRIT_RATING', 'VERSATILITY'] });
+
+  it('keeps Wrong stats by default', () => {
+    expect(evaluateGear({ equipped: [piece(1)], bisRows: [crown], tracks, targets })[0]!.state).toBe('wrongStats');
+  });
+
+  it('falls through to the track state when stats do not matter', () => {
+    expect(evaluateGear({ equipped: [piece(2)], bisRows: [crown], tracks, targets, statsMatter: false })[0]!.state).toBe('mythUpgradable');
+    expect(evaluateGear({ equipped: [piece(1)], bisRows: [crown], tracks, targets, statsMatter: false })[0]!.state).toBe('done');
+  });
+});

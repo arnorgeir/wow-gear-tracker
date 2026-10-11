@@ -51,10 +51,16 @@ describe('GroupPriority', () => {
   it('shows the season states, the fallback and approximate weights', () => {
     expect(render({ ...base, season: 'loading' })).toContain('Loading this season’s loot…');
     expect(render({ ...base, season: 'failed' })).toContain('It will retry within the hour.');
-    const html = render({ ...base, season: 'stale', approximate: true, fellBack: ['Hrafnhildur'] });
+    const html = render({ ...base, season: 'stale', approximate: true, fellBack: [{ name: 'Hrafnhildur', from: 'mythicPlus' }] });
     expect(html).toContain('Showing older loot data');
     expect(html).toContain('Weights are approximate');
     expect(html).toContain('Hrafnhildur uses the Overall list: Method has no Mythic+ list for that spec.');
+  });
+
+  it('names the chosen list in each fallback notice', () => {
+    const html = render({ ...base, fellBack: [{ name: 'Hrafnhildur', from: 'raid' }, { name: 'Sólrún', from: 'mythicPlus' }] });
+    expect(html).toContain('Hrafnhildur uses the Overall list: Method has no Raid list for that spec.');
+    expect(html).toContain('Sólrún uses the Overall list: Method has no Mythic+ list for that spec.');
   });
 
   it('makes each dungeon a details row, the first one open, in rank order', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isUserError } from '@/core/errors';
-import { parseSpecOverride } from './route-helpers';
+import { parseRowRef, parseSpecOverride } from './route-helpers';
 
 const SPECS = ['Balance', 'Feral', 'Guardian', 'Restoration'];
 
@@ -36,5 +36,16 @@ describe('parseSpecOverride', () => {
     expect(parseSpecOverride(null, [])).toBeNull();
     expect(parseSpecOverride('', [])).toBeNull();
     expect(isUserError(thrown(() => parseSpecOverride('Feral', [])))).toBe(true);
+  });
+});
+
+describe('parseRowRef', () => {
+  it('reads a row reference', () => {
+    expect(parseRowRef({ specSlug: 'frost-mage', listType: 'raid', slotKey: 'Head#1' })).toEqual({ specSlug: 'frost-mage', listType: 'raid', slotKey: 'Head#1' });
+  });
+  it('rejects bad input with a safe message', () => {
+    expect(() => parseRowRef({ specSlug: 'frost-mage', listType: 'pvp', slotKey: 'Head#1' })).toThrow('Unknown list.');
+    expect(() => parseRowRef({ listType: 'raid', slotKey: 'Head#1' })).toThrow('Unknown spec.');
+    expect(() => parseRowRef({ specSlug: 'frost-mage', listType: 'raid', slotKey: '' })).toThrow('Unknown slot.');
   });
 });

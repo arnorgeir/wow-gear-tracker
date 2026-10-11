@@ -10,7 +10,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: () => {}, refre
 
 const summary = (id: number, name: string): CharacterSummary => ({
   id, href: '/characters/eu/argent-dawn/birkibj%C3%B6rn', name, realmName: 'Argent Dawn', realmId: 1, region: 'eu', className: 'Druid', activeSpec: 'Guardian', spec: 'Guardian', specSlug: 'guardian-druid',
-  status: 'ok', lastSyncedAt: 5, lastSyncError: null, priorityList: 'mythicPlus', snapshot: null, sourceAt: null, race: null, faction: null,
+  status: 'ok', lastSyncedAt: 5, lastSyncError: null, snapshot: null, sourceAt: null, race: null, faction: null,
   avatarUrl: null, classIconUrl: null, identity: 'Guardian Druid',
 });
 const member = (over: Partial<GroupMemberView>): GroupMemberView => ({
@@ -82,6 +82,11 @@ describe('GroupGrid', () => {
     expect(html).toContain('data-wowhead="currency=3446"');
     expect(html).toContain('Overall list');
     expect(html).toContain('title="Birkibjörn"');
+  });
+
+  it('labels a Raid list, and says nothing for Mythic+', () => {
+    expect(render([member({ listType: 'raid', character: summary(3, 'Birkibjörn') })], [])).toContain('Raid list');
+    expect(render([member({ character: summary(3, 'Birkibjörn') })], [])).not.toContain(' list<');
   });
 
   it('asks for a paste when a member has no crests yet', () => {

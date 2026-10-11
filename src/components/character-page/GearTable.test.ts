@@ -1,6 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import type { ListType } from '@/core/types';
 import type { GearRowView } from '@/server/views/types';
 import { GearTable } from './GearTable';
 
@@ -9,8 +10,28 @@ const row: GearRowView = {
   slotLabel: 'Head', slot: 'HEAD', state: 'done', equipped, equippedStats: null, upgrade: null,
   bis: { kind: 'item', ...equipped, isTier: false, isCatalyst: false, source: '', targetStats: null, targetIsTierPiece: false },
 };
-const render = (rows: GearRowView[], bisLoading: boolean) =>
-  renderToStaticMarkup(createElement(GearTable, { rows, tracksKnown: true, bisLoading })).replace(/<link[^>]*\/>/g, '');
+const render = (rows: GearRowView[], bisLoading: boolean, fellBackFrom: ListType | null = null) =>
+  renderToStaticMarkup(createElement(GearTable, { rows, tracksKnown: true, bisLoading, listType: 'raid', specSlug: 'guardian-druid', editedCount: 2, doneCount: 1, fellBackFrom })).replace(/<link[^>]*\/>/g, '');
+
+describe('GearTable source', () => {
+  it('names the compared list and links the source badge to its settings', () => {
+    const html = render([row], false);
+    expect(html).toContain('>Raid BiS<');
+    expect(html).toContain('href="/settings/bis/guardian-druid"');
+    expect(html).toContain('From Method');
+    expect(html).toContain('2 edited');
+  });
+
+  it('counts done rows against the list', () => {
+    expect(render([row, row, row], false)).toContain('1/3 done');
+  });
+
+  it('says when the chosen list is missing and Overall is shown', () => {
+    const html = render([row], false, 'raid');
+    expect(html).toContain('Method has no Raid list for this spec. Showing Overall.');
+    expect(render([row], false)).not.toContain('Showing Overall');
+  });
+});
 
 describe('GearTable loading', () => {
   it('shows skeleton rows under the real header while the BiS list loads', () => {

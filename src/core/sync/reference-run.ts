@@ -4,7 +4,8 @@ import { listCharacters } from '../db/queries/characters';
 import { methodSpecSlug } from '../method/method';
 import type { RaidbotsData } from '../raidbots/tracks';
 import type { BisSource, Region } from '../types';
-import { readBisLists, syncBisLists, syncTierTargets, syncTracks } from './reference-sync';
+import { overrideTierItemIds } from '../db/queries/bis-settings';
+import { readBisLists, syncBisLists, syncSpecs, syncTierTargets, syncTracks } from './reference-sync';
 
 export type ReferenceSyncResult = 'skipped' | 'synced';
 export interface ReferenceSyncDeps { db: Db; bisSource: BisSource; fetchRaidbots: () => Promise<RaidbotsData>; blizzard: BlizzardClient; now: number }
@@ -13,16 +14,19 @@ export interface ReferenceSyncDeps { db: Db; bisSource: BisSource; fetchRaidbots
 async function runPass({ db, bisSource, fetchRaidbots, blizzard, now }: ReferenceSyncDeps): Promise<ReferenceSyncResult> {
   let requested = await syncTracks({ db, fetchRaidbots, now });
   // The same slug summarize gives the views, so the page and the sync agree on what is due.
+  const characters = await listCharacters(db);
+  if (characters[0] && await syncSpecs({ db, blizzard, now }, characters[0].region)) requested = true;
   const specs = new Map<string, Set<Region>>();
-  for (const c of await listCharacters(db)) {
+  for (const c of characters) {
     const slug = methodSpecSlug(c.specOverride || c.specName, c.className);
     specs.set(slug, (specs.get(slug) ?? new Set<Region>()).add(c.region));
   }
   for (const [specSlug, regions] of specs) {
     if (await syncBisLists({ db, source: bisSource, now }, specSlug)) requested = true;
     const { lists } = await readBisLists(db, specSlug, now);
+    const extraItemIds = await overrideTierItemIds(db, specSlug);
     for (const region of regions) {
-      if (await syncTierTargets({ db, blizzard, now }, { region, specSlug, lists })) requested = true;
+      if (await syncTierTargets({ db, blizzard, now }, { region, specSlug, lists, extraItemIds })) requested = true;
     }
   }
   return requested ? 'synced' : 'skipped';

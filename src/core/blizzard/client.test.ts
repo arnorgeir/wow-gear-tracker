@@ -101,9 +101,9 @@ describe('Blizzard client', () => {
   it('loads classes with their specs', async () => {
     const { api } = client([
       on('/playable-class/index', () => json({ classes: [{ id: 11, name: 'Druid' }] })),
-      on('/playable-class/11', () => json({ specializations: [{ name: 'Balance' }, { name: 'Guardian' }] })),
+      on('/playable-class/11', () => json({ specializations: [{ id: 102, name: 'Balance' }, { id: 104, name: 'Guardian' }] })),
     ]);
-    expect(await api.getClasses('eu')).toEqual([{ id: 11, name: 'Druid', specs: ['Balance', 'Guardian'] }]);
+    expect(await api.getClasses('eu')).toEqual([{ id: 11, name: 'Druid', specs: ['Balance', 'Guardian'], specIds: [102, 104] }]);
   });
 
   it('reads item quality and whether the item belongs to a set', async () => {
@@ -112,8 +112,8 @@ describe('Blizzard client', () => {
       on('/data/wow/item/222', () => json({ quality: { type: 'RARE' }, preview_item: {} })),
       on('/data/wow/item/999', () => new Response('', { status: 404 })),
     ]);
-    expect(await api.getItemDetails('eu', 111)).toEqual({ quality: 'EPIC', isTier: true, inventoryType: null, armorType: null, secondaryStats: null });
-    expect(await api.getItemDetails('eu', 222)).toEqual({ quality: 'RARE', isTier: false, inventoryType: null, armorType: null, secondaryStats: null });
+    expect(await api.getItemDetails('eu', 111)).toEqual({ quality: 'EPIC', isTier: true, inventoryType: null, armorType: null, secondaryStats: null, name: null });
+    expect(await api.getItemDetails('eu', 222)).toEqual({ quality: 'RARE', isTier: false, inventoryType: null, armorType: null, secondaryStats: null, name: null });
     expect(await api.getItemDetails('eu', 999)).toBeNull();
   });
 
@@ -133,7 +133,7 @@ describe('Blizzard client', () => {
       on('/data/wow/item/100', () => json({ quality: { type: 'EPIC' }, inventory_type: { type: 'ROBE' }, item_class: { id: 4 }, item_subclass: { id: 2 } })),
       on('/data/wow/item/404', () => new Response('nope', { status: 404 })),
     ]);
-    expect(await api.getItemDetails('eu', 100)).toEqual({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather', secondaryStats: null });
+    expect(await api.getItemDetails('eu', 100)).toEqual({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather', secondaryStats: null, name: null });
     expect(await api.getItemDetails('eu', 404)).toBeNull();
   });
 
@@ -150,6 +150,15 @@ describe('Blizzard client', () => {
     expect(await api.getCharacterMedia(ref)).toBe('https://render/a.jpg');
     expect(calls.find((c) => c.url.includes('character-media'))!.url).toContain('namespace=profile-eu');
     expect(await api.getCharacterMedia({ ...ref, name: 'Nobody' })).toBeNull();
+  });
+
+  it('returns a spec icon URL, or null when the spec has none', async () => {
+    const { api } = client([
+      on('/media/playable-specialization/104', () => json({ assets: [{ key: 'icon', value: 'https://render/guardian.jpg' }] })),
+      on('/media/playable-specialization/999', () => new Response('', { status: 404 })),
+    ]);
+    expect(await api.getSpecIconUrl('eu', 104)).toBe('https://render/guardian.jpg');
+    expect(await api.getSpecIconUrl('eu', 999)).toBeNull();
   });
 
   it('returns a class icon URL, or null when the class has none', async () => {

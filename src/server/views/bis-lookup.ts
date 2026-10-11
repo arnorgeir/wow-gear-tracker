@@ -1,20 +1,50 @@
 import type { Db } from '@/core/db/client';
+import { applyOverrides } from '@/core/bis/overlay';
+import { getSpecSettings, listOverrides } from '@/core/db/queries/bis-settings';
+import { getCatalogItems } from '@/core/db/queries/item-catalog';
 import { readBisLists, readTierTargets, type BisRead } from '@/core/sync/reference-sync';
-import type { Region, TierTarget } from '@/core/types';
+import { LIST_TYPES, type BisOverride, type ListType, type Region, type TierTarget } from '@/core/types';
 
-export interface SpecBis extends BisRead {
+interface Overlay {
+  listType: ListType;
+  statsMatter: boolean;
+  editedCount: number;
+  /** Overrides that no longer fit a row of Method's list, by list. */
+  orphans: Record<ListType, BisOverride[]>;
+}
+
+export interface SpecBis extends BisRead, Overlay {
   targets: ReadonlyMap<number, TierTarget>;
   targetsDue: boolean;
   /** This spec's due work, by name, for the page's background sync key. */
   dueKeys: string[];
 }
 
+/** Method's cached lists with the account's overrides and settings. Database reads only, in sequence. */
+async function readEffective(db: Db, slug: string, time: number, accountId: number): Promise<BisRead & Overlay> {
+  const read = await readBisLists(db, slug, time);
+  const settings = await getSpecSettings(db, accountId, slug);
+  const overrides = await listOverrides(db, accountId, slug);
+  const catalog = await getCatalogItems(db, LIST_TYPES.flatMap((l) => overrides[l].map((o) => o.itemId)));
+  const orphans: Record<ListType, BisOverride[]> = { overall: [], raid: [], mythicPlus: [] };
+  if (!read.lists) return { ...read, ...settings, editedCount: 0, orphans };
+  const effective = { ...read.lists };
+  let editedCount = 0;
+  for (const l of LIST_TYPES) {
+    const out = applyOverrides(read.lists[l], overrides[l], catalog);
+    effective[l] = out.rows;
+    editedCount += out.editedCount;
+    orphans[l] = out.orphans;
+  }
+  return { ...read, lists: effective, ...settings, editedCount, orphans };
+}
+
 /** One BiS lookup per page, from the database only: lists once per spec, tier stat pairs once per spec and region. */
-export function createBisLookup(db: Db, time: number) {
-  const lists = new Map<string, Promise<BisRead>>();
+export function createBisLookup(db: Db, time: number, accountId: number) {
+  const lists = new Map<string, Promise<BisRead & Overlay>>();
   const lookups = new Map<string, Promise<SpecBis>>();
   return (slug: string, region: Region): Promise<SpecBis> => {
-    if (!lists.has(slug)) lists.set(slug, readBisLists(db, slug, time));
+    if (!lists.has(slug)) lists.set(slug, readEffective(db, slug, time, accountId));
     const key = `${region}:${slug}`;
     if (!lookups.has(key)) {
       lookups.set(key, (async () => {

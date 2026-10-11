@@ -51,7 +51,6 @@ export interface CharacterSummary {
   status: 'ok' | 'notFound';
   lastSyncedAt: number | null;
   lastSyncError: string | null;
-  priorityList: 'mythicPlus' | 'overall';
   snapshot: { source: SnapshotSource; createdAt: number } | null;
   /** When the current gear was captured: the paste time for SimC, the last sync for Blizzard. */
   sourceAt: number | null;
@@ -65,6 +64,8 @@ export interface CharacterSummary {
 }
 
 export interface CharacterCardView extends CharacterSummary {
+  /** The list the card's counts come from: the spec's choice, or Overall after a fallback. */
+  listType: ListType;
   counts: Record<ItemState, number> | null;
   tracksError: string | null;
   /** False until Raidbots data is stored: states that depend on upgrade tracks can't be told apart. */
@@ -82,8 +83,9 @@ export type PriorityCreditView =
   | { kind: 'any'; slotLabel: string; weight: number; minItemLevel: number };
 export interface DungeonPriorityView { challengeModeId: number; name: string; shortName: string; imageUrl: string | null; score: number; split: boolean; credits: PriorityCreditView[] }
 export interface PriorityView {
-  listType: 'mythicPlus' | 'overall';
-  fellBack: boolean;
+  listType: ListType;
+  /** The list the spec asked for when Method has none and Overall is ranked instead; otherwise null. */
+  fellBackFrom: ListType | null;
   season: 'loading' | 'failed' | 'ready' | 'stale';
   needsSync: boolean;
   bisLoading: boolean;
@@ -99,7 +101,14 @@ export interface CharacterPageView extends CharacterSummary {
   vaultChoices: VaultChoiceView[];
   vaultChoicesAt: number | null;
   crests: CrestView | null;
-  counts: Record<ListType, { bis: number; total: number }>;
+  /** Rows an account override replaced on this spec's lists. */
+  editedCount: number;
+  /** Rows in the compared list that are done, out of `rows.length`. */
+  doneCount: number;
+  /** The list the spec asked for when Method has none and Overall is shown instead; otherwise null. */
+  fellBackFrom: ListType | null;
+  /** The spec's icon, else the class icon. */
+  specIconUrl: string | null;
   bisFetchedAt: number | null;
   bisError: string | null;
   bisLoading: boolean;
@@ -128,7 +137,7 @@ export interface GroupMemberView {
   bisLoading: boolean;
   /** Ready but without rows: no BiS list to compare against. */
   hasRows: boolean;
-  listType: 'mythicPlus' | 'overall';
+  listType: ListType;
   fellBack: boolean;
   crests: CrestView | null;
 }
@@ -140,7 +149,8 @@ export interface GroupPriorityView {
   approximate: boolean;
   covered: string[];
   excluded: { name: string; reason: string }[];
-  fellBack: string[];
+  /** Members ranked on Overall because Method has no rows for the list their spec chose. */
+  fellBack: { name: string; from: ListType }[];
   /** Null when no member is eligible: the ranking is unavailable, which is not the same as nothing needed. */
   ranking: { dungeons: GroupDungeonView[]; nothingFrom: string[] } | null;
 }
@@ -160,4 +170,56 @@ export interface GroupPageView {
   available: { key: string; label: string }[];
   tracked: { region: Region; realmId: number; name: string }[];
   staleIds: number[];
+}
+
+export type SpecFetchState = { kind: 'tracked' } | { kind: 'notFetched' } | { kind: 'fetched'; at: number } | { kind: 'failed' };
+
+/** A tracked character, as a chip or portrait that links to its page. */
+export interface CharacterChipView { name: string; href: string; className: string; avatarUrl: string | null; classIconUrl: string | null }
+
+export interface PickerSpecView {
+  slug: string;
+  specName: string;
+  /** The spec's icon, or its class icon when Blizzard gave none. */
+  iconUrl: string | null;
+  tracked: boolean;
+  state: SpecFetchState;
+  characters: CharacterChipView[];
+  /** The list this spec compares against; only shown for a tracked spec. */
+  compares: ListType;
+}
+
+export interface SpecPickerView {
+  /** One card per tracked spec. */
+  tracked: (PickerSpecView & { className: string; editedCount: number })[];
+  classes: { className: string; iconUrl: string | null; trackedCount: number; specs: PickerSpecView[] }[];
+}
+
+export interface SettingsSlotView {
+  slotKey: string;
+  slotLabel: string;
+  /** Method's own pick for the slot. */
+  method: BisView;
+  override: (ItemView & { catalyst: boolean }) | null;
+  /** Whether the catalyst can turn an item here into a tier piece. */
+  tierSlot: boolean;
+}
+
+export interface SettingsSpecView {
+  slug: string;
+  className: string;
+  specName: string;
+  /** The list the account compares against. */
+  listType: ListType;
+  statsMatter: boolean;
+  /** The list the editor shows. */
+  editing: ListType;
+  hasLists: boolean;
+  fetchState: SpecFetchState;
+  /** When Method's lists were last stored, whether or not the spec is tracked. */
+  fetchedAt: number | null;
+  iconUrl: string | null;
+  classIconUrl: string | null;
+  characters: CharacterChipView[];
+  lists: Record<ListType, { slots: SettingsSlotView[]; orphans: (ItemView & { slotKey: string })[]; editedCount: number }>;
 }

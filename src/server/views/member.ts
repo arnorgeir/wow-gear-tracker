@@ -3,14 +3,14 @@ import type { CharacterRow } from '@/core/db/queries/characters';
 import type { SnapshotItemInput } from '@/core/db/queries/snapshots';
 import type { CrestCost } from '@/core/gear/crests';
 import { evaluateGear, type GearRow } from '@/core/gear/evaluate';
-import { choosePriorityList, type PriorityListType } from '@/core/priority/list';
+import { choosePriorityList } from '@/core/priority/list';
 import type { Credit, PriorityCharacter } from '@/core/priority/rank';
 import { decodeTrack } from '@/core/raidbots/tracks';
 import type { BisRow, ListType, Region, SlotType, TierTarget, Track } from '@/core/types';
 import type { SpecBis } from './bis-lookup';
 import { itemView } from './item-view';
 import { loadGear, summarize, upgradeFor, type GearContext } from './summarize';
-import type { CharacterSummary, GearRowView, PriorityCreditView, VaultChoiceView } from './types';
+import type { BisView, CharacterSummary, GearRowView, PriorityCreditView, VaultChoiceView } from './types';
 
 export interface MemberContext {
   db: Db;
@@ -24,7 +24,7 @@ export interface MemberData {
   summary: CharacterSummary;
   gear: GearContext;
   bis: SpecBis;
-  choice: { listType: PriorityListType; fellBack: boolean };
+  choice: { listType: ListType; fellBack: boolean };
   /** Rows for the priority list in `choice`. */
   priorityRows: GearRow[];
   evaluate: (list: ListType) => GearRow[];
@@ -36,13 +36,28 @@ export async function loadMember(ctx: MemberContext, character: CharacterRow, cl
   const gear = await loadGear(ctx.db, character.id);
   const summary = summarize(character, gear.current, classIcons);
   const bis = await ctx.bisFor(summary.specSlug, character.region);
-  const evaluate = (list: ListType) => evaluateGear({ equipped: gear.equipped, bisRows: bis.lists?.[list] ?? [], tracks: ctx.tracks, bagItemIds: gear.bagItemIds, targets: bis.targets });
-  const choice = choosePriorityList(bis.lists, character.priorityList);
+  const evaluate = (list: ListType) => evaluateGear({ equipped: gear.equipped, bisRows: bis.lists?.[list] ?? [], tracks: ctx.tracks, bagItemIds: gear.bagItemIds, targets: bis.targets, statsMatter: bis.statsMatter });
+  const choice = choosePriorityList(bis.lists, bis.listType);
   return {
     character, summary, gear, bis, choice, evaluate,
     priorityRows: evaluate(choice.listType),
     vaultItems: gear.simc?.items.filter((i) => i.location === 'vault') ?? [],
   };
+}
+
+/** Method's pick for a row, as the character page and the settings editor show it. */
+export function bisView(row: BisRow, icons: ReadonlyMap<number, string | null>, targets: ReadonlyMap<number, TierTarget>): BisView {
+  return row.kind === 'item'
+    ? {
+        kind: 'item' as const,
+        ...itemView({ itemId: row.itemId, name: row.name, itemLevel: null, quality: 'EPIC', bonusIds: row.bonusIds }, icons, null),
+        isTier: row.isTier,
+        isCatalyst: row.isCatalyst,
+        source: row.source,
+        targetStats: row.isTier ? targets.get(row.itemId)?.secondaryStats ?? null : null,
+        targetIsTierPiece: row.isTier && (targets.get(row.itemId)?.isTier ?? false),
+      }
+    : { kind: 'any' as const, minItemLevel: row.minItemLevel, source: row.source };
 }
 
 export function rowView(
@@ -55,17 +70,7 @@ export function rowView(
     state: r.state,
     equipped: r.equipped && itemView(r.equipped, icons, r.track),
     equippedStats: r.equipped?.secondaryStats ?? null,
-    bis: r.row.kind === 'item'
-      ? {
-          kind: 'item' as const,
-          ...itemView({ itemId: r.row.itemId, name: r.row.name, itemLevel: null, quality: 'EPIC', bonusIds: r.row.bonusIds }, icons, null),
-          isTier: r.row.isTier,
-          isCatalyst: r.row.isCatalyst,
-          source: r.row.source,
-          targetStats: r.row.isTier ? targets.get(r.row.itemId)?.secondaryStats ?? null : null,
-          targetIsTierPiece: r.row.isTier && (targets.get(r.row.itemId)?.isTier ?? false),
-        }
-      : { kind: 'any' as const, minItemLevel: r.row.minItemLevel, source: r.row.source },
+    bis: bisView(r.row, icons, targets),
     upgrade: upgradeFor(r, costs, balances),
   };
 }
@@ -86,5 +91,5 @@ export function creditView(cr: Credit, icons: ReadonlyMap<number, string | null>
 }
 
 export const priorityCharacter = (m: MemberData, tracks: ReadonlyMap<number, Track>): PriorityCharacter => ({
-  id: m.character.id, name: m.character.name, className: m.character.className, rows: m.priorityRows, equipped: m.gear.equipped, tracks, targets: m.bis.targets,
+  id: m.character.id, name: m.character.name, className: m.character.className, rows: m.priorityRows, equipped: m.gear.equipped, tracks, targets: m.bis.targets, statsMatter: m.bis.statsMatter,
 });

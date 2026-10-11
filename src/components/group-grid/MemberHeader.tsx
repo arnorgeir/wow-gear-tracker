@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { CrestChip } from '@/components/crest-chip/CrestChip';
 import { classTextColor } from '@/components/shared/class-colors';
+import { LIST_NAMES } from '@/components/shared/list-names';
 import type { GroupMemberView } from '@/server/views/types';
 
 /** Avatar, name and crests. Problems live in the notice row below, so every header is the same height. */
@@ -19,8 +20,8 @@ export function MemberHeader({ member }: { member: GroupMemberView }) {
           ? <div className="flex min-w-0 max-w-full flex-col items-center gap-1 sm:flex-row sm:flex-wrap">{member.crests.balances.map((b) => <CrestChip key={b.currencyId} balance={b} />)}</div>
           : <span className="text-xs text-muted">No crests</span>
       ) : <Link href={c.href} className="text-xs">Import SimC</Link>}
-      {member.listType === 'overall' && (
-        <span className="text-xs text-muted" title={member.fellBack ? 'Method has no Mythic+ list for this spec' : undefined}>Overall list</span>
+      {member.listType !== 'mythicPlus' && (
+        <span className="text-xs text-muted" title={member.fellBack ? 'Method has no list of that kind for this spec' : undefined}>{LIST_NAMES[member.listType]} list</span>
       )}
     </div>
   );

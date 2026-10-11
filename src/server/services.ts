@@ -7,7 +7,7 @@ import { createMethodSource } from '@/core/method/method';
 import { createRaidbotsFetcher, type RaidbotsData } from '@/core/raidbots/tracks';
 import { createCurrencyIconFetcher, withCurrencyIcons } from '@/core/wowhead/currency';
 import { createCharacterSyncer, type CharacterSyncer } from '@/core/sync/character-sync';
-import type { BisSource } from '@/core/types';
+import { LOCAL_ACCOUNT_ID, type BisSource } from '@/core/types';
 
 export interface Services {
   db: Db;
@@ -17,6 +17,8 @@ export interface Services {
   syncer: CharacterSyncer;
   now: () => number;
   fetchFn: typeof fetch;
+  /** The account a request acts for. Always the local account until login exists. */
+  currentAccountId: () => number;
 }
 
 async function build(): Promise<Services> {
@@ -34,6 +36,7 @@ async function build(): Promise<Services> {
     syncer: createCharacterSyncer({ db, blizzard }),
     now: Date.now,
     fetchFn: fetch,
+    currentAccountId: () => LOCAL_ACCOUNT_ID,
   };
 }
 

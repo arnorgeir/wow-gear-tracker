@@ -1,3 +1,4 @@
+import { LIST_NAMES } from '@/components/shared/list-names';
 import { APPROXIMATE, SEASON_FAILED, SEASON_LOADING, SEASON_STALE } from '@/components/shared/priority-copy';
 import type { GroupPriorityView } from '@/server/views/types';
 import { DungeonRow } from './DungeonRow';
@@ -35,7 +36,7 @@ export function GroupPriority({ priority }: { priority: GroupPriorityView }) {
     <section aria-label="Dungeon priority" className="flex flex-col gap-3">
       <h2 className="font-display text-xl font-bold whitespace-nowrap">Dungeon priority</h2>
       {partial && <p className="text-sm text-muted">Covers {names(priority.covered)}. Left out: {excludedText(priority.excluded)}.</p>}
-      {priority.fellBack.map((n) => <p key={n} className="text-sm text-muted">{n} uses the Overall list: Method has no Mythic+ list for that spec.</p>)}
+      {priority.fellBack.map(({ name, from }) => <p key={name} className="text-sm text-muted">{name} uses the Overall list: Method has no {LIST_NAMES[from]} list for that spec.</p>)}
       {priority.approximate && <p className="text-sm text-muted">{APPROXIMATE}</p>}
       {priority.season === 'stale' && <p className="text-sm text-muted">{SEASON_STALE}</p>}
       <Ranking priority={priority} />

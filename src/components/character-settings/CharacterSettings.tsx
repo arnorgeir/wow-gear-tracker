@@ -8,10 +8,9 @@ interface Props {
   specs: string[];
   spec: string;
   activeSpec: string;
-  priorityList: 'mythicPlus' | 'overall';
 }
 
-export function CharacterSettings({ id, specs, spec, activeSpec, priorityList }: Props) {
+export function CharacterSettings({ id, specs, spec, activeSpec }: Props) {
   const { run } = useApiAction();
   const patch = (body: Record<string, unknown>) =>
     run(`/api/characters/${id}`, {
@@ -28,18 +27,6 @@ export function CharacterSettings({ id, specs, spec, activeSpec, priorityList }:
           {specs.map((s) => <option key={s} value={s}>{s}{s === activeSpec ? ' (active)' : ''}</option>)}
         </select>
       </div>
-      <fieldset className="flex flex-col gap-1.5">
-        <legend className={`mb-1.5 ${LABEL_CLASS}`}>Dungeon priority uses</legend>
-        <div className="flex gap-4">
-          {(['mythicPlus', 'overall'] as const).map((value) => (
-            <label key={value} className="flex h-11 items-center gap-2 font-semibold">
-              <input type="radio" name="priority-list" checked={priorityList === value} onChange={() => patch({ priorityList: value })}
-                className="size-[18px] accent-[var(--color-gold)]" />
-              {value === 'mythicPlus' ? 'Mythic+ list' : 'Overall list'}
-            </label>
-          ))}
-        </div>
-      </fieldset>
     </div>
   );
 }

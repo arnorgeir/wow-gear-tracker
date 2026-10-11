@@ -18,6 +18,14 @@
   --color-missing: #f28b82;
   --color-stats: #f08fc0;
   --color-legacy: #d9a05b;
+  /* Active and edited states: a gold tint, its edge, and a fainter wash for whole edited rows. */
+  --color-gold-soft: #2e2513;
+  --color-gold-line: #6b5a2a;
+  --color-gold-wash: #211c13;
+  --color-gold-wash-line: #4d4128;
+  /* Disabled text, and the muted red edge of the orphan card. */
+  --color-dim: #8a8173;
+  --color-missing-line: #5a3a36;
   /* Upgrade track names, taken from the Mistcrest icons and brightened for the dark theme. */
   --color-track-adventurer: #b9cf6a;
   --color-track-veteran: #6fd365;

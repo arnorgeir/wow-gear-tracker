@@ -40,7 +40,7 @@ export function summarize(c: CharacterRow, snapshot: Snapshot | null, classIcons
   return {
     id: c.id, href: characterHref(c), name: c.name, realmName: c.realmName, realmId: c.realmId, region: c.region, className: c.className,
     activeSpec: c.specName, spec, specSlug: methodSpecSlug(spec, c.className),
-    status: c.status, lastSyncedAt: c.lastSyncedAt, lastSyncError: c.lastSyncError, priorityList: c.priorityList,
+    status: c.status, lastSyncedAt: c.lastSyncedAt, lastSyncError: c.lastSyncError,
     snapshot: snapshot && { source: snapshot.source, createdAt: snapshot.createdAt },
     sourceAt: !snapshot ? null : snapshot.source === 'simc' ? snapshot.createdAt : c.lastSyncedAt ?? snapshot.createdAt,
     race: c.race,

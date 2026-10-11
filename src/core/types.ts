@@ -31,11 +31,20 @@ export interface GearItem {
 }
 
 interface BisRowBase { slotLabel: string; slots: SlotType[]; source: string }
-export interface BisItemRow extends BisRowBase { kind: 'item'; itemId: number; name: string; bonusIds: number[]; isTier: boolean; isCatalyst: boolean }
+export interface BisItemRow extends BisRowBase {
+  kind: 'item'; itemId: number; name: string; bonusIds: number[]; isTier: boolean; isCatalyst: boolean;
+  /** Set when an account override replaced Method's row; holds Method's row for display. */
+  edited?: { methodPick: BisRow };
+}
 export interface BisAnyRow extends BisRowBase { kind: 'any'; minItemLevel: number }
 export type BisRow = BisItemRow | BisAnyRow;
 
 export type BisLists = Record<ListType, BisRow[]>;
+
+export interface BisOverride { slotKey: string; itemId: number; catalyst: boolean }
+export interface CatalogItem { itemId: number; name: string; inventoryType: string | null; armorType: ArmorType | null; quality: Quality | null; isTier: boolean }
+export interface SpecSettings { listType: ListType; statsMatter: boolean }
+export const LOCAL_ACCOUNT_ID = 1;
 
 export interface BisSource {
   name: string;

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { setMeta } from '../db/queries/meta';
-import { BIS_RETRY_MS, DAY_MS, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons, readBisLists, syncBisLists, readTracks, syncTracks, readTierTargets, syncTierTargets } from './reference-sync';
+import { BIS_RETRY_MS, DAY_MS, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons, readBisLists, syncBisLists, readTracks, syncTracks, readTierTargets, syncTierTargets, syncSpecs } from './reference-sync';
+import { listSpecs } from '../db/queries/specs';
 import { HttpError } from '../http';
 import type { BisLists, BisSource, Track } from '../types';
 import type { BlizzardClient } from '../blizzard/client';
@@ -291,6 +292,15 @@ describe('readTierTargets and syncTierTargets', () => {
     expect(asked).toEqual([10]);
   });
 
+  it('covers extra item IDs beside the lists', async () => {
+    const db = await openTestDb();
+    const { blizzard } = blizzardWith(() => ({ ...robe, isTier: false }));
+    const extra = { ...scope([]), extraItemIds: [77] };
+    expect((await readTierTargets(db, extra, 1)).due).toBe(true);
+    expect(await syncTierTargets({ db, blizzard, now: 1 }, extra)).toBe(true);
+    expect([...(await readTierTargets(db, extra, 2)).targets.keys()]).toEqual([77]);
+  });
+
   it('stores no secondaries as [] and marks a tier-token piece', async () => {
     const db = await openTestDb();
     const { blizzard } = blizzardWith(() => ({ ...robe, secondaryStats: [] }));
@@ -356,5 +366,30 @@ describe('readTierTargets and syncTierTargets', () => {
   it('has nothing due without lists', async () => {
     const db = await openTestDb();
     expect(await readTierTargets(db, { region: 'eu', specSlug: 'guardian-druid', lists: null }, 1)).toEqual({ targets: new Map(), due: false });
+  });
+});
+
+describe('syncSpecs', () => {
+  const classes = async () => [{ id: 8, name: 'Mage', specs: ['Arcane', 'Fire', 'Frost'], specIds: [62, 63, 64] }];
+  const icons = async (_r: string, id: number) => (id === 63 ? null : `https://render/spec-${id}.jpg`);
+  it('stores one row per spec with its Method slug, then waits a day', async () => {
+    const db = await openTestDb();
+    const blizzard = { getClasses: classes, getSpecIconUrl: icons } as unknown as BlizzardClient;
+    expect(await syncSpecs({ db, blizzard, now: 1 }, 'eu')).toBe(true);
+    expect((await listSpecs(db)).map((s) => s.methodSlug)).toEqual(['arcane-mage', 'fire-mage', 'frost-mage']);
+    expect(await syncSpecs({ db, blizzard, now: 2 }, 'eu')).toBe(false);
+  });
+  it('stores each spec icon, and null for a spec whose icon is missing or fails', async () => {
+    const db = await openTestDb();
+    const flaky = async (r: string, id: number) => { if (id === 64) throw new Error('down'); return icons(r, id); };
+    await syncSpecs({ db, blizzard: { getClasses: classes, getSpecIconUrl: flaky } as unknown as BlizzardClient, now: 1 }, 'eu');
+    expect((await listSpecs(db)).map((x) => [x.specName, x.iconUrl])).toEqual([['Arcane', 'https://render/spec-62.jpg'], ['Fire', null], ['Frost', null]]);
+  });
+  it('keeps old rows when Blizzard fails', async () => {
+    const db = await openTestDb();
+    await syncSpecs({ db, blizzard: { getClasses: classes, getSpecIconUrl: icons } as unknown as BlizzardClient, now: 1 }, 'eu');
+    const failing = { getClasses: async () => { throw new Error('down'); } } as unknown as BlizzardClient;
+    expect(await syncSpecs({ db, blizzard: failing, now: 1 + DAY_MS }, 'eu')).toBe(true);
+    expect(await listSpecs(db)).toHaveLength(3);
   });
 });

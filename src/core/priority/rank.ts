@@ -13,9 +13,11 @@ export interface PriorityCharacter {
   equipped: GearItem[];
   tracks: ReadonlyMap<number, Track>;
   targets: ReadonlyMap<number, TierTarget>;
+  /** False when the spec ignores tier stats: any tier piece in the slot will do. */
+  statsMatter: boolean;
 }
 
-export type TierFit = 'bis' | 'unverified' | 'alternative';
+export type TierFit = 'bis' | 'unverified' | 'alternative' | 'any';
 
 export type Credit =
   | { kind: 'item'; slotLabel: string; weight: number; itemId: number; name: string; bonusIds: number[] }
@@ -66,7 +68,12 @@ function dropsFor(row: BisRow, armor: ArmorType | null, dungeon: SeasonLoot): bo
  * A tier row's credit from one dungeon: its best compatible drop by stat pair, never another dungeon's item.
  * A tier piece with the wrong stats only wants drops with Method's stats, at weight 1.
  */
-function tierCredit(row: BisItemRow, need: Need, armor: ArmorType | null, dungeon: SeasonLoot, targets: ReadonlyMap<number, TierTarget>): Credit | null {
+function tierCredit(row: BisItemRow, need: Need, armor: ArmorType | null, dungeon: SeasonLoot, targets: ReadonlyMap<number, TierTarget>, statsMatter: boolean): Credit | null {
+  if (!statsMatter) {
+    const drop = dungeon.loot.filter((l) => fitsSlot(row, armor, l)).sort((a, b) => Number(b.itemId === row.itemId) - Number(a.itemId === row.itemId) || a.itemId - b.itemId)[0];
+    return drop ? { kind: 'tier', slotLabel: row.slotLabel, weight: need.weight, fit: 'any', itemId: drop.itemId, name: drop.name, bonusIds: [],
+      dropStats: drop.secondaryStats ?? null, targetName: row.name, targetStats: null } : null;
+  }
   const targetStats = targets.get(row.itemId)?.secondaryStats ?? null;
   const best = dungeon.loot
     .filter((l) => fitsSlot(row, armor, l))
@@ -108,7 +115,7 @@ export function rankDungeons(characters: PriorityCharacter[], dungeons: SeasonLo
         characterId: character.id,
         characterName: character.name,
         credits: missing.flatMap((m) => {
-          if (m.row.kind === 'item' && m.row.isTier) return tierCredit(m.row, m, armor, dungeon, character.targets) ?? [];
+          if (m.row.kind === 'item' && m.row.isTier) return tierCredit(m.row, m, armor, dungeon, character.targets, character.statsMatter) ?? [];
           return dropsFor(m.row, armor, dungeon) ? [creditFor(m.row, m.weight)] : [];
         }),
       }))

@@ -66,7 +66,7 @@ describe('parseEquipment', () => {
 describe('parseItemInfo', () => {
   it('reads slot and armor type for armor', () => {
     expect(parseItemInfo({ quality: { type: 'EPIC' }, inventory_type: { type: 'ROBE' }, item_class: { id: 4 }, item_subclass: { id: 2 } }))
-      .toEqual({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather', secondaryStats: null });
+      .toEqual({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather', secondaryStats: null, name: null });
   });
 
   it('gives no armor type to weapons and to armor without a known subclass', () => {
@@ -75,7 +75,12 @@ describe('parseItemInfo', () => {
   });
 
   it('fills nulls when Blizzard omits fields', () => {
-    expect(parseItemInfo({})).toEqual({ quality: null, isTier: false, inventoryType: null, armorType: null, secondaryStats: null });
+    expect(parseItemInfo({})).toEqual({ quality: null, isTier: false, inventoryType: null, armorType: null, secondaryStats: null, name: null });
+  });
+
+  it('keeps the item name', () => {
+    expect(parseItemInfo({ name: 'Björnsdóttir Robe', quality: { type: 'EPIC' } }).name).toBe('Björnsdóttir Robe');
+    expect(parseItemInfo({}).name).toBeNull();
   });
 });
 

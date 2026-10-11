@@ -3,6 +3,9 @@ import type { ArmorType, SlotType } from '../types';
 /** Slots where armor type decides who can wear an item. Cloaks are cloth for everyone, so BACK is not one. */
 export const ARMOR_SLOTS: ReadonlySet<SlotType> = new Set<SlotType>(['HEAD', 'SHOULDER', 'CHEST', 'WRIST', 'HANDS', 'WAIST', 'LEGS', 'FEET']);
 
+/** Slots the catalyst turns into set pieces. */
+export const TIER_SLOTS: ReadonlySet<SlotType> = new Set<SlotType>(['HEAD', 'SHOULDER', 'CHEST', 'HANDS', 'LEGS']);
+
 const BY_INVENTORY_TYPE: Record<string, SlotType[]> = {
   HEAD: ['HEAD'], NECK: ['NECK'], SHOULDER: ['SHOULDER'], CLOAK: ['BACK'], CHEST: ['CHEST'], ROBE: ['CHEST'],
   WRIST: ['WRIST'], HAND: ['HANDS'], WAIST: ['WAIST'], LEGS: ['LEGS'], FEET: ['FEET'],

@@ -52,7 +52,7 @@ Out of scope, each a follow-up issue:
 New tables in `src/core/db/schema.ts`:
 
 - `accounts`: `id` (primary key), `name`. The migration inserts `{ id: 1, name: 'Local' }`.
-- `specs`: `method_slug` (primary key), `class_id`, `class_name`, `spec_name`, `fetched_at`. `method_slug` comes from `methodSpecSlug(specName, className)`, so the catalog and the views agree on slugs.
+- `specs`: `method_slug` (primary key), `class_id`, `class_name`, `spec_name`, `icon_url` (nullable), `fetched_at`. `method_slug` comes from `methodSpecSlug(specName, className)`, so the catalog and the views agree on slugs.
 - `spec_settings`: `account_id` (references `accounts`, cascade), `spec_slug`, `list_type` (`ListType`, default `'mythicPlus'`), `stats_matter` (boolean, default true). Primary key `(account_id, spec_slug)`. A missing row means the defaults. The second spec adds the source choice here.
 - `bis_overrides`: `account_id` (references `accounts`, cascade), `spec_slug`, `list_type`, `slot_key`, `item_id`, `catalyst` (boolean, default false). Primary key `(account_id, spec_slug, list_type, slot_key)`.
 - `item_catalog`: `item_id` (primary key), `name`, `inventory_type`, `armor_type`, `quality` (nullable), `is_tier`, `fetched_at`. Every item an override names is in here. It is separate from `item_details`, which belongs to the tier-stat lookup and has its own freshness rules, and from `dungeon_loot`, which means "drops in this dungeon" and drives dungeon credit.
@@ -70,7 +70,7 @@ Changed tables:
 
 ### Spec catalog
 
-The existing `getClasses` client call already returns every class with its spec names. A sync step stores one row per spec in `specs`, using the region of the first tracked character, and does nothing when no character is tracked. It runs with the reference sync, at most once a day, through `fetchJson` and `createLimiter`. A failed catalog sync keeps the old rows. Until the first sync succeeds, the picker shows only tracked specs, built from `characters` as today.
+The existing `getClasses` client call already returns every class with its spec names. A sync step stores one row per spec in `specs`, using the region of the first tracked character, and does nothing when no character is tracked. It runs with the reference sync, at most once a day, through `fetchJson` and `createLimiter`. The same sync fetches each spec's icon from `/data/wow/media/playable-specialization/{id}` (asset key `icon`) and stores the URL in `specs.icon_url`; the image is hotlinked from `render.worldofwarcraft.com`, as class icons are. A spec whose icon request fails or is missing stores null, and the views then fall back to the class icon. A failed catalog sync keeps the old rows. Until the first sync succeeds, the picker shows only tracked specs, built from `characters` as today.
 
 ### Compared list
 
@@ -150,29 +150,42 @@ Fetching a Method list needs no Blizzard call. It still goes through `getService
 
 Loaders in `src/server/views/`: `settings-bis.ts` for the picker, `settings-spec.ts` for one spec's editor. Their view types go in `views/types.ts`.
 
-- `/settings` redirects to `/settings/bis`. The settings layout has section navigation: "BiS lists" and a disabled "General", marked "coming soon".
-- `/settings/bis`: the spec picker. Classes in groups with their icon from `class_media`, keeping its existing fallback when an icon is missing, and specs as rows. A tracked spec shows "Tracked". An untracked spec shows "Not fetched" and a Fetch button, or "Fetched <age>" and Refresh, or "Fetch failed, try again". Fetch and Refresh call `POST /api/bis/fetch`, then `router.refresh()`. The reference sync keeps refreshing tracked specs only.
-- `/settings/bis/<spec-slug>`: the editor.
-  - "Compare against": a radio group for Overall, Raid and Mythic+, saved on change.
-  - The stats checkbox, described above.
-  - Tabs for Overall, Raid and Mythic+, choosing which list to edit. The tab for the compared list is marked "Compared". A list Method doesn't have shows "Method has no <type> list for this spec."
-  - One row per Method slot: the slot label, Method's pick as a rarity-colored Wowhead link (or "Any <item level>"), and an "Override" button.
-  - An overridden row shows the chosen item, an "Edited" tag in words, Method's pick struck through beside it, and Reset.
-  - On a tier slot, a picked item that `canCatalyst` gets a "Catalyst into tier" switch before saving, off by default. An overridden catalyst row reads "<item> → catalyst into tier".
-  - Override opens an item search input with the placeholder "Search by name, ID or Wowhead link". Input is debounced. Results are rarity-colored Wowhead links. Unusable exact matches show greyed with their reason and can't be picked.
-  - Orphans sit below the list, under "No longer in Method's list", each with its item and Remove.
+- **Top menu.** Settings leaves the page tabs. On desktop it sits at the far right of the header in its own `nav aria-label="Account"`, after a 1 px by 28 px divider, with the tab look (gold underline and diamond when active). On a phone, Characters and Group stay as tabs and Settings is a 44 px icon-only gear link in the brand row, `aria-label="Settings"`; when active it is gold on a gold-tinted background.
+- **Settings layout.** `/settings` redirects to `/settings/bis`. On desktop a 220 px left rail holds the "Settings" heading and a vertical section nav: "BiS lists" (active: raised background, small gold diamond) and a disabled "General" with a "Coming soon" pill. On a phone the rail becomes a row of pills: "BiS lists" and "General soon".
+- **`/settings/bis`: the spec picker.** A "BiS lists" heading with an intro line.
+  - "Your specs": one card per tracked spec, two columns on desktop and stacked on a phone. A card shows the spec icon, the spec name in class color, "Compares <list> · <n> edited" or "no edits", the tracked character's portrait (24 px round, class-color ring) and name, and a chevron, and links to the editor. On a phone the portrait leads and the spec icon is a corner badge.
+  - "All classes": on desktop a three-column grid of class cards, each with the class icon from `class_media` and the class name in class color. On a phone, a native `<details>` per class whose summary reads "<n> tracked" or "<n> specs".
+  - Each spec row shows its spec icon (32 px), its name and one state: "Tracked" (a gold pill; on a phone "Tracked: <character> · compares <list>"), "Not fetched" with Fetch, "Fetched <age>" with Refresh, or "Fetch failed" with Try again, the failure text in the missing color. Fetch, Refresh and Try again call `POST /api/bis/fetch`, then `router.refresh()`. The reference sync keeps refreshing tracked specs only.
+- **`/settings/bis/<spec-slug>`: the editor.**
+  - A "← All specs" link.
+  - Header: the spec icon (60 px, class-color border) with the class icon as a corner badge; the spec name in class color; a "Used by" row of character chips (portrait and name, each linking to the character page); on the right "Method list fetched <age>" with Refresh.
+  - Comparison card, two columns. "Compare against" is a segmented control of real radio inputs for Overall, Raid and Mythic+, the checked one gold-tinted, with a helper line beneath, saved on change. "Tier pieces" holds the stats checkbox with its helper line.
+  - Tabs for Overall, Raid and Mythic+, choosing which list to edit. The compared tab shows a gold "Compared" pill with a diamond. Every tab shows its edit count, "no edits" or "<n> edited". A list Method doesn't have shows "Method has no <type> list for this spec."
+  - Slot table columns: Slot, Method's pick, Your pick, action. An unedited row reads "Follows Method" with an Override button. An edited row is tinted, with Method's pick dimmed and struck through, the chosen item with an "Edited" pill, and Reset. While its search is open the Override button reads Cancel with a gold border.
+  - The search panel sits under the row, indented to the item columns, labelled "Replace Method's <slot> pick", with the placeholder "Search by name, ID or Wowhead link". Input is debounced. Each result shows rarity color, armor type, slot and source, and a Choose button. The footer hint reads "Searches this season's dungeon loot. Paste an item ID or Wowhead link for anything else."
+  - Search states: the catalyst step shows "Catalyst into tier" as a switch (off by default) with a helper line, Save and Cancel, and an overridden catalyst row reads "<item> → catalyst into tier". An exact ID the class can't use shows greyed with its reason and "Can't choose". A lookup in progress reads "Looking up item <id> on Blizzard…" with `role="status"`. An error shows with `role="alert"`.
+  - Orphans sit in a card titled "No longer in Method's list", with "Method dropped these slots. Your picks for them aren't applied." Each row says "Was your pick for <slot>" and has Remove.
   - A spec with no cached list shows the Fetch button instead of the editor.
-- Character page: no list tabs. The BiS header names the compared list and gains a badge, "Method" or "Method · <n> edited", linking to `/settings/bis/<spec-slug>` (#14).
+  - On a phone each slot is a card: the slot label, an Edited pill and the action button in the top row, then the items. The tabs are three equal columns.
+- **Character page.** No list tabs.
+  - The BiS section header reads "<List> BiS" with "<n>/<total> done", and the source badge at its right.
+  - The badge is a 36 px pill linking to `/settings/bis/<spec-slug>` (#14): "From Method" in neutral colors, or "From Method · <n> edited" with a gold edge and a gold count. Both end in a chevron.
+  - The spec line under the character name gets its spec icon (the class icon when the spec has none).
+  - When the chosen list is missing and Overall is shown, the header says "Overall BiS" and a notice reads "Method has no <list> list for this spec. Showing Overall."
 
 ### Components
 
 Each in its own kebab-case directory under `src/components/`, with branching logic in a `.ts` beside it:
 
-- `settings-nav/`: the section navigation.
-- `spec-picker/`: classes and spec rows, and the Fetch button.
-- `bis-editor/`: the compared-list radios, the stats checkbox, tabs and slot rows. The slot row and orphan list are files inside it.
+- `main-nav/`: the Characters and Group tabs, the Account nav with Settings, and the phone gear.
+- `settings-nav/`: the rail and the phone pills.
+- `spec-picker/`: tracked-spec cards, class cards and spec rows, and the Fetch button.
+- `bis-editor/`: the header, the comparison card, the tabs and slot rows. The slot row and orphan list are files inside it.
 - `item-search/`: the input, results and the search-then-lookup flow. Debouncing uses a shared hook if one exists in `src/components/hooks/`, else its own.
 - `bis-source-badge/`: the character page badge.
+- `spec-icon/`: a spec's icon, falling back to the class icon.
+
+New semantic tokens in `globals.css` where none fits: a gold tint and gold edge for the active and edited states, a warmer tint for edited rows, a dim text color for disabled items, and a muted red edge for the orphan card.
 
 ### Errors
 

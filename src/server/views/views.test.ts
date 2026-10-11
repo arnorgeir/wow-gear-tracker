@@ -10,6 +10,9 @@ import { creditView, rowView } from './member';
 import type { GearRow } from '@/core/gear/evaluate';
 import { gearToSnapshotItems, saveSnapshotIfChanged } from '@/core/db/queries/snapshots';
 import { insertCharacter, updateCharacter } from '@/core/db/queries/characters';
+import { updateSpecSettings, upsertOverride } from '@/core/db/queries/bis-settings';
+import { upsertCatalogItem } from '@/core/db/queries/item-catalog';
+import { replaceSpecs } from '@/core/db/queries/specs';
 import { replaceSeason } from '@/core/db/queries/season';
 import { setMeta } from '@/core/db/queries/meta';
 import { SEASON_META_KEY } from '@/core/sync/season-sync';
@@ -51,6 +54,7 @@ async function services(bisLists: BisLists = lists): Promise<Services> {
     syncer: { sync: async () => 'skipped' },
     now: () => 1000,
     fetchFn: fetch,
+    currentAccountId: () => 1,
   };
 }
 
@@ -79,7 +83,30 @@ describe('getCharacterPage', () => {
     expect(page!.rows[1]!.equipped).toMatchObject({ name: 'Best Neck', trackLabel: 'Hero 5/6', iconUrl: 'https://i/20.jpg' });
     expect(page!.rows[0]!.bis).toMatchObject({ itemId: 10, iconUrl: 'https://i/10.jpg', isTier: true });
     expect(page!.vault.map((r) => r.slot)).toEqual(['NECK']);
-    expect(page!.counts.mythicPlus).toEqual({ bis: 2, total: 2 });
+    expect(page).toMatchObject({ doneCount: 1, fellBackFrom: null });
+  });
+
+  it('compares against the spec’s list from settings', async () => {
+    const s = await services({ ...lists, overall: lists.mythicPlus.slice(1) });
+    await seed(s);
+    await prime(s);
+    await updateSpecSettings(s.db, 1, 'guardian-druid', { listType: 'overall' });
+    const page = await birkiPage(s);
+    expect(page.listType).toBe('overall');
+    expect(page.rows).toHaveLength(1);
+    const { cards } = await getCharacterCards(s);
+    expect(cards[0]).toMatchObject({ listType: 'overall' });
+  });
+
+  it('applies an override for every character of the spec', async () => {
+    const s = await services();
+    await seed(s);
+    await prime(s);
+    await upsertCatalogItem(s.db, { itemId: 21, name: 'Other Neck', inventoryType: 'NECK', armorType: null, quality: 'EPIC', isTier: false }, 1);
+    await upsertOverride(s.db, 1, 'guardian-druid', 'mythicPlus', { slotKey: 'Neck#1', itemId: 21, catalyst: false });
+    const page = await birkiPage(s);
+    expect(page.rows[1]!.bis).toMatchObject({ itemId: 21 });
+    expect(page.rows[1]!.state).toBe('missing');
   });
 
   it('shows every row as missing before the first sync', async () => {
@@ -112,7 +139,6 @@ describe('getCharacterPage', () => {
     await prime(s);
     const page = await birkiPage(s);
     expect(page!.rows[0]).toMatchObject({ state: 'wrongStats', equippedStats: ['CRIT_RATING', 'MASTERY_RATING'], bis: { targetStats: ['HASTE_RATING', 'MASTERY_RATING'] } });
-    expect(page!.counts.mythicPlus).toEqual({ bis: 1, total: 2 });
   });
 
   it('borrows a pasted piece’s stats from the Blizzard snapshot of the same piece', async () => {
@@ -261,7 +287,7 @@ describe('dungeon priority', () => {
     await withSeason(s);
     await prime(s);
     const page = await birkiPage(s);
-    expect(page!.priority).toMatchObject({ listType: 'mythicPlus', fellBack: false, season: 'ready', needsSync: false, approximate: false, nothingFrom: ['Beta Spire'] });
+    expect(page!.priority).toMatchObject({ listType: 'mythicPlus', fellBackFrom: null, season: 'ready', needsSync: false, approximate: false, nothingFrom: ['Beta Spire'] });
     expect(page!.priority.dungeons).toEqual([{
       challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: AH_ART, score: 3, split: false,
       credits: [{ kind: 'item', slotLabel: 'Cloak', weight: 3, item: expect.objectContaining({ itemId: 30, iconUrl: 'https://i/30.jpg' }) }],
@@ -314,8 +340,9 @@ describe('dungeon priority', () => {
     await withSeason(s);
     await prime(s);
     const page = await birkiPage(s);
-    expect(page!.priority).toMatchObject({ listType: 'overall', fellBack: true });
+    expect(page!.priority).toMatchObject({ listType: 'overall', fellBackFrom: 'mythicPlus' });
     expect(page!.priority.dungeons.map((d) => d.name)).toEqual(['Alpha Hollow']);
+    expect(page).toMatchObject({ listType: 'overall', fellBackFrom: 'mythicPlus' });
   });
 });
 
@@ -325,7 +352,9 @@ describe('identity', () => {
     const id = await seed(s);
     await prime(s);
     let page = await birkiPage(s);
-    expect(page).toMatchObject({ identity: 'Guardian Druid', race: null, faction: null, avatarUrl: null, classIconUrl: 'https://i/class-11.jpg' });
+    expect(page).toMatchObject({ identity: 'Guardian Druid', race: null, faction: null, avatarUrl: null, classIconUrl: 'https://i/class-11.jpg', specIconUrl: 'https://i/class-11.jpg' });
+    await replaceSpecs(s.db, [{ methodSlug: 'guardian-druid', classId: 11, className: 'Druid', specName: 'Guardian', iconUrl: 'https://i/spec-104.jpg' }], 1);
+    expect((await birkiPage(s)).specIconUrl).toBe('https://i/spec-104.jpg');
 
     await updateCharacter(s.db, id, { race: 'Troll', faction: 'HORDE', avatarUrl: 'https://render/a.jpg', specOverride: 'Feral' });
     await prime(s);
