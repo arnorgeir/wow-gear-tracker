@@ -32,7 +32,7 @@ export const knownSpecSlug = async (db: Db, specSlug: string) => (await classFor
 async function resolveRow(db: Db, ref: RowRef): Promise<{ row: BisRow; className: string }> {
   const className = await classForSpec(db, ref.specSlug);
   if (!className) throw new UserError('Unknown spec.');
-  const cached = await getBisLists(db, ref.specSlug);
+  const cached = await getBisLists(db, 'method', ref.specSlug);
   if (!cached) throw new UserError('Method has no list for this spec yet. Fetch it first.');
   const rows = cached.lists[ref.listType];
   const index = slotKeys(rows).indexOf(ref.slotKey);
@@ -88,9 +88,9 @@ export async function saveOverride(deps: EditDeps, ref: RowRef, itemId: number, 
   const canUse = classCanUse(item, className, row);
   if (!canUse.ok) throw new UserError(canUse.reason);
   if (catalyst && !canCatalyst(item, row.slots)) throw new UserError('Only regular items in tier slots can be catalyzed.');
-  await upsertOverride(deps.db, deps.accountId, ref.specSlug, ref.listType, { slotKey: ref.slotKey, itemId, catalyst });
+  await upsertOverride(deps.db, deps.accountId, ref.specSlug, 'method', ref.listType, { slotKey: ref.slotKey, itemId, catalyst });
 }
 
 export async function removeOverride(deps: EditDeps, ref: RowRef) {
-  await deleteOverride(deps.db, deps.accountId, ref.specSlug, ref.listType, ref.slotKey);
+  await deleteOverride(deps.db, deps.accountId, ref.specSlug, 'method', ref.listType, ref.slotKey);
 }

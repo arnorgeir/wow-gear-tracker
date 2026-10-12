@@ -1,5 +1,5 @@
 import { fetchWithRetry, HttpError, type FetchFn } from '../http';
-import type { BisLists, BisRow, BisSource, ListType, SlotType } from '../types';
+import { SOURCE_NAMES, type BisLists, type BisRow, type BisSource, type ListType, type SlotType } from '../types';
 
 const TABLE_IDS: Record<ListType, string> = { overall: 'overall_table', raid: 'raid_table', mythicPlus: 'dungeon_table' };
 
@@ -77,7 +77,7 @@ export function methodSpecSlug(specName: string, className: string): string {
 
 export function createMethodSource(fetchFn: FetchFn = fetch): BisSource {
   return {
-    name: 'Method',
+    name: SOURCE_NAMES.method,
     async fetchLists(specSlug) {
       const url = `https://www.method.gg/guides/${specSlug}/gearing`;
       const res = await fetchWithRetry(fetchFn, url, { headers: { 'User-Agent': 'Mozilla/5.0 (personal gear tracker)' } });

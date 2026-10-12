@@ -53,7 +53,7 @@ export interface BisRead extends BisResult { status: ReferenceStatus; due: boole
 
 /** A spec's stored BiS lists and what the page should say about them. Reads the database only. */
 export async function readBisLists(db: Db, specSlug: string, now: number): Promise<BisRead> {
-  const cached = await getBisLists(db, specSlug);
+  const cached = await getBisLists(db, 'method', specSlug);
   const failed = await getMeta(db, bisFailedKey(specSlug));
   const { lastFailed, due } = timing(cached?.fetchedAt ?? null, failed, now);
   return {
@@ -68,13 +68,13 @@ export async function readBisLists(db: Db, specSlug: string, now: number): Promi
 /** Refreshes a spec's BiS lists when due. On failure keeps what it has and records why; never throws for an upstream failure. */
 export async function syncBisLists(deps: { db: Db; source: BisSource; now: number }, specSlug: string): Promise<boolean> {
   const { db, source, now } = deps;
-  const cached = await getBisLists(db, specSlug);
+  const cached = await getBisLists(db, 'method', specSlug);
   const failed = await getMeta(db, bisFailedKey(specSlug));
   if (!timing(cached?.fetchedAt ?? null, failed, now).due) return false;
   try {
     const lists = await source.fetchLists(specSlug);
     if (lists.overall.length + lists.raid.length + lists.mythicPlus.length === 0) throw new Error('No BiS tables found');
-    await replaceBisLists(db, specSlug, lists, now);
+    await replaceBisLists(db, 'method', specSlug, lists, now);
   } catch (err) {
     const error = isHttpError(err) && err.status === 404 && !cached
       ? `${source.name} has no gearing page for "${specSlug}"`

@@ -91,7 +91,7 @@ describe('getGroupPage', () => {
     await season(s);
     await s.db.insert(dungeonLoot).values({ challengeModeId: 504, encounterId: 4, encounterName: 'Boss', itemId: 62, itemName: 'Item 62', inventoryType: 'FINGER', armorType: null });
     await upsertCatalogItem(s.db, { itemId: 62, name: 'Item 62', inventoryType: 'FINGER', armorType: null, quality: 'EPIC', isTier: false }, 1);
-    await upsertOverride(s.db, 1, 'guardian-druid', 'mythicPlus', { slotKey: 'Ring#2', itemId: 62, catalyst: false });
+    await upsertOverride(s.db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Ring#2', itemId: 62, catalyst: false });
     await prime(s);
     const page = await getGroupPage(s, keys('birkibjörn', 'sólrún'));
     const rings = page.grid.filter((r) => r.label.startsWith('Ring'));

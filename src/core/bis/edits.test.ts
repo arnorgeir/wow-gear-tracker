@@ -27,7 +27,7 @@ const info = (over: Partial<ItemInfo>): ItemInfo => ({ name: 'Woven Robe', quali
 async function setup(getItemDetails: BlizzardClient['getItemDetails'] = async () => info({})) {
   const db = await openTestDb();
   await replaceSpecs(db, [{ methodSlug: 'frost-mage', classId: 8, className: 'Mage', specName: 'Frost', iconUrl: null }, { methodSlug: 'fire-mage', classId: 8, className: 'Mage', specName: 'Fire', iconUrl: null }], 1);
-  await replaceBisLists(db, 'frost-mage', lists, 1);
+  await replaceBisLists(db, 'method', 'frost-mage', lists, 1);
   const blizzard = { getItemDetails } as unknown as BlizzardClient;
   return { db, deps: { db, blizzard, now: 5, accountId: 1 } };
 }
@@ -51,7 +51,7 @@ describe('saveOverride', () => {
     const { db, deps } = await setup();
     await saveOverride(deps, chest, 50, false);
     expect((await getCatalogItems(db, [50])).get(50)).toMatchObject({ name: 'Woven Robe', quality: 'EPIC', isTier: false });
-    expect((await listOverrides(db, 1, 'frost-mage')).mythicPlus).toEqual([{ slotKey: 'Chest#1', itemId: 50, catalyst: false }]);
+    expect((await listOverrides(db, 1, 'frost-mage', 'method')).mythicPlus).toEqual([{ slotKey: 'Chest#1', itemId: 50, catalyst: false }]);
   });
 
   it('fills the catalog from season loot without calling Blizzard', async () => {
@@ -67,7 +67,7 @@ describe('saveOverride', () => {
   it('saves a catalyst override on a tier slot', async () => {
     const { db, deps } = await setup();
     await saveOverride(deps, chest, 50, true);
-    expect((await listOverrides(db, 1, 'frost-mage')).mythicPlus[0]).toMatchObject({ catalyst: true });
+    expect((await listOverrides(db, 1, 'frost-mage', 'method')).mythicPlus[0]).toMatchObject({ catalyst: true });
   });
 
   it('rejects what the class or slot cannot use, and bad catalysts', async () => {
@@ -82,7 +82,7 @@ describe('saveOverride', () => {
     const down = await setup(async () => { throw new Error('socket hang up'); });
     expect(await userError(saveOverride(down.deps, chest, 50, false))).toBe("Couldn't reach Blizzard. Try again.");
     expect(await getCatalogItems(down.db, [50])).toEqual(new Map());
-    expect((await listOverrides(down.db, 1, 'frost-mage')).mythicPlus).toEqual([]);
+    expect((await listOverrides(down.db, 1, 'frost-mage', 'method')).mythicPlus).toEqual([]);
     const missing = await setup(async () => null);
     expect(await userError(saveOverride(missing.deps, chest, 50, false))).toBe('No item with ID 50.');
     const nameless = await setup(async () => info({ name: null }));
@@ -115,6 +115,6 @@ describe('removeOverride', () => {
     const { db, deps } = await setup();
     await saveOverride(deps, chest, 50, false);
     await removeOverride(deps, chest);
-    expect((await listOverrides(db, 1, 'frost-mage')).mythicPlus).toEqual([]);
+    expect((await listOverrides(db, 1, 'frost-mage', 'method')).mythicPlus).toEqual([]);
   });
 });

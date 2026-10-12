@@ -12,10 +12,10 @@ describe('BiS lists', () => {
 
   it('replaces and reads lists in order', async () => {
     const db = await openTestDb();
-    expect(await getBisLists(db, 'guardian-druid')).toBeNull();
-    await replaceBisLists(db, 'guardian-druid', lists, 50);
-    await replaceBisLists(db, 'guardian-druid', lists, 60);
-    expect(await getBisLists(db, 'guardian-druid')).toEqual({ lists, fetchedAt: 60 });
+    expect(await getBisLists(db, 'method', 'guardian-druid')).toBeNull();
+    await replaceBisLists(db, 'method', 'guardian-druid', lists, 50);
+    await replaceBisLists(db, 'method', 'guardian-druid', lists, 60);
+    expect(await getBisLists(db, 'method', 'guardian-druid')).toEqual({ lists, fetchedAt: 60 });
   });
 });
 
@@ -30,7 +30,23 @@ describe('any rows', () => {
       raid: [],
       mythicPlus: [],
     };
-    await replaceBisLists(db, 'feral-druid', lists, 1);
-    expect((await getBisLists(db, 'feral-druid'))!.lists.overall).toEqual(lists.overall);
+    await replaceBisLists(db, 'method', 'feral-druid', lists, 1);
+    expect((await getBisLists(db, 'method', 'feral-druid'))!.lists.overall).toEqual(lists.overall);
+  });
+});
+
+describe('sources', () => {
+  const row = (itemId: number): BisLists['overall'][number] =>
+    ({ kind: 'item', slotLabel: 'Head', slots: ['HEAD'], itemId, name: 'Helm', bonusIds: [], isTier: false, isCatalyst: false, source: 'Boss' });
+  const ids = (l: BisLists['overall']) => l.map((r) => r.kind === 'item' && r.itemId);
+
+  it("keeps each source's lists apart", async () => {
+    const db = await openTestDb();
+    await replaceBisLists(db, 'method', 'frost-mage', { overall: [row(1)], raid: [], mythicPlus: [] }, 10);
+    await replaceBisLists(db, 'icyVeins', 'frost-mage', { overall: [row(2)], raid: [], mythicPlus: [] }, 20);
+    expect(ids((await getBisLists(db, 'method', 'frost-mage'))!.lists.overall)).toEqual([1]);
+    expect(ids((await getBisLists(db, 'icyVeins', 'frost-mage'))!.lists.overall)).toEqual([2]);
+    await replaceBisLists(db, 'icyVeins', 'frost-mage', { overall: [row(3)], raid: [], mythicPlus: [] }, 30);
+    expect(await getBisLists(db, 'method', 'frost-mage')).toEqual({ lists: { overall: [row(1)], raid: [], mythicPlus: [] }, fetchedAt: 10 });
   });
 });

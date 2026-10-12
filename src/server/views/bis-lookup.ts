@@ -24,7 +24,7 @@ export interface SpecBis extends BisRead, Overlay {
 async function readEffective(db: Db, slug: string, time: number, accountId: number): Promise<BisRead & Overlay> {
   const read = await readBisLists(db, slug, time);
   const settings = await getSpecSettings(db, accountId, slug);
-  const overrides = await listOverrides(db, accountId, slug);
+  const overrides = await listOverrides(db, accountId, slug, 'method');
   const catalog = await getCatalogItems(db, LIST_TYPES.flatMap((l) => overrides[l].map((o) => o.itemId)));
   const orphans: Record<ListType, BisOverride[]> = { overall: [], raid: [], mythicPlus: [] };
   if (!read.lists) return { ...read, ...settings, editedCount: 0, orphans };

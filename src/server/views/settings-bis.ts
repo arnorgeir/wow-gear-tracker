@@ -36,7 +36,7 @@ export async function getSpecPicker(services: Services): Promise<SpecPickerView>
       tracked: isTracked, state: fetchStateOf(read, isTracked), characters: users.map((c) => chipOf(c, classIcons)), compares: settings.listType,
     };
     if (isTracked) {
-      const overrides = (await listOverrides(db, accountId, row.methodSlug))[settings.listType];
+      const overrides = (await listOverrides(db, accountId, row.methodSlug, 'method'))[settings.listType];
       const catalog = await getCatalogItems(db, overrides.map((o) => o.itemId));
       const editedCount = applyOverrides(read.lists?.[settings.listType] ?? [], overrides, catalog).editedCount;
       tracked.push({ ...spec, className: row.className, editedCount });
