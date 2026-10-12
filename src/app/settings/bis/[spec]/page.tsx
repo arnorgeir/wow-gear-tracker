@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BisEditor } from '@/components/bis-editor/BisEditor';
 import { SetupNotice } from '@/components/setup-notice/SetupNotice';
+import { SourcePicker } from '@/components/source-picker/SourcePicker';
 import { FetchButton } from '@/components/spec-picker/FetchButton';
 import { isMissingConfigError } from '@/core/config';
 import { LIST_TYPES, SOURCE_NAMES, type ListType } from '@/core/types';
@@ -34,6 +35,7 @@ export default async function SpecSettingsPage({ params, searchParams }: Props) 
           <h2 className="font-display text-2xl font-bold">{view.specName} {view.className}</h2>
           <p className="text-muted">{SOURCE_NAMES[view.source]} has no list for this spec yet. Fetch it first.</p>
           <FetchButton specSlug={view.slug} label="Fetch" size="md" />
+          <SourcePicker specSlug={view.slug} source={view.source} />
         </div>
       )}
     </section>

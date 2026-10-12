@@ -1,5 +1,6 @@
 import { fallbackText } from '@/components/shared/fallback-text';
 import { LIST_NAMES } from '@/components/shared/list-names';
+import { SourcePicker } from '@/components/source-picker/SourcePicker';
 import type { SettingsSpecView } from '@/server/views/types';
 import { CompareAgainst } from './CompareAgainst';
 import { EditorHeader } from './EditorHeader';
@@ -16,7 +17,8 @@ export function BisEditor({ view, now }: { view: SettingsSpecView; now: number }
   return (
     <div className="flex flex-col gap-5 md:gap-7">
       <EditorHeader view={view} now={now} />
-      <section aria-label="Comparison" className="grid gap-4 rounded-[14px] border border-line bg-surface p-4 xl:grid-cols-2 md:gap-8 md:px-6 md:py-[22px]">
+      <section aria-label="Comparison" className="grid gap-4 rounded-[14px] border border-line bg-surface p-4 xl:grid-cols-3 md:gap-8 md:px-6 md:py-[22px]">
+        <SourcePicker specSlug={view.slug} source={view.source} />
         <CompareAgainst specSlug={view.slug} listType={view.listType} />
         <StatsMatter specSlug={view.slug} statsMatter={view.statsMatter} />
       </section>
