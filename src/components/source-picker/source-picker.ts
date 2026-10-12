@@ -1,6 +1,4 @@
-import { SOURCE_NAMES, type BisSourceId } from '@/core/types';
-
-const ORDER: BisSourceId[] = ['method', 'icyVeins', 'manual'];
+import { OFFERED_SOURCES, SOURCE_NAMES } from '@/core/types';
 
 /** The picker's choices, in the order they show. */
-export const sourceOptions = () => ORDER.map((value) => ({ value, label: SOURCE_NAMES[value] }));
+export const sourceOptions = () => OFFERED_SOURCES.map((value) => ({ value, label: SOURCE_NAMES[value] }));

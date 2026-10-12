@@ -42,9 +42,11 @@ beforeEach(async () => {
 });
 
 describe('PATCH /api/bis/settings', () => {
-  it('saves a fetched source', async () => {
-    expect(await answer(send(PATCH, 'PATCH', { specSlug: SLUG, source: 'icyVeins' }))).toEqual({ status: 200, body: { ok: true } });
-    expect(await getSpecSettings(services.db, 1, SLUG)).toMatchObject({ source: 'icyVeins' });
+  it('saves a source on offer, and refuses Icy Veins for now', async () => {
+    await updateSpecSettings(services.db, 1, SLUG, { source: 'manual' });
+    expect(await answer(send(PATCH, 'PATCH', { specSlug: SLUG, source: 'method' }))).toEqual({ status: 200, body: { ok: true } });
+    expect(await getSpecSettings(services.db, 1, SLUG)).toMatchObject({ source: 'method' });
+    expect(await answer(send(PATCH, 'PATCH', { specSlug: SLUG, source: 'icyVeins' }))).toEqual({ status: 400, body: { error: 'Unknown source.' } });
   });
 
   it('copies the current list when Manual is chosen', async () => {
@@ -62,14 +64,16 @@ describe('PATCH /api/bis/settings', () => {
 });
 
 describe('POST /api/bis/manual/copy', () => {
-  it('copies again from a fetched source', async () => {
-    await replaceBisLists(services.db, 'icyVeins', SLUG, lists, 1);
-    expect((await answer(send(COPY, 'POST', { specSlug: SLUG, from: 'icyVeins' }))).status).toBe(200);
-    expect(await getManualLists(services.db, 1, SLUG)).toMatchObject({ copiedFrom: 'icyVeins', copiedAt: 1000 });
+  it('copies again from a fetched source on offer', async () => {
+    await replaceBisLists(services.db, 'method', SLUG, lists, 1);
+    expect((await answer(send(COPY, 'POST', { specSlug: SLUG, from: 'method' }))).status).toBe(200);
+    expect(await getManualLists(services.db, 1, SLUG)).toMatchObject({ copiedFrom: 'method', copiedAt: 1000 });
+    expect(await answer(send(COPY, 'POST', { specSlug: SLUG, from: 'icyVeins' }))).toEqual({ status: 400, body: { error: 'Unknown source.' } });
   });
 
   it('refuses Manual as a source and a source with nothing cached', async () => {
     expect(await answer(send(COPY, 'POST', { specSlug: SLUG, from: 'manual' }))).toEqual({ status: 400, body: { error: 'Unknown source.' } });
+    await updateSpecSettings(services.db, 1, SLUG, { listType: 'raid' });
     expect(await answer(send(COPY, 'POST', { specSlug: SLUG, from: 'method' }))).toEqual({ status: 400, body: { error: 'Fetch a list first, then copy it.' } });
     expect(await answer(send(COPY, 'POST', { specSlug: 'nope-nope', from: 'method' }))).toEqual({ status: 400, body: { error: 'Unknown spec.' } });
   });

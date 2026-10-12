@@ -48,6 +48,9 @@ export type FetchedSourceId = Exclude<BisSourceId, 'manual'>;
 export const FETCHED_SOURCES: readonly FetchedSourceId[] = ['method', 'icyVeins'];
 /** The one place a source's display name lives: sources, views and components all read it. */
 export const SOURCE_NAMES: Record<BisSourceId, string> = { method: 'Method', icyVeins: 'Icy Veins', manual: 'Manual' };
+// Icy Veins' Cloudflare challenges our fetch, so it is not offered until the site agrees to it. Its code stays.
+export const OFFERED_SOURCES: readonly BisSourceId[] = ['method', 'manual'];
+export const isOfferedSource = (v: unknown): v is BisSourceId => (OFFERED_SOURCES as readonly unknown[]).includes(v);
 export const isBisSourceId = (v: unknown): v is BisSourceId => typeof v === 'string' && Object.hasOwn(SOURCE_NAMES, v);
 export interface SpecSettings { source: BisSourceId; listType: ListType; statsMatter: boolean }
 export const LOCAL_ACCOUNT_ID = 1;

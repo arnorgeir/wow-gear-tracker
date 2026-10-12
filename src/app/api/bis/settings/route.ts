@@ -3,7 +3,7 @@ import { knownSpecSlug } from '@/core/bis/edits';
 import { chooseManual } from '@/core/bis/spec-base';
 import { updateSpecSettings } from '@/core/db/queries/bis-settings';
 import { UserError } from '@/core/errors';
-import { isBisSourceId, type SpecSettings } from '@/core/types';
+import { isOfferedSource, type SpecSettings } from '@/core/types';
 import { getServices } from '@/server/services';
 import { errorResponse, parseListType } from '@/server/route-helpers';
 
@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest) {
     const patch: Partial<SpecSettings> = {};
     if (body.listType !== undefined) patch.listType = parseListType(body.listType);
     if (typeof body.statsMatter === 'boolean') patch.statsMatter = body.statsMatter;
-    if (body.source !== undefined && !isBisSourceId(body.source)) throw new UserError('Unknown source.');
+    if (body.source !== undefined && !isOfferedSource(body.source)) throw new UserError('Unknown source.');
     if (body.source !== undefined && body.source !== 'manual') patch.source = body.source;
     if (Object.keys(patch).length === 0 && body.source !== 'manual') throw new UserError('Nothing to change.');
     // Manual first: it can refuse, and then nothing else changes either.

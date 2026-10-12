@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { copyChoices, copyConfirm } from './copy-again';
 
 describe('copy again', () => {
-  it('offers both fetched sources, the copied one first', () => {
-    expect(copyChoices('icyVeins')).toEqual(['icyVeins', 'method']);
-    expect(copyChoices('method')).toEqual(['method', 'icyVeins']);
-    expect(copyChoices(null)).toEqual(['method', 'icyVeins']);
+  it('offers the fetched sources on offer, the copied one first', () => {
+    expect(copyChoices('method')).toEqual(['method']);
+    expect(copyChoices(null)).toEqual(['method']);
+    expect(copyChoices('icyVeins')).toEqual(['method']);
   });
 
   it('warns that edits are lost', () => {

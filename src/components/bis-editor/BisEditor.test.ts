@@ -89,11 +89,11 @@ describe('BisEditor', () => {
 describe('BisEditor sources', () => {
   const render = (over: Partial<SettingsSpecView>) => renderToStaticMarkup(createElement(BisEditor, { view: { ...view, ...over }, now: 2 * 86_400_000 }));
 
-  it('offers the three sources as radios with the chosen one checked', () => {
+  it('offers the sources on offer as radios with the chosen one checked', () => {
     expect(html).toContain('BiS source');
-    expect(html.match(/name="bis-source"/g)).toHaveLength(3);
+    expect(html.match(/name="bis-source"/g)).toHaveLength(2);
     const icy = render({ source: 'icyVeins' });
-    expect(icy).toMatch(/name="bis-source" checked="" value="icyVeins"/);
+    expect(render({ source: 'manual' })).toMatch(/name="bis-source" checked="" value="manual"/);
     expect(icy).toContain('Icy Veins&#x27;s pick');
     expect(icy).toContain('Icy Veins list fetched');
   });
@@ -104,7 +104,7 @@ describe('BisEditor sources', () => {
     expect(manual).toContain('Follows your copy');
     expect(manual).toContain('Manual · copied from Icy Veins 2 days ago');
     expect(manual).toContain('Copy again');
-    expect(manual).toContain('From Icy Veins');
+    expect(manual).toContain('From Method');
     expect(manual).not.toContain('Refresh');
   });
 });
