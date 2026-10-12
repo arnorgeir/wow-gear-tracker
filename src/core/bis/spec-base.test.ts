@@ -7,7 +7,8 @@ import { upsertCatalogItem } from '../db/queries/item-catalog';
 import { getManualLists } from '../db/queries/manual-lists';
 import { accounts } from '../db/schema';
 import type { BisLists, BisRow } from '../types';
-import { chooseManual, copyManual } from './spec-base';
+import { setMeta } from '../db/queries/meta';
+import { chooseManual, copyManual, readSpecBase } from './spec-base';
 
 const SLUG = 'frost-mage';
 const row = (slotLabel: string, itemId: number): BisRow =>
@@ -86,5 +87,23 @@ describe('manual lists', () => {
     await chooseManual(db, 1, SLUG, 50);
     expect(await getManualLists(db, 2, SLUG)).toBeNull();
     expect(await getSpecSettings(db, 2, SLUG)).toMatchObject({ source: 'method' });
+  });
+});
+
+describe('readSpecBase', () => {
+  it('reads the chosen fetched source and never another source’s rows', async () => {
+    const db = await seeded();
+    expect(await readSpecBase(db, 1, SLUG, 2)).toMatchObject({ source: 'method', copiedFrom: null, lists: methodLists, status: 'ready' });
+    await updateSpecSettings(db, 1, SLUG, { source: 'icyVeins' });
+    expect(await readSpecBase(db, 1, SLUG, 2)).toEqual({ source: 'icyVeins', copiedFrom: null, lists: null, fetchedAt: null, error: null, status: 'loading', due: true });
+  });
+
+  it('reads Manual as ready, not due, without errors, aged by its copy', async () => {
+    const db = await seeded();
+    await chooseManual(db, 1, SLUG, 40);
+    await setMeta(db, 'bis.method.frost-mage.failed', 'BiS list couldn’t be updated', 9_000);
+    expect(await readSpecBase(db, 1, SLUG, 10_000_000_000)).toEqual({
+      source: 'manual', copiedFrom: 'method', lists: methodLists, fetchedAt: 40, error: null, status: 'ready', due: false,
+    });
   });
 });

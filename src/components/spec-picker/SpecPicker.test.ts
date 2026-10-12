@@ -8,7 +8,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => {} }) }))
 
 const birki = { name: 'Birkibjörn', href: '/characters/eu/argent-dawn/birkibj%C3%B6rn', className: 'Druid', avatarUrl: 'https://render/b.jpg', classIconUrl: null };
 const spec = (over: Partial<PickerSpecView>): PickerSpecView =>
-  ({ slug: 'feral-druid', specName: 'Feral', iconUrl: 'https://render/feral.jpg', tracked: false, state: { kind: 'notFetched' }, characters: [], compares: 'mythicPlus', ...over });
+  ({ slug: 'feral-druid', specName: 'Feral', iconUrl: 'https://render/feral.jpg', tracked: false, state: { kind: 'notFetched' }, characters: [], compares: 'mythicPlus', source: 'method', ...over });
 const guardian = spec({ slug: 'guardian-druid', specName: 'Guardian', tracked: true, state: { kind: 'tracked' }, characters: [birki], compares: 'raid' });
 const view: SpecPickerView = {
   tracked: [{ ...guardian, className: 'Druid', editedCount: 2 }],

@@ -6,7 +6,7 @@ import type { CharacterChipView, SpecFetchState } from './types';
 
 export const trackedSlug = (c: CharacterRow) => methodSpecSlug(c.specOverride || c.specName, c.className);
 
-/** What the picker and the editor say about a spec's Method list. A tracked spec always reads as tracked. */
+/** What the picker and the editor say about a spec's list. A tracked spec always reads as tracked. */
 export function fetchStateOf(read: BisRead, tracked: boolean): SpecFetchState {
   if (tracked) return { kind: 'tracked' };
   if (read.fetchedAt !== null) return { kind: 'fetched', at: read.fetchedAt };

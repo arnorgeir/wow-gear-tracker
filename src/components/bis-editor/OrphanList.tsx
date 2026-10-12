@@ -26,7 +26,7 @@ function OrphanRow({ orphan, row }: { orphan: Orphan; row: RowRef }) {
 }
 
 /** Overrides whose slot is no longer in Method's list. They apply to nothing until removed. */
-export function OrphanList({ orphans, specSlug, listType }: { orphans: Orphan[]; specSlug: string; listType: RowRef['listType'] }) {
+export function OrphanList({ orphans, specSlug, source, listType }: { orphans: Orphan[]; specSlug: string; source: RowRef['source']; listType: RowRef['listType'] }) {
   if (orphans.length === 0) return null;
   return (
     <section aria-labelledby="orphans" className="flex flex-col gap-3 rounded-xl border border-missing-line bg-header p-3.5 md:rounded-[14px] md:px-6 md:py-5">
@@ -35,7 +35,7 @@ export function OrphanList({ orphans, specSlug, listType }: { orphans: Orphan[];
         <span className="text-[13px] text-muted md:text-sm">Method dropped these slots. Your picks for them aren&apos;t applied.</span>
       </div>
       <ul className="flex flex-col gap-2">
-        {orphans.map((o) => <OrphanRow key={o.slotKey} orphan={o} row={{ specSlug, listType, slotKey: o.slotKey }} />)}
+        {orphans.map((o) => <OrphanRow key={o.slotKey} orphan={o} row={{ specSlug, source, listType, slotKey: o.slotKey }} />)}
       </ul>
     </section>
   );

@@ -22,10 +22,10 @@ function MethodPick({ pick, replaced }: { pick: Method; replaced?: boolean }) {
 
 const BUTTON = 'h-10 justify-self-end rounded-lg border bg-raised px-3.5 text-sm font-semibold text-ink disabled:opacity-60';
 
-export function SlotRow({ slot, specSlug, listType }: { slot: SettingsSlotView; specSlug: string; listType: RowRef['listType'] }) {
+export function SlotRow({ slot, specSlug, source, listType }: { slot: SettingsSlotView; specSlug: string; source: RowRef['source']; listType: RowRef['listType'] }) {
   const [searching, setSearching] = useState(false);
   const reset = useApiAction();
-  const row: RowRef = { specSlug, listType, slotKey: slot.slotKey };
+  const row: RowRef = { specSlug, source, listType, slotKey: slot.slotKey };
   const { override } = slot;
   const edited = override !== null;
   const label = rowButton({ edited, open: searching });

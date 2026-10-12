@@ -17,6 +17,7 @@ import { replaceSeason } from '@/core/db/queries/season';
 import { setMeta } from '@/core/db/queries/meta';
 import { SEASON_META_KEY } from '@/core/sync/season-sync';
 import { syncReference } from '@/core/sync/reference-run';
+import { chooseManual } from '@/core/bis/spec-base';
 import { DAY_MS, syncBisLists, syncTracks } from '@/core/sync/reference-sync';
 import type { BisLists, GearItem, Track } from '@/core/types';
 import type { BlizzardClient } from '@/core/blizzard/client';
@@ -96,6 +97,25 @@ describe('getCharacterPage', () => {
     expect(page.rows).toHaveLength(1);
     const { cards } = await getCharacterCards(s);
     expect(cards[0]).toMatchObject({ listType: 'overall' });
+  });
+
+  it('reads the chosen source and never shows another source’s rows', async () => {
+    const s = await services();
+    await seed(s);
+    await prime(s);
+    await updateSpecSettings(s.db, 1, 'guardian-druid', { source: 'icyVeins' });
+    const page = await birkiPage(s);
+    expect(page).toMatchObject({ bisLoading: true, rows: [], referenceDue: 'bis:guardian-druid' });
+  });
+
+  it('reads a manual copy without asking for a sync', async () => {
+    const s = await services();
+    await seed(s);
+    await prime(s);
+    await chooseManual(s.db, 1, 'guardian-druid', 1000);
+    const page = await birkiPage(s);
+    expect(page).toMatchObject({ bisLoading: false, bisError: null, referenceDue: null });
+    expect(page.rows.length).toBeGreaterThan(0);
   });
 
   it('applies an override for every character of the spec', async () => {

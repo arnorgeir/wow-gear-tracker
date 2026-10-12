@@ -7,8 +7,9 @@ import { errorResponse, parseRowRef } from '@/server/route-helpers';
 export async function GET(request: NextRequest) {
   try {
     const params = Object.fromEntries(request.nextUrl.searchParams);
-    const { db } = await getServices();
-    return NextResponse.json(await searchItems(db, parseRowRef(params), params.q ?? ''));
+    const s = await getServices();
+    const deps = { db: s.db, accountId: s.currentAccountId(), now: s.now() };
+    return NextResponse.json(await searchItems(deps, parseRowRef(params), params.q ?? ''));
   } catch (err) {
     return errorResponse(err);
   }

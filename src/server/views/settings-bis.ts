@@ -1,10 +1,10 @@
 import { applyOverrides } from '@/core/bis/overlay';
+import { readSpecBase } from '@/core/bis/spec-base';
 import { getSpecSettings, listOverrides } from '@/core/db/queries/bis-settings';
 import { listCharacters, type CharacterRow } from '@/core/db/queries/characters';
 import { getCatalogItems } from '@/core/db/queries/item-catalog';
 import { getClassIconMap } from '@/core/db/queries/media';
 import { listSpecs, type SpecRow } from '@/core/db/queries/specs';
-import { readBisLists } from '@/core/sync/reference-sync';
 import { DEFAULT_SPEC_SETTINGS } from '@/core/db/queries/bis-settings';
 import type { Services } from '../services';
 import { chipOf, fetchStateOf, specIconOf, trackedSlug } from './settings-shared';
@@ -29,14 +29,14 @@ export async function getSpecPicker(services: Services): Promise<SpecPickerView>
   for (const row of rows) {
     const users = characters.filter((c) => trackedSlug(c) === row.methodSlug);
     const isTracked = users.length > 0;
-    const read = await readBisLists(db, 'method', row.methodSlug, time);
+    const read = await readSpecBase(db, accountId, row.methodSlug, time);
     const settings = isTracked ? await getSpecSettings(db, accountId, row.methodSlug) : DEFAULT_SPEC_SETTINGS;
     const spec: PickerSpecView = {
       slug: row.methodSlug, specName: row.specName, iconUrl: specIconOf(row.iconUrl, row.className, classIcons),
-      tracked: isTracked, state: fetchStateOf(read, isTracked), characters: users.map((c) => chipOf(c, classIcons)), compares: settings.listType,
+      tracked: isTracked, state: fetchStateOf(read, isTracked), characters: users.map((c) => chipOf(c, classIcons)), compares: settings.listType, source: read.source,
     };
     if (isTracked) {
-      const overrides = (await listOverrides(db, accountId, row.methodSlug, 'method'))[settings.listType];
+      const overrides = (await listOverrides(db, accountId, row.methodSlug, read.source))[settings.listType];
       const catalog = await getCatalogItems(db, overrides.map((o) => o.itemId));
       const editedCount = applyOverrides(read.lists?.[settings.listType] ?? [], overrides, catalog).editedCount;
       tracked.push({ ...spec, className: row.className, editedCount });

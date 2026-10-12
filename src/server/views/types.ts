@@ -1,6 +1,6 @@
 import type { TierFit } from '@/core/priority/rank';
 import { type CrestBalance, type UpgradeOption } from '@/core/gear/crests';
-import { type Faction, type ItemState, type ListType, type Quality, type Region, type SlotType, type SnapshotSource } from '@/core/types';
+import { type BisSourceId, type FetchedSourceId, type Faction, type ItemState, type ListType, type Quality, type Region, type SlotType, type SnapshotSource } from '@/core/types';
 
 export interface ItemView {
   itemId: number;
@@ -187,6 +187,7 @@ export interface PickerSpecView {
   characters: CharacterChipView[];
   /** The list this spec compares against; only shown for a tracked spec. */
   compares: ListType;
+  source: BisSourceId;
 }
 
 export interface SpecPickerView {
@@ -216,8 +217,13 @@ export interface SettingsSpecView {
   editing: ListType;
   hasLists: boolean;
   fetchState: SpecFetchState;
-  /** When Method's lists were last stored, whether or not the spec is tracked. */
+  /** Where the spec's list comes from. */
+  source: BisSourceId;
+  /** When the fetched source's lists were last stored, whether or not the spec is tracked. Null on Manual. */
   fetchedAt: number | null;
+  /** On Manual: the source the copy came from, and when. */
+  copiedFrom: FetchedSourceId | null;
+  copiedAt: number | null;
   iconUrl: string | null;
   classIconUrl: string | null;
   characters: CharacterChipView[];

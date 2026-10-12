@@ -13,6 +13,7 @@ const empty = { slots: [] as SettingsSlotView[], orphans: [], editedCount: 0 };
 
 const view: SettingsSpecView = {
   slug: 'guardian-druid', className: 'Druid', specName: 'Guardian', listType: 'mythicPlus', statsMatter: true, editing: 'mythicPlus',
+  source: 'method', copiedFrom: null, copiedAt: null,
   hasLists: true, fetchState: { kind: 'tracked' }, fetchedAt: 0, iconUrl: 'https://render/guardian.jpg', classIconUrl: 'https://render/druid.jpg',
   characters: [{ name: 'Birkibjörn', href: '/characters/eu/argent-dawn/birkibj%C3%B6rn', className: 'Druid', avatarUrl: null, classIconUrl: null }],
   lists: {

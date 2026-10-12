@@ -6,7 +6,7 @@ import type { ItemInfo } from '../blizzard/types';
 import { replaceBisLists } from '../db/queries/bis-lists';
 import { replaceSpecs } from '../db/queries/specs';
 import { getCatalogItems } from '../db/queries/item-catalog';
-import { listOverrides } from '../db/queries/bis-settings';
+import { listOverrides, updateSpecSettings } from '../db/queries/bis-settings';
 import { replaceSeason } from '../db/queries/season';
 import type { BisLists } from '../types';
 import { knownSpecSlug, lookupItem, removeOverride, saveOverride, searchItems } from './edits';
@@ -19,7 +19,7 @@ const lists: BisLists = {
     { kind: 'item', slotLabel: 'Ring', slots: ['FINGER_1', 'FINGER_2'], itemId: 20, name: 'Band', bonusIds: [], isTier: false, isCatalyst: false, source: 'AH' },
   ],
 };
-const chest = { specSlug: 'frost-mage', listType: 'mythicPlus' as const, slotKey: 'Chest#1' };
+const chest = { specSlug: 'frost-mage', source: 'method' as const, listType: 'mythicPlus' as const, slotKey: 'Chest#1' };
 const ring = { ...chest, slotKey: 'Ring#1' };
 
 const info = (over: Partial<ItemInfo>): ItemInfo => ({ name: 'Woven Robe', quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'cloth', secondaryStats: null, ...over });
@@ -97,9 +97,9 @@ describe('saveOverride', () => {
 
 describe('searchItems and lookupItem', () => {
   it('returns usable local matches and an unusable exact ID with its reason', async () => {
-    const { db, deps } = await setup(async () => info({ armorType: 'plate', name: 'Plate Robe' }));
+    const { deps } = await setup(async () => info({ armorType: 'plate', name: 'Plate Robe' }));
     await lookupItem(deps, chest, 'https://www.wowhead.com/item=70/plate-robe');
-    const out = await searchItems(db, chest, '70');
+    const out = await searchItems(deps, chest, '70');
     expect(out.results).toEqual([]);
     expect(out.unusable).toMatchObject({ itemId: 70, canUse: { ok: false, reason: "Mage can't wear plate." } });
   });
@@ -116,5 +116,36 @@ describe('removeOverride', () => {
     await saveOverride(deps, chest, 50, false);
     await removeOverride(deps, chest);
     expect((await listOverrides(db, 1, 'frost-mage', 'method')).mythicPlus).toEqual([]);
+  });
+});
+
+describe('sources', () => {
+  const none = { overall: [], raid: [], mythicPlus: [] };
+
+  it('edits the list of the chosen source', async () => {
+    const { db, deps } = await setup();
+    await replaceBisLists(db, 'icyVeins', 'frost-mage', lists, 1);
+    await updateSpecSettings(db, 1, 'frost-mage', { source: 'icyVeins' });
+    await saveOverride(deps, { ...chest, source: 'icyVeins' }, 50, false);
+    expect((await listOverrides(db, 1, 'frost-mage', 'icyVeins')).mythicPlus).toHaveLength(1);
+    expect(await listOverrides(db, 1, 'frost-mage', 'method')).toEqual(none);
+  });
+
+  it('refuses edits from a tab showing another source, and writes nothing', async () => {
+    const { db, deps } = await setup();
+    await saveOverride(deps, chest, 50, false);
+    await updateSpecSettings(db, 1, 'frost-mage', { source: 'icyVeins' });
+    const changed = 'The BiS source changed. Reload the page.';
+    expect(await userError(saveOverride(deps, { ...chest, slotKey: 'Ring#1' }, 51, false))).toBe(changed);
+    expect(await userError(removeOverride(deps, chest))).toBe(changed);
+    expect(await userError(searchItems(deps, chest, 'robe'))).toBe(changed);
+    expect((await listOverrides(db, 1, 'frost-mage', 'method')).mythicPlus).toHaveLength(1);
+    expect(await listOverrides(db, 1, 'frost-mage', 'icyVeins')).toEqual(none);
+  });
+
+  it('names the chosen source when its list is missing', async () => {
+    const { db, deps } = await setup();
+    await updateSpecSettings(db, 1, 'frost-mage', { source: 'icyVeins' });
+    expect(await userError(saveOverride(deps, { ...chest, source: 'icyVeins' }, 50, false))).toBe('Icy Veins has no list for this spec yet. Fetch it first.');
   });
 });
