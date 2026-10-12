@@ -7,7 +7,7 @@ import { findLocalItem, searchLocalItems, upsertCatalogItem } from '../db/querie
 import { getSpec } from '../db/queries/specs';
 import { UserError, isUserError } from '../errors';
 import { methodSpecSlug } from '../method/method';
-import type { BisRow, CatalogItem, ListType } from '../types';
+import type { BisRow, CatalogItem, ListType, Region } from '../types';
 import { canCatalyst, classCanUse, type CanUse } from './class-can-use';
 import { parseItemInput } from './item-input';
 import { slotKeys } from './slot-keys';
@@ -24,6 +24,12 @@ export async function classForSpec(db: Db, specSlug: string): Promise<string | n
   if (spec) return spec.className;
   const tracked = (await listCharacters(db)).find((c) => methodSpecSlug(c.specOverride || c.specName, c.className) === specSlug);
   return tracked?.className ?? null;
+}
+
+/** The region of the spec's first tracked character, for Blizzard item lookups. EU when none is tracked. */
+export async function regionForSpec(db: Db, specSlug: string): Promise<Region> {
+  const tracked = (await listCharacters(db)).find((c) => methodSpecSlug(c.specOverride || c.specName, c.className) === specSlug);
+  return tracked?.region ?? 'eu';
 }
 
 export const knownSpecSlug = async (db: Db, specSlug: string) => (await classForSpec(db, specSlug)) !== null;

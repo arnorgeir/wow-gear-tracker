@@ -40,7 +40,7 @@ async function services() {
   } as unknown as BlizzardClient;
   const s: Services = {
     db, blizzard,
-    bisSource: { name: 'Fake', fetchLists: async (slug) => { fetched.push(slug); if (!LISTS[slug]) throw new Error('down'); return LISTS[slug]!; } },
+    bisSources: { icyVeins: { name: 'Icy Veins', fetchLists: async () => { throw new Error('unused'); } }, method: { name: 'Fake', fetchLists: async (slug) => { fetched.push(slug); if (!LISTS[slug]) throw new Error('down'); return LISTS[slug]!; } } },
     fetchRaidbots: async () => ({ tracks: [], qualities: [] }),
     syncer: { sync: async () => 'skipped' },
     now: () => 10_000_000,
@@ -79,7 +79,7 @@ async function season(s: Services) {
 }
 
 const prime = (s: Services) =>
-  syncReference({ db: s.db, bisSource: s.bisSource, fetchRaidbots: s.fetchRaidbots, blizzard: s.blizzard, now: s.now() });
+  syncReference({ db: s.db, bisSources: s.bisSources, fetchRaidbots: s.fetchRaidbots, blizzard: s.blizzard, now: s.now() });
 
 const keys = (...names: string[]) => parseMemberKeys(names.map((n) => `eu.argent-dawn.${n}`).join(','));
 

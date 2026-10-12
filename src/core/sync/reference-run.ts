@@ -3,15 +3,16 @@ import type { Db } from '../db/client';
 import { listCharacters } from '../db/queries/characters';
 import { methodSpecSlug } from '../method/method';
 import type { RaidbotsData } from '../raidbots/tracks';
-import type { BisSource, Region } from '../types';
-import { overrideTierItemIds } from '../db/queries/bis-settings';
+import { LIST_TYPES, type BisSource, type FetchedSourceId, type Region } from '../types';
+import { overrideTierItemIds, sourcesInUse } from '../db/queries/bis-settings';
+import { manualTierItemIds } from '../db/queries/manual-lists';
 import { readBisLists, syncBisLists, syncSpecs, syncTierTargets, syncTracks } from './reference-sync';
 
 export type ReferenceSyncResult = 'skipped' | 'synced';
-export interface ReferenceSyncDeps { db: Db; bisSource: BisSource; fetchRaidbots: () => Promise<RaidbotsData>; blizzard: BlizzardClient; now: number }
+export interface ReferenceSyncDeps { db: Db; bisSources: Record<FetchedSourceId, BisSource>; fetchRaidbots: () => Promise<RaidbotsData>; blizzard: BlizzardClient; now: number }
 
-/** One pass: tracks, then every tracked spec's lists and, per region, its tier stats. Database steps run in sequence. */
-async function runPass({ db, bisSource, fetchRaidbots, blizzard, now }: ReferenceSyncDeps): Promise<ReferenceSyncResult> {
+/** One pass: tracks, then every tracked spec's lists from the sources in use and, per region, the tier stats of every list in use. Database steps run in sequence. */
+async function runPass({ db, bisSources, fetchRaidbots, blizzard, now }: ReferenceSyncDeps): Promise<ReferenceSyncResult> {
   let requested = await syncTracks({ db, fetchRaidbots, now });
   // The same slug summarize gives the views, so the page and the sync agree on what is due.
   const characters = await listCharacters(db);
@@ -22,11 +23,15 @@ async function runPass({ db, bisSource, fetchRaidbots, blizzard, now }: Referenc
     specs.set(slug, (specs.get(slug) ?? new Set<Region>()).add(c.region));
   }
   for (const [specSlug, regions] of specs) {
-    if (await syncBisLists({ db, source: bisSource, sourceId: 'method', blizzard, region: [...regions][0]!, now }, specSlug)) requested = true;
-    const { lists } = await readBisLists(db, 'method', specSlug, now);
-    const extraItemIds = await overrideTierItemIds(db, specSlug);
+    const tierIds = new Set([...await overrideTierItemIds(db, specSlug), ...await manualTierItemIds(db, specSlug)]);
+    for (const sourceId of await sourcesInUse(db, specSlug)) {
+      const deps = { db, source: bisSources[sourceId], sourceId, blizzard, region: [...regions][0]!, now };
+      if (await syncBisLists(deps, specSlug)) requested = true;
+      const { lists } = await readBisLists(db, sourceId, specSlug, now);
+      for (const r of LIST_TYPES.flatMap((l) => lists?.[l] ?? [])) if (r.kind === 'item' && r.isTier) tierIds.add(r.itemId);
+    }
     for (const region of regions) {
-      if (await syncTierTargets({ db, blizzard, now }, { region, specSlug, lists, extraItemIds })) requested = true;
+      if (await syncTierTargets({ db, blizzard, now }, { region, specSlug, lists: null, extraItemIds: [...tierIds] })) requested = true;
     }
   }
   return requested ? 'synced' : 'skipped';
@@ -45,7 +50,7 @@ function launch(deps: ReferenceSyncDeps): Promise<ReferenceSyncResult> {
 }
 
 /**
- * Refreshes Method lists, Raidbots tracks and tier stats for the tracked characters. A pass lists
+ * Refreshes BiS lists, Raidbots tracks and tier stats for the tracked characters. A pass lists
  * characters once, at its start, so a call that arrives mid-pass may need work that pass never saw:
  * every such call shares one follow-up pass, which starts when the running one ends.
  */

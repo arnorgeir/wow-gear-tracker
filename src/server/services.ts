@@ -3,16 +3,17 @@ import path from 'node:path';
 import { createBlizzardClient, type BlizzardClient } from '@/core/blizzard/client';
 import { readConfig } from '@/core/config';
 import { openDb, type Db } from '@/core/db/client';
+import { createIcyVeinsSource } from '@/core/icy-veins/icy-veins';
 import { createMethodSource } from '@/core/method/method';
 import { createRaidbotsFetcher, type RaidbotsData } from '@/core/raidbots/tracks';
 import { createCurrencyIconFetcher, withCurrencyIcons } from '@/core/wowhead/currency';
 import { createCharacterSyncer, type CharacterSyncer } from '@/core/sync/character-sync';
-import { LOCAL_ACCOUNT_ID, type BisSource } from '@/core/types';
+import { LOCAL_ACCOUNT_ID, type BisSource, type FetchedSourceId } from '@/core/types';
 
 export interface Services {
   db: Db;
   blizzard: BlizzardClient;
-  bisSource: BisSource;
+  bisSources: Record<FetchedSourceId, BisSource>;
   fetchRaidbots: () => Promise<RaidbotsData>;
   syncer: CharacterSyncer;
   now: () => number;
@@ -31,7 +32,7 @@ async function build(): Promise<Services> {
   return {
     db,
     blizzard,
-    bisSource: createMethodSource(),
+    bisSources: { method: createMethodSource(), icyVeins: createIcyVeinsSource() },
     fetchRaidbots: withCurrencyIcons(createRaidbotsFetcher(), createCurrencyIconFetcher()),
     syncer: createCharacterSyncer({ db, blizzard }),
     now: Date.now,
