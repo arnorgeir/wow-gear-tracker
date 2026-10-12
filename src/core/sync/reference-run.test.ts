@@ -84,7 +84,7 @@ describe('syncReference', () => {
     d.fetchRaidbots = async () => { throw new Error('down'); };
     expect(await syncReference(d)).toBe('synced');
     expect((await readTracks(db, 1000)).status).toBe('failed');
-    expect((await readBisLists(db, 'guardian-druid', 1000)).status).toBe('failed');
+    expect((await readBisLists(db, 'method', 'guardian-druid', 1000)).status).toBe('failed');
     expect(await syncReference(d)).toBe('skipped');
   });
 
@@ -107,6 +107,6 @@ describe('syncReference', () => {
     expect(await first).toBe('synced');
     expect(await second).toBe('synced');
     expect(calls.lists).toEqual(['guardian-druid', 'frost-mage']);
-    expect((await readBisLists(db, 'frost-mage', 1000)).status).toBe('ready');
+    expect((await readBisLists(db, 'method', 'frost-mage', 1000)).status).toBe('ready');
   });
 });

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { BlizzardClient } from '@/core/blizzard/client';
 import { openTestDb } from '@/test/db';
 import type { Services } from '../services';
 import { replaceBisLists } from '@/core/db/queries/bis-lists';
@@ -72,7 +73,7 @@ describe('getSpecPicker', () => {
   it('marks tracked, not fetched, fetched and failed specs, grouped by class', async () => {
     const { db, s } = await setup();
     await replaceBisLists(db, 'method', 'feral-druid', lists, 500);
-    await syncBisLists({ db, source: { name: 'Fake', fetchLists: async () => { throw new Error('down'); } }, now: 600 }, 'balance-druid');
+    await syncBisLists({ db, source: { name: 'Fake', fetchLists: async () => { throw new Error('down'); } }, sourceId: 'method', blizzard: {} as BlizzardClient, region: 'eu', now: 600 }, 'balance-druid');
     const view = await getSpecPicker(s);
     expect(view.classes.map((c) => c.className)).toEqual(['Druid', 'Mage']);
     const druid = view.classes.find((c) => c.className === 'Druid')!;

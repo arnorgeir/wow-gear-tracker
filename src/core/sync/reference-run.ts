@@ -22,8 +22,8 @@ async function runPass({ db, bisSource, fetchRaidbots, blizzard, now }: Referenc
     specs.set(slug, (specs.get(slug) ?? new Set<Region>()).add(c.region));
   }
   for (const [specSlug, regions] of specs) {
-    if (await syncBisLists({ db, source: bisSource, now }, specSlug)) requested = true;
-    const { lists } = await readBisLists(db, specSlug, now);
+    if (await syncBisLists({ db, source: bisSource, sourceId: 'method', blizzard, region: [...regions][0]!, now }, specSlug)) requested = true;
+    const { lists } = await readBisLists(db, 'method', specSlug, now);
     const extraItemIds = await overrideTierItemIds(db, specSlug);
     for (const region of regions) {
       if (await syncTierTargets({ db, blizzard, now }, { region, specSlug, lists, extraItemIds })) requested = true;

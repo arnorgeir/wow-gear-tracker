@@ -36,7 +36,7 @@ export async function getSettingsSpec(services: Services, slug: string, editing:
   if (!who) return null;
   const accountId = services.currentAccountId();
   const classIcons = await getClassIconMap(db);
-  const read = await readBisLists(db, slug, now());
+  const read = await readBisLists(db, 'method', slug, now());
   const settings = await getSpecSettings(db, accountId, slug);
   const overrides = await listOverrides(db, accountId, slug, 'method');
   const catalog = await getCatalogItems(db, LIST_TYPES.flatMap((l) => overrides[l].map((o) => o.itemId)));

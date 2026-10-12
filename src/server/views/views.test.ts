@@ -468,7 +468,7 @@ describe('reference data off the render path', () => {
     const s = await services();
     const id = await seed(s);
     await saveSnapshotIfChanged(s.db, id, 'simc', gearToSnapshotItems(gear), 900, [{ kind: 'upgrade', currencyId: 3445, quantity: 50 }]);
-    await syncBisLists({ db: s.db, source: s.bisSource, now: 1000 }, 'guardian-druid');
+    await syncBisLists({ db: s.db, source: s.bisSource, sourceId: 'method', blizzard: s.blizzard, region: 'eu', now: 1000 }, 'guardian-druid');
     const { cards: [card] } = await getCharacterCards(s);
     expect(card).toMatchObject({ tracksKnown: false });
     expect(card!.crests).toEqual({ balances: [{ currencyId: 3445, name: 'Currency 3445', quantity: 50, steps: null, iconUrl: null }], pastedAt: 900 });
@@ -478,7 +478,7 @@ describe('reference data off the render path', () => {
   it('treats tracks as unknown until stored, and cached tracks with a newer failure as known', async () => {
     const s = await services();
     await seed(s);
-    await syncBisLists({ db: s.db, source: s.bisSource, now: 1000 }, 'guardian-druid');
+    await syncBisLists({ db: s.db, source: s.bisSource, sourceId: 'method', blizzard: s.blizzard, region: 'eu', now: 1000 }, 'guardian-druid');
     let page = await birkiPage(s);
     let { cards: [card] } = await getCharacterCards(s);
     expect(page).toMatchObject({ tracksKnown: false, tracksLoading: true, tracksError: null, priority: { approximate: true } });

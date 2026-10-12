@@ -9,9 +9,9 @@ import { errorResponse } from '@/server/route-helpers';
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as { specSlug?: unknown };
-    const { db, bisSource, now } = await getServices();
+    const { db, bisSource, blizzard, now } = await getServices();
     if (typeof body.specSlug !== 'string' || !(await knownSpecSlug(db, body.specSlug))) throw new UserError('Unknown spec.');
-    await syncBisLists({ db, source: bisSource, now: now() }, body.specSlug);
+    await syncBisLists({ db, source: bisSource, sourceId: 'method', blizzard, region: 'eu', now: now() }, body.specSlug);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return errorResponse(err);

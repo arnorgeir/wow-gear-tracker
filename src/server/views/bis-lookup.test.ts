@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { BlizzardClient } from '@/core/blizzard/client';
 import { openTestDb } from '@/test/db';
 import { syncBisLists } from '@/core/sync/reference-sync';
 import { replaceBisLists } from '@/core/db/queries/bis-lists';
@@ -22,7 +23,7 @@ describe('createBisLookup', () => {
 
   it('names each region’s missing tier stats once the list is stored', async () => {
     const db = await openTestDb();
-    await syncBisLists({ db, source: { name: 'Fake', fetchLists: async () => lists }, now: 1000 }, 'guardian-druid');
+    await syncBisLists({ db, source: { name: 'Fake', fetchLists: async () => lists }, sourceId: 'method', blizzard: {} as BlizzardClient, region: 'eu', now: 1000 }, 'guardian-druid');
     const lookup = createBisLookup(db, 1000, 1);
     const [eu, us] = await Promise.all([lookup('guardian-druid', 'eu'), lookup('guardian-druid', 'us')]);
     expect(eu).toMatchObject({ lists, status: 'ready', due: false, targetsDue: true, dueKeys: ['tiers:eu:guardian-druid'] });

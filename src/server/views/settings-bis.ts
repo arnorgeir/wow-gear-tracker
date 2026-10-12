@@ -29,7 +29,7 @@ export async function getSpecPicker(services: Services): Promise<SpecPickerView>
   for (const row of rows) {
     const users = characters.filter((c) => trackedSlug(c) === row.methodSlug);
     const isTracked = users.length > 0;
-    const read = await readBisLists(db, row.methodSlug, time);
+    const read = await readBisLists(db, 'method', row.methodSlug, time);
     const settings = isTracked ? await getSpecSettings(db, accountId, row.methodSlug) : DEFAULT_SPEC_SETTINGS;
     const spec: PickerSpecView = {
       slug: row.methodSlug, specName: row.specName, iconUrl: specIconOf(row.iconUrl, row.className, classIcons),
