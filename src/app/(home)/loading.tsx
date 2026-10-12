@@ -11,7 +11,7 @@ export default function Loading() {
       <p role="status" className="sr-only">{CHARACTERS_LOADING}</p>
       <div className="flex flex-col gap-1.5">
         <h1 className="font-display text-4xl font-bold tracking-wide">Characters</h1>
-        <p className="text-[17px] text-muted">BiS progress against Method&rsquo;s lists</p>
+        <p className="text-[17px] text-muted">BiS progress against your BiS lists</p>
       </div>
       <Skeleton className="h-[114px] rounded-2xl" />
       <StateLegend />

@@ -5,7 +5,7 @@ import { LIST_TYPES } from '@/core/types';
 import type { SettingsSpecView } from '@/server/views/types';
 import { tabSub } from './editor-text';
 
-/** Which of Method's lists to edit. The compared list says so in words, and every tab counts its edits. */
+/** Which of the source's lists to edit. The compared list says so in words, and every tab counts its edits. */
 export function ListTabs({ view }: { view: SettingsSpecView }) {
   return (
     <>

@@ -53,6 +53,7 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
         hasRows,
         listType: data?.choice.listType ?? 'mythicPlus',
         fellBack: data?.choice.fellBack ?? false,
+        source: data?.bis.source ?? 'method',
         crests: data ? crestView(data.gear, costs) : null,
       },
     });
@@ -87,7 +88,7 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
       approximate: !tracksKnown,
       covered: eligible.map((l) => l.view.name),
       excluded: loaded.filter((l) => l.reason !== null).map((l) => ({ name: l.view.name, reason: l.reason! })),
-      fellBack: eligible.filter((l) => l.view.fellBack).map((l) => ({ name: l.view.name, from: l.data!.bis.listType })),
+      fellBack: eligible.filter((l) => l.view.fellBack).map((l) => ({ name: l.view.name, from: l.data!.bis.listType, source: l.view.source })),
       ranking: ranks && {
         dungeons: ranks.filter((d) => d.score > 0).map((d) => ({
           challengeModeId: d.challengeModeId,

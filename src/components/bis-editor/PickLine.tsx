@@ -10,7 +10,7 @@ interface Props {
   detail: string;
   /** Pills or notes that sit before the detail text. */
   badge?: React.ReactNode;
-  /** Method's pick once an override replaced it: smaller, dimmed and struck through. */
+  /** The source's pick once an override replaced it: smaller, dimmed and struck through. */
   replaced?: boolean;
 }
 

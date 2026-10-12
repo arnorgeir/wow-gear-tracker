@@ -6,7 +6,7 @@ import { useApiAction } from '@/components/hooks/use-api-action';
 import { ItemSearch } from '@/components/item-search/ItemSearch';
 import type { SettingsSlotView } from '@/server/views/types';
 import { EditedPill } from './EditedPill';
-import { anyPickName, methodPickName, rowButton } from './editor-text';
+import { anyPickName, followsText, methodPickName, replaceText, rowButton } from './editor-text';
 import { PickLine } from './PickLine';
 import { overrideLabel } from './slot-row';
 
@@ -48,7 +48,7 @@ export function SlotRow({ slot, specSlug, source, listType }: { slot: SettingsSl
       <div className="hidden grid-cols-[110px_minmax(0,1fr)_minmax(0,1fr)_120px] items-center gap-4 md:grid">
         <span className="text-[15px] font-semibold text-muted">{slot.slotLabel}</span>
         <MethodPick pick={slot.method} replaced={edited} />
-        {mine ?? <span className="text-sm text-dim">Follows Method</span>}
+        {mine ?? <span className="text-sm text-dim">{followsText(source)}</span>}
         {button}
       </div>
 
@@ -64,7 +64,7 @@ export function SlotRow({ slot, specSlug, source, listType }: { slot: SettingsSl
       {reset.error && <span role="alert" className="text-sm text-missing">{reset.error}</span>}
       {searching && !edited && (
         <div className="md:ml-[126px]">
-          <ItemSearch row={row} slotLabel={slot.slotLabel} onDone={() => setSearching(false)} />
+          <ItemSearch row={row} label={replaceText(source, slot.slotLabel)} slotLabel={slot.slotLabel} onDone={() => setSearching(false)} />
         </div>
       )}
     </div>

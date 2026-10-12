@@ -108,7 +108,7 @@ describe('getGroupPage', () => {
     await prime(s);
     const page = await getGroupPage(s, keys('hrafnhildur'));
     expect(page.members.map((m) => [m.listType, m.fellBack])).toEqual([['overall', true]]);
-    expect(page.priority.fellBack).toEqual([{ name: 'Hrafnhildur', from: 'raid' }]);
+    expect(page.priority.fellBack).toEqual([{ name: 'Hrafnhildur', from: 'raid', source: 'method' }]);
   });
 
   it('aligns members by evaluated slot, with rings where they sit and an empty off hand', async () => {

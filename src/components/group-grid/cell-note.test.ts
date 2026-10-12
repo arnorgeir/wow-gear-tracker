@@ -37,7 +37,7 @@ describe('needText for tier rows', () => {
   });
 
   it('names both pairs for a tier piece with the wrong stats', () => {
-    expect(needText({ ...row(tier, 'wrongStats'), equippedStats: ['CRIT_RATING', 'MASTERY_RATING'] })).toBe('Tier, Crit/Mastery; Method BiS wants Haste/Mastery');
+    expect(needText({ ...row(tier, 'wrongStats'), equippedStats: ['CRIT_RATING', 'MASTERY_RATING'] })).toBe('Tier, Crit/Mastery; BiS wants Haste/Mastery');
   });
 
   it('says nothing once the tier piece is right', () => {

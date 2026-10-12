@@ -3,7 +3,7 @@
 import type { RowRef } from '@/core/bis/edits';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import type { SettingsSpecView } from '@/server/views/types';
-import { orphanLabel } from './editor-text';
+import { orphanLabel, orphanText } from './editor-text';
 import { PickLine } from './PickLine';
 
 type Orphan = SettingsSpecView['lists']['overall']['orphans'][number];
@@ -25,14 +25,15 @@ function OrphanRow({ orphan, row }: { orphan: Orphan; row: RowRef }) {
   );
 }
 
-/** Overrides whose slot is no longer in Method's list. They apply to nothing until removed. */
+/** Overrides whose slot is no longer in the list. They apply to nothing until removed. */
 export function OrphanList({ orphans, specSlug, source, listType }: { orphans: Orphan[]; specSlug: string; source: RowRef['source']; listType: RowRef['listType'] }) {
   if (orphans.length === 0) return null;
+  const text = orphanText(source);
   return (
     <section aria-labelledby="orphans" className="flex flex-col gap-3 rounded-xl border border-missing-line bg-header p-3.5 md:rounded-[14px] md:px-6 md:py-5">
       <div className="flex flex-col gap-1">
-        <h3 id="orphans" className="text-base font-bold md:text-[17px]">No longer in Method&apos;s list</h3>
-        <span className="text-[13px] text-muted md:text-sm">Method dropped these slots. Your picks for them aren&apos;t applied.</span>
+        <h3 id="orphans" className="text-base font-bold md:text-[17px]">{text.heading}</h3>
+        <span className="text-[13px] text-muted md:text-sm">{text.body}</span>
       </div>
       <ul className="flex flex-col gap-2">
         {orphans.map((o) => <OrphanRow key={o.slotKey} orphan={o} row={{ specSlug, source, listType, slotKey: o.slotKey }} />)}

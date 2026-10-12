@@ -84,8 +84,10 @@ export type PriorityCreditView =
 export interface DungeonPriorityView { challengeModeId: number; name: string; shortName: string; imageUrl: string | null; score: number; split: boolean; credits: PriorityCreditView[] }
 export interface PriorityView {
   listType: ListType;
-  /** The list the spec asked for when Method has none and Overall is ranked instead; otherwise null. */
+  /** The list the spec asked for when its source has none and Overall is ranked instead; otherwise null. */
   fellBackFrom: ListType | null;
+  /** Where the spec's list comes from, for the fallback notice. */
+  source: BisSourceId;
   season: 'loading' | 'failed' | 'ready' | 'stale';
   needsSync: boolean;
   bisLoading: boolean;
@@ -105,8 +107,10 @@ export interface CharacterPageView extends CharacterSummary {
   editedCount: number;
   /** Rows in the compared list that are done, out of `rows.length`. */
   doneCount: number;
-  /** The list the spec asked for when Method has none and Overall is shown instead; otherwise null. */
+  /** The list the spec asked for when its source has none and Overall is shown instead; otherwise null. */
   fellBackFrom: ListType | null;
+  /** Where the compared list comes from. */
+  bisSource: BisSourceId;
   /** The spec's icon, else the class icon. */
   specIconUrl: string | null;
   bisFetchedAt: number | null;
@@ -139,6 +143,7 @@ export interface GroupMemberView {
   hasRows: boolean;
   listType: ListType;
   fellBack: boolean;
+  source: BisSourceId;
   crests: CrestView | null;
 }
 export interface GroupGridRow { slot: SlotType; label: string; cells: (GearRowView | null)[] }
@@ -149,8 +154,8 @@ export interface GroupPriorityView {
   approximate: boolean;
   covered: string[];
   excluded: { name: string; reason: string }[];
-  /** Members ranked on Overall because Method has no rows for the list their spec chose. */
-  fellBack: { name: string; from: ListType }[];
+  /** Members ranked on Overall because their spec's source has no rows for the list it chose. */
+  fellBack: { name: string; from: ListType; source: BisSourceId }[];
   /** Null when no member is eligible: the ranking is unavailable, which is not the same as nothing needed. */
   ranking: { dungeons: GroupDungeonView[]; nothingFrom: string[] } | null;
 }
@@ -172,7 +177,7 @@ export interface GroupPageView {
   staleIds: number[];
 }
 
-export type SpecFetchState = { kind: 'tracked' } | { kind: 'notFetched' } | { kind: 'fetched'; at: number } | { kind: 'failed' };
+export type SpecFetchState = { kind: 'tracked' } | { kind: 'manual' } | { kind: 'notFetched' } | { kind: 'fetched'; at: number } | { kind: 'failed' };
 
 /** A tracked character, as a chip or portrait that links to its page. */
 export interface CharacterChipView { name: string; href: string; className: string; avatarUrl: string | null; classIconUrl: string | null }
@@ -199,7 +204,7 @@ export interface SpecPickerView {
 export interface SettingsSlotView {
   slotKey: string;
   slotLabel: string;
-  /** Method's own pick for the slot. */
+  /** The source's own pick for the slot. */
   method: BisView;
   override: (ItemView & { catalyst: boolean }) | null;
   /** Whether the catalyst can turn an item here into a tier piece. */

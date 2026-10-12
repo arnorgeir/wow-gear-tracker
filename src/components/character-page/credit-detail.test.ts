@@ -10,8 +10,8 @@ const tier = (fit: 'bis' | 'unverified' | 'alternative' | 'any', weight: number,
 
 describe('creditDetail', () => {
   it('describes each tier fit', () => {
-    expect(creditDetail(tier('bis', 5) as never)).toBe('Chest · Method BiS stats · weight 5');
-    expect(creditDetail(tier('bis', 5, null, null) as never)).toBe('Chest · Method BiS item · weight 5');
+    expect(creditDetail(tier('bis', 5) as never)).toBe('Chest · BiS stats · weight 5');
+    expect(creditDetail(tier('bis', 5, null, null) as never)).toBe('Chest · BiS item · weight 5');
     expect(creditDetail(tier('alternative', 4, HM, MV) as never)).toBe('Chest · catalyst alternative (Mastery/Vers, BiS Haste/Mastery) · weight 4');
     expect(creditDetail(tier('unverified', 5, HM, null) as never)).toBe('Chest · stats unverified · weight 5');
     expect(creditDetail(tier('any', 5, null, MV) as never)).toBe('Chest · catalyst into tier · weight 5');

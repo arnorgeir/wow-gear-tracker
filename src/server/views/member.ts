@@ -45,7 +45,7 @@ export async function loadMember(ctx: MemberContext, character: CharacterRow, cl
   };
 }
 
-/** Method's pick for a row, as the character page and the settings editor show it. */
+/** The source's pick for a row, as the character page and the settings editor show it. */
 export function bisView(row: BisRow, icons: ReadonlyMap<number, string | null>, targets: ReadonlyMap<number, TierTarget>): BisView {
   return row.kind === 'item'
     ? {

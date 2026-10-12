@@ -4,6 +4,7 @@ import { classTextColor } from '@/components/shared/class-colors';
 import { editedText } from '@/components/shared/edited-text';
 import { LIST_NAMES } from '@/components/shared/list-names';
 import { SpecIcon } from '@/components/spec-icon/SpecIcon';
+import { SOURCE_NAMES } from '@/core/types';
 import type { SpecPickerView } from '@/server/views/types';
 
 
@@ -29,8 +30,8 @@ export function TrackedCard({ spec }: { spec: SpecPickerView['tracked'][number] 
       <span className="hidden md:block"><SpecIcon url={spec.iconUrl} className={spec.className} size={48} ring="class" corner={10} /></span>
       <span className="flex min-w-0 grow flex-col gap-0.5 md:gap-1">
         <span className="text-base font-bold md:text-[17px]" style={{ color: classTextColor(spec.className) }}>{spec.specName} {spec.className}</span>
-        <span className="text-[13px] text-muted md:hidden">{who} · <strong className="font-semibold text-ink">{LIST_NAMES[spec.compares]}</strong> · {edited}</span>
-        <span className="hidden text-sm text-muted md:block">Compares <strong className="font-semibold text-ink">{LIST_NAMES[spec.compares]}</strong> · {edited}</span>
+        <span className="text-[13px] text-muted md:hidden">{who} · {SOURCE_NAMES[spec.source]} · <strong className="font-semibold text-ink">{LIST_NAMES[spec.compares]}</strong> · {edited}</span>
+        <span className="hidden text-sm text-muted md:block">{SOURCE_NAMES[spec.source]} · Compares <strong className="font-semibold text-ink">{LIST_NAMES[spec.compares]}</strong> · {edited}</span>
         {first && (
           <span className="hidden items-center gap-2 text-sm md:flex">
             <CharacterAvatar name={first.name} className={first.className} avatarUrl={first.avatarUrl} classIconUrl={first.classIconUrl} size={24} />

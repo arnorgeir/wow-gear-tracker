@@ -29,7 +29,7 @@ const WarnIcon = () => (
 );
 
 /** The panel that opens under a slot: search by name, ID or Wowhead link, then choose, then (on a tier slot) say whether to catalyze. */
-export function ItemSearch({ row, slotLabel, onDone }: { row: RowRef; slotLabel: string; onDone: () => void }) {
+export function ItemSearch({ row, label, slotLabel, onDone }: { row: RowRef; label: string; slotLabel: string; onDone: () => void }) {
   const [query, setQuery] = useState('');
   const [chosen, setChosen] = useState<ItemChoice | null>(null);
   const [catalyst, setCatalyst] = useState(false);
@@ -56,7 +56,7 @@ export function ItemSearch({ row, slotLabel, onDone }: { row: RowRef; slotLabel:
   const message = save.error ?? error;
   return (
     <div className="flex flex-col gap-2.5 rounded-xl border border-line-strong bg-surface-2 p-3.5">
-      <label htmlFor={inputId} className="text-[13px] font-bold uppercase tracking-wider text-muted">Replace Method&apos;s {slotLabel} pick</label>
+      <label htmlFor={inputId} className="text-[13px] font-bold uppercase tracking-wider text-muted">{label}</label>
       <input id={inputId} type="search" value={query} onChange={(e) => { setQuery(e.target.value); setChosen(null); }}
         onKeyDown={(e) => { if (e.key === 'Escape') onDone(); }}
         placeholder="Search by name, ID or Wowhead link" autoFocus

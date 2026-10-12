@@ -1,13 +1,14 @@
 import { EmptySlotCard } from '@/components/empty-slot-card/EmptySlotCard';
 import { ItemCard } from '@/components/item-card/ItemCard';
 import { BisSourceBadge } from '@/components/bis-source-badge/BisSourceBadge';
+import { fallbackText } from '@/components/shared/fallback-text';
 import { LIST_NAMES } from '@/components/shared/list-names';
 import { BIS_LOADING } from '@/components/shared/loading-copy';
 import { ROW_TONE_STYLES, rowTone } from '@/components/shared/row-tone';
 import { trackText } from '@/components/shared/track-label';
 import { StateBadge } from '@/components/state-badge/StateBadge';
 import { UpgradeBadge } from '@/components/upgrade-badge/UpgradeBadge';
-import type { ListType } from '@/core/types';
+import type { BisSourceId, ListType } from '@/core/types';
 import type { GearRowView } from '@/server/views/types';
 import { BisTarget } from '@/components/bis-target/BisTarget';
 import { GEAR_COLUMNS, GearTableHeader } from './GearTableHeader';
@@ -21,11 +22,12 @@ interface Props {
   specSlug: string;
   editedCount: number;
   doneCount: number;
-  /** The list the spec asked for when Method has none and Overall is shown instead. */
+  /** The list the spec asked for when its source has none and Overall is shown instead. */
   fellBackFrom: ListType | null;
+  source: BisSourceId;
 }
 
-export function GearTable({ rows, tracksKnown, bisLoading, listType, specSlug, editedCount, doneCount, fellBackFrom }: Props) {
+export function GearTable({ rows, tracksKnown, bisLoading, listType, specSlug, editedCount, doneCount, fellBackFrom, source }: Props) {
   return (
     <section aria-label="Gear by slot" className="flex flex-col rounded-2xl border border-line bg-surface pb-1">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-raised px-5 py-4">
@@ -37,11 +39,11 @@ export function GearTable({ rows, tracksKnown, bisLoading, listType, specSlug, e
           {fellBackFrom && (
             <span className="flex items-center gap-2 text-sm text-legacy">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0"><path d="M12 3l10 18H2zM12 10v5M12 18v.5" /></svg>
-              Method has no {LIST_NAMES[fellBackFrom]} list for this spec. Showing Overall.
+              {fallbackText(source, fellBackFrom)} for this spec. Showing Overall.
             </span>
           )}
         </div>
-        <BisSourceBadge specSlug={specSlug} editedCount={editedCount} />
+        <BisSourceBadge specSlug={specSlug} source={source} editedCount={editedCount} />
       </div>
       <GearTableHeader />
       {rows.length === 0 && (bisLoading

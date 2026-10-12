@@ -29,7 +29,7 @@ export default async function CharactersPage() {
     <main className="mx-auto flex max-w-[1440px] flex-col gap-8 px-4 py-12 sm:px-16">
       <div className="flex flex-col gap-1.5">
         <h1 className="font-display text-4xl font-bold tracking-wide">Characters</h1>
-        <p className="text-[17px] text-muted">BiS progress against Method&rsquo;s lists</p>
+        <p className="text-[17px] text-muted">BiS progress against your BiS lists</p>
       </div>
       <PendingCharacterProvider>
         <AddCharacterBar trackedCharacters={cards.map((c) => ({ region: c.region, realmId: c.realmId, name: c.name }))} />

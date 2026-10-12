@@ -1,9 +1,10 @@
 import Link from 'next/link';
+import type { BisSourceId } from '@/core/types';
 import { badgeText } from './badge-text';
 
 /** Where the compared list comes from, linking to its editor. A gold edge and count say when the account edited it. */
-export function BisSourceBadge({ specSlug, editedCount }: { specSlug: string; editedCount: number }) {
-  const { source, edited } = badgeText('Method', editedCount);
+export function BisSourceBadge({ specSlug, source: id, editedCount }: { specSlug: string; source: BisSourceId; editedCount: number }) {
+  const { source, edited } = badgeText(id, editedCount);
   return (
     <Link href={`/settings/bis/${specSlug}`}
       className={`inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-semibold text-ink no-underline hover:brightness-125 ${edited ? 'border-gold-line bg-gold-soft' : 'border-line-strong bg-surface-2'}`}>

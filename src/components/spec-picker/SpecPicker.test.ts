@@ -24,8 +24,15 @@ describe('SpecPicker', () => {
     expect(html).toContain('>BiS lists<');
     expect(html).toContain('Your specs');
     expect(html).toContain('href="/settings/bis/guardian-druid"');
-    expect(html).toContain('Compares <strong class="font-semibold text-ink">Raid</strong> · 2 edited');
+    expect(html).toContain('Method · Compares <strong class="font-semibold text-ink">Raid</strong> · 2 edited');
     expect(html).toContain('Birkibjörn');
+  });
+
+  it('names each tracked spec\'s source', () => {
+    const icy = renderToStaticMarkup(createElement(SpecPicker, { view: { ...view, tracked: [{ ...view.tracked[0]!, source: 'icyVeins' }] }, now: 0 }));
+    expect(icy).toContain('Icy Veins · Compares');
+    const manual = renderToStaticMarkup(createElement(SpecPicker, { view: { ...view, tracked: [{ ...view.tracked[0]!, source: 'manual' }] }, now: 0 }));
+    expect(manual).toContain('Manual · Compares');
   });
 
   it('names every state in words, never by color alone', () => {
