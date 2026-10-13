@@ -4,7 +4,7 @@ import { cellLabel } from './cell-label';
 
 const equipped = { itemId: 1, name: 'Enigmatic Dreamwatcher’s Somnolent Stare', itemLevel: 321, quality: 'EPIC' as const, bonusIds: [], iconUrl: null, trackLabel: 'Myth 2/6' };
 const bis = { kind: 'item' as const, ...equipped, isTier: false, isCatalyst: false, source: '', targetStats: null, targetIsTierPiece: false };
-const cell = (over: Partial<GearRowView>): GearRowView => ({ slotLabel: 'Head', slot: 'HEAD', state: 'mythUpgradable', equipped, equippedStats: null, upgrade: null, bis, ...over });
+const cell = (over: Partial<GearRowView>): GearRowView => ({ slotLabel: 'Head', slot: 'HEAD', state: 'mythUpgradable', equipped, equippedStats: null, statsUnverified: false, upgrade: null, bis, ...over });
 
 describe('cellLabel', () => {
   it('reads member, slot, item, item level and state in full', () => {
@@ -15,5 +15,9 @@ describe('cellLabel', () => {
     const upgrade = { steps: 4, currencyId: 3446, currencyName: 'Myth Mistcrest', costPerStep: 20, iconUrl: null };
     expect(cellLabel('Birkibjörn', 'Head', cell({ upgrade }))).toMatch(/, can upgrade now$/);
     expect(cellLabel('Skjaldbaka', 'Ring 1', cell({ equipped: null, state: 'missing' }))).toBe('Skjaldbaka, Ring 1: nothing equipped, missing');
+  });
+
+  it('says when the tier stats could not be checked', () => {
+    expect(cellLabel('Birkibjörn', 'Head', cell({ statsUnverified: true }))).toMatch(/upgrade with crests, stats unverified$/);
   });
 });

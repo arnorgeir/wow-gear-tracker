@@ -7,7 +7,7 @@ import { GearTable } from './GearTable';
 
 const equipped = { itemId: 271528, name: 'Enigmatic Dreamwatcher’s Somnolent Stare', itemLevel: 321, quality: 'EPIC' as const, bonusIds: [12], iconUrl: null, trackLabel: 'Myth 2/6' };
 const row: GearRowView = {
-  slotLabel: 'Head', slot: 'HEAD', state: 'done', equipped, equippedStats: null, upgrade: null,
+  slotLabel: 'Head', slot: 'HEAD', state: 'done', equipped, equippedStats: null, statsUnverified: false, upgrade: null,
   bis: { kind: 'item', ...equipped, isTier: false, isCatalyst: false, source: '', targetStats: null, targetIsTierPiece: false },
 };
 const render = (rows: GearRowView[], bisLoading: boolean, fellBackFrom: ListType | null = null, source: BisSourceId = 'method') =>

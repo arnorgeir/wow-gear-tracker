@@ -23,6 +23,8 @@ export interface GearRowView {
   equipped: ItemView | null;
   /** The equipped item's secondary stat types; null when unknown. */
   equippedStats: string[] | null;
+  /** A tier piece whose stats could not be checked against the target's. */
+  statsUnverified: boolean;
   bis: BisView;
   upgrade: UpgradeOption | null;
 }
