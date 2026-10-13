@@ -26,8 +26,6 @@
   /* Row tones for equipped-BiS states: a dark fill and a border per badge color. Border lightness steps down from gold to crest to vault. */
   --color-crest-soft: #251d33;
   --color-crest-line: #a585d6;
-  --color-stats-soft: #2e1a25;
-  --color-stats-line: #d07aa6;
   --color-vault-soft: #16222f;
   --color-vault-line: #4270a0;
   /* Disabled text, and the muted red edge of the orphan card. */

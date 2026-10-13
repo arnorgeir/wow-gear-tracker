@@ -42,6 +42,11 @@ describe('ROW_TONE_STYLES', () => {
     }
   });
 
+  it("gives wrong stats done's gold, since only the stats are off", () => {
+    expect(ROW_TONE_STYLES.stats.background).toBe(ROW_TONE_STYLES.gold.background);
+    expect(ROW_TONE_STYLES.stats.outline).toBe('2px dashed var(--color-gold)');
+  });
+
   it('dashes only the wrong-stats border', () => {
     expect(ROW_TONE_STYLES.stats.outline).toContain('dashed');
     for (const tone of ['gold', 'crest', 'vault'] as const) expect(ROW_TONE_STYLES[tone].outline).toContain('solid');
