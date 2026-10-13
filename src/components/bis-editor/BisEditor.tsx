@@ -25,9 +25,9 @@ export function BisEditor({ view, now }: { view: SettingsSpecView; now: number }
       <div className="flex flex-col gap-3 md:gap-0">
         <ListTabs view={view} />
         <section aria-label={`${LIST_NAMES[view.editing]} list`} className="flex flex-col gap-2 md:mt-3 md:gap-0 md:rounded-[14px] md:border md:border-line md:bg-surface md:py-1.5">
-          <div className={COLUMN_HEAD}><span>Slot</span><span>{pickColumn(view.source)}</span><span>Your pick</span><span /></div>
+          <div className={COLUMN_HEAD}><span>Slot</span><span>{pickColumn(view.source, view.copiedFrom)}</span><span>Your pick</span><span /></div>
           {list.slots.length === 0 && <p className="p-6 text-muted">{fallbackText(view.source, view.editing)} for this spec.</p>}
-          {list.slots.map((slot) => <SlotRow key={slot.slotKey} slot={slot} specSlug={view.slug} source={view.source} listType={view.editing} />)}
+          {list.slots.map((slot) => <SlotRow key={slot.slotKey} slot={slot} specSlug={view.slug} source={view.source} copiedFrom={view.copiedFrom} listType={view.editing} />)}
         </section>
       </div>
       <OrphanList orphans={list.orphans} specSlug={view.slug} source={view.source} listType={view.editing} />

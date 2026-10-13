@@ -100,7 +100,7 @@ describe('BisEditor sources', () => {
 
   it('shows a manual list as a copy, with Copy again in place of Refresh', () => {
     const manual = render({ source: 'manual', fetchedAt: null, copiedFrom: 'icyVeins', copiedAt: 0 });
-    expect(manual).toContain('Copied pick');
+    expect(manual).toContain('Copied from Icy Veins');
     expect(manual).toContain('Follows your copy');
     expect(manual).toContain('Manual · copied from Icy Veins 2 days ago');
     expect(manual).toContain('Copy again');

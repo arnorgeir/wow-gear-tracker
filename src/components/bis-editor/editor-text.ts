@@ -12,11 +12,12 @@ export function fetchedLine({ source, fetchedAt, copiedFrom, copiedAt }: ListAge
 }
 
 /** The slot table's column for the list's own pick. */
-export const pickColumn = (source: BisSourceId) => (source === 'manual' ? 'Copied pick' : `${SOURCE_NAMES[source]}'s pick`);
+export const pickColumn = (source: BisSourceId, copiedFrom: FetchedSourceId | null) =>
+  (source === 'manual' ? (copiedFrom ? `Copied from ${SOURCE_NAMES[copiedFrom]}` : 'Copied pick') : `${SOURCE_NAMES[source]}'s pick`);
 
 /** The item search's label: which pick an override replaces. */
-export const replaceText = (source: BisSourceId, slotLabel: string) =>
-  (source === 'manual' ? `Replace the copied ${slotLabel} pick` : `Replace ${SOURCE_NAMES[source]}'s ${slotLabel} pick`);
+export const replaceText = (source: BisSourceId, slotLabel: string, copiedFrom: FetchedSourceId | null) =>
+  (source === 'manual' ? (copiedFrom ? `Replace the ${slotLabel} pick copied from ${SOURCE_NAMES[copiedFrom]}` : `Replace the copied ${slotLabel} pick`) : `Replace ${SOURCE_NAMES[source]}'s ${slotLabel} pick`);
 
 /** What an unedited slot says it follows. */
 export const followsText = (source: BisSourceId) => (source === 'manual' ? 'Follows your copy' : `Follows ${SOURCE_NAMES[source]}`);
