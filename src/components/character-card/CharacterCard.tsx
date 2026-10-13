@@ -29,9 +29,10 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
         <CharacterAvatar name={card.name} className={card.className} avatarUrl={card.avatarUrl} classIconUrl={card.classIconUrl} size={52} />
         <div className="flex min-w-0 flex-col">
           <Link href={card.href} className="truncate text-xl font-bold no-underline hover:underline" style={{ color }}>{card.name}</Link>
-          <span className="text-[15px] text-muted">{card.realmName}</span>
-          <span className="text-[15px] font-semibold" style={{ color }}>{card.identity}</span>
-          {card.itemLevel !== null && <span className="text-[15px] text-muted">Item level <span className="font-mono">{card.itemLevel.toFixed(1)}</span></span>}
+          <span className="truncate text-[15px] font-semibold" style={{ color }}>{card.identity}</span>
+          <span className="truncate text-[15px] text-muted">
+            {card.realmName}{card.itemLevel !== null && <> · <span className="font-mono">{card.itemLevel.toFixed(1)}</span> ilvl</>}
+          </span>
         </div>
       </div>
 
