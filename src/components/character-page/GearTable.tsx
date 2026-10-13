@@ -1,6 +1,7 @@
 import { EmptySlotCard } from '@/components/empty-slot-card/EmptySlotCard';
 import { ItemCard } from '@/components/item-card/ItemCard';
 import { BisSourceBadge } from '@/components/bis-source-badge/BisSourceBadge';
+import { equippedStatText } from '@/components/shared/equipped-stats';
 import { fallbackText } from '@/components/shared/fallback-text';
 import { LIST_NAMES } from '@/components/shared/list-names';
 import { BIS_LOADING } from '@/components/shared/loading-copy';
@@ -58,7 +59,8 @@ export function GearTable({ rows, tracksKnown, bisLoading, listType, specSlug, e
           {row.equipped ? (
             <ItemCard itemId={row.equipped.itemId} name={row.equipped.name} quality={row.equipped.quality} iconUrl={row.equipped.iconUrl}
               bonusIds={row.equipped.bonusIds} itemLevel={row.equipped.itemLevel}
-              detail={[trackText(row.equipped.trackLabel), row.equipped.itemLevel].filter(Boolean).join(' · ')} />
+              detail={[trackText(row.equipped.trackLabel), row.equipped.itemLevel].filter(Boolean).join(' · ')}
+              stats={equippedStatText(row) ?? undefined} />
           ) : <EmptySlotCard />}
           <BisTarget row={row} />
           <div className="flex flex-col gap-1.5">

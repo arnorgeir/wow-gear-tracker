@@ -54,3 +54,20 @@ describe('GearTable loading', () => {
     expect(render([], false)).toContain('No BiS list to compare against yet.');
   });
 });
+
+describe('GearTable equipped stats', () => {
+  const tier: GearRowView = {
+    ...row, equippedStats: ['CRIT_RATING', 'HASTE_RATING'],
+    bis: { kind: 'item', ...equipped, isTier: true, isCatalyst: true, source: '', targetStats: ['CRIT_RATING', 'HASTE_RATING'], targetIsTierPiece: false },
+  };
+
+  it("shows a tier row's pair on its own line", () => {
+    const html = render([tier], false);
+    expect(html).toMatch(/<span class="[^"]*font-mono[^"]*">Crit\/Haste<\/span>/);
+    expect(html).not.toContain('321 · Crit/Haste');
+  });
+
+  it('shows no pair on a non-tier row', () => {
+    expect(render([{ ...row, equippedStats: ['CRIT_RATING', 'HASTE_RATING'] }], false)).not.toContain('Crit/Haste');
+  });
+});

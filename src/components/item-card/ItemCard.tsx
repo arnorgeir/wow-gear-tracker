@@ -11,12 +11,14 @@ interface ItemCardProps {
   bonusIds: number[];
   itemLevel: number | null;
   detail?: string;
+  /** A third line under the detail, such as a tier piece's real stat pair. Its own line, so the truncating detail can't cut it. */
+  stats?: string;
   /** Let the name and detail wrap onto more lines instead of clipping, for cards that must be read in full. */
   wrap?: boolean;
 }
 
 /** The whole card is the Wowhead link, so hovering anywhere on it shows the item tooltip. */
-export function ItemCard({ itemId, name, quality, iconUrl, bonusIds, itemLevel, detail, wrap }: ItemCardProps) {
+export function ItemCard({ itemId, name, quality, iconUrl, bonusIds, itemLevel, detail, stats, wrap }: ItemCardProps) {
   const q = QUALITY_STYLES[quality] ?? QUALITY_STYLES.COMMON;
   return (
     <a
@@ -33,6 +35,7 @@ export function ItemCard({ itemId, name, quality, iconUrl, bonusIds, itemLevel, 
       <span className="flex min-w-0 grow flex-col gap-0.5">
         <span className={`${wrap ? 'wrap-anywhere' : 'truncate'} text-[15px] font-semibold`} style={{ color: q.text }}>{name}</span>
         {detail && <Detail detail={detail} wrap={wrap} />}
+        {stats && <span className={`${wrap ? 'wrap-anywhere' : 'truncate'} font-mono text-[13px] text-muted`}>{stats}</span>}
       </span>
     </a>
   );
