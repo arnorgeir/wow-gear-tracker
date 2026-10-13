@@ -13,6 +13,7 @@ Runs steps 5 to 8 of `docs/workflow.md` without the owner relaying prompts. The 
 - **Reviews stay independent.** The reviewer is a fresh session that didn't write the code: Codex when the `codex` command works, otherwise a fresh Claude subagent on Opus. Say in the pull request which reviewer ran each round.
 - **Stop and ask the owner** when a fix would change the spec's scope or intended behavior, when a finding contradicts the spec, or when a check needs the owner. Never resolve those alone.
 - **Fixes follow the `fix` step:** failing test first, one commit per finding with a body that says why, the full gate green (typecheck, lint, test, and the worktree build when pages or components changed), then push.
+- **Fixes run on the model `docs/workflow.md` gives `fix`: Sonnet.** A session can't change its own model. When this session is Sonnet, fix inline. Otherwise hand the round's fixes to one Agent subagent, `general-purpose` with `model: sonnet`: give it the branch, the head SHA, the review file's findings and these fix rules, and wait for its report. Use `model: opus` instead when a finding needs a design decision the spec and plan don't settle, or touches concurrency, migrations or security. Then check the pushed commits yourself before the next review.
 - **A finding you reject** gets a line in the pull request saying why. It doesn't count as fixed.
 
 ## Steps

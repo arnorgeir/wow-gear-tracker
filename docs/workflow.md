@@ -31,6 +31,7 @@ The project rules in `AGENTS.md` apply to every step and both agents. Both of th
 Steps 5 to 8 run on their own. When `implement` opens the pull request, the same session continues with the `review-loop` skill (`.claude/skills/review-loop/`) instead of handing a prompt back to the owner:
 
 - **A fresh reviewer reviews each round:** Codex through `codex exec` when the CLI is installed and logged in, otherwise a fresh Claude subagent on Opus. The pull request says which one ran.
+- **Fixes run on Sonnet, as `fix` does.** A session can't switch its own model, so a loop running on Opus hands each round's fixes to a Sonnet subagent. Findings that need a design decision, or touch concurrency, migrations or security, go to an Opus subagent instead.
 - **At most 3 rounds of review and fix.** The loop stops early when a review passes. Findings still open after round 3 go in the pull request for the owner.
 - **The loop stops and asks** when a fix would change the spec's scope or intended behavior, when a finding contradicts the spec, or when a check needs the owner.
 - **It ends with `validate`** and one report: each round's outcome, the fixes, anything open, and the owner's checks. The owner reads the pull request and merges.
