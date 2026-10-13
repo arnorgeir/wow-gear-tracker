@@ -1,6 +1,6 @@
 # Row colors follow the item state
 
-Status: design approved in chat on 2026-10-13. Spec review round 1 folded in: inset borders, legend kept as a badge-color key, token test.
+Status: design approved in chat on 2026-10-13. Spec review rounds 1 and 2 folded in: inset borders, legend kept as a badge-color key in card-bar order, token test.
 Date: 2026-10-13
 Issue: #123. Rethink row colors for equipped vs BiS states
 
@@ -76,7 +76,7 @@ Wrong stats moves from done's gold to pink. The gold came from e1132de ("only th
 
 ### Legend
 
-`src/components/state-legend/StateLegend.tsx` gains `['bg-stats', 'Wrong stats']` after the crests entry, in the order of `ITEM_STATES`. The other entries already use the badge colors and do not change.
+`src/components/state-legend/StateLegend.tsx` gains `['bg-stats', 'Wrong stats']` after the Great Vault target entry, so it reads Done, Upgrade with crests, Great Vault target, Wrong stats, BiS in bags, Missing. This matches the segment order of the home card bar (`bg-gold`, `bg-crest`, `bg-vault`, `bg-stats` in `CharacterCard.tsx`). The bar's segments have no words, so for a color-blind player their order is the only cue that maps a segment to a legend entry. The other entries already use the badge colors and do not change.
 
 The legend stays a key to the badge colors, with solid swatches for every state. It does not show which states are toned or that wrong stats is dashed. This is intended: on the home page the same legend keys the character card's progress bar, whose segments are solid `bg-gold`, `bg-crest`, `bg-vault` and `bg-stats` (`CharacterCard.tsx`). Row-shaped swatches would no longer match the bar. The state word on every row carries the meaning the legend leaves out.
 
