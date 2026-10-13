@@ -16,6 +16,7 @@ export function MemberHeader({ member }: { member: GroupMemberView }) {
         <CharacterAvatar name={c.name} className={c.className} avatarUrl={c.avatarUrl} classIconUrl={c.classIconUrl} size={26} />
         <span className="sr-only truncate sm:not-sr-only">{c.name}</span>
       </Link>
+      {c.itemLevel !== null && <span className="font-mono text-xs text-muted" title="Equipped item level">{`${c.itemLevel.toFixed(1)} ilvl`}</span>}
       {member.crests ? (
         member.crests.balances.length > 0
           ? <div className="flex min-w-0 max-w-full flex-col items-center gap-1 sm:flex-row sm:flex-wrap">{member.crests.balances.map((b) => <CrestChip key={b.currencyId} balance={b} />)}</div>

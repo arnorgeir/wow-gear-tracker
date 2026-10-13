@@ -204,3 +204,15 @@ describe('GroupGrid', () => {
     expect(html).toMatch(/<span class="flex max-w-full min-w-0 flex-col items-center gap-px sm:items-start @min-\[162px\]:flex-row @min-\[162px\]:gap-1\.5"><span class="font-mono[^"]*">321<\/span><span class="[^"]*">Myth 2\/6<\/span><\/span>/);
   });
 });
+
+describe('GroupGrid item level', () => {
+  it('shows the item level outside the screen-reader-only name', () => {
+    const html = render([member({ character: { ...summary(3, 'Birkibjörn'), itemLevel: 334.6 } })], []);
+    expect(html).toMatch(/<span class="[^"]*font-mono[^"]*" title="Equipped item level">334\.6 ilvl<\/span>/);
+    expect(html).not.toMatch(/sr-only[^>]*>[^<]*334\.6/);
+  });
+
+  it('shows no item level when unknown', () => {
+    expect(render([member({ character: summary(3, 'Birkibjörn') })], [])).not.toContain('ilvl');
+  });
+});
