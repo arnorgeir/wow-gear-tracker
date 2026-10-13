@@ -1,6 +1,6 @@
 # Show an equipped tier piece's real stats
 
-Status: design approved in chat on 2026-10-13. Spec review rounds 1 and 2 folded in: pair on its own card line (taller tier rows, owner's choice), group outcomes stated, CellDetails test.
+Status: design approved in chat on 2026-10-13. Spec review passed on 2026-10-13 in round 3; rounds 1 and 2 folded in: pair on its own card line (taller tier rows, owner's choice), group outcomes stated, CellDetails test.
 Date: 2026-10-13
 Issue: #134. Tier piece with other stats than the BiS item shows as Done
 
