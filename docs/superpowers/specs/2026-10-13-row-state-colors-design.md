@@ -1,12 +1,12 @@
 # Row colors follow the item state
 
-Status: design approved in chat on 2026-10-13.
+Status: design approved in chat on 2026-10-13. Spec review round 1 folded in: inset borders, legend kept as a badge-color key, token test.
 Date: 2026-10-13
 Issue: #123. Rethink row colors for equipped vs BiS states
 
 ## Goal
 
-Gear rows on the character page and cells on the group page get a background and border for only three states: done, upgrade with crests, and wrong stats. A BiS item on a track below Myth, which the badge calls "Great Vault target", shows plain. The colors also disagree with the badges: the crests row is green while its badge and legend swatch are purple, and the wrong-stats row is gold while its badge is pink.
+Today, gear rows on the character page and cells on the group page get a background and border for only three states: done, upgrade with crests, and wrong stats. A BiS item on a track below Myth, which the badge calls "Great Vault target", shows plain. The colors also disagree with the badges: the crests row is green while its badge and legend swatch are purple, and the wrong-stats row is gold while its badge is pink.
 
 Every state where the BiS item is equipped gets a background and border, in the same color as its badge. States where the BiS item is not equipped stay plain. A colored row then means "you have it", and a plain row means "go get it".
 
@@ -56,8 +56,9 @@ Wrong stats moves from done's gold to pink. The gold came from e1132de ("only th
 
 `ROW_TONE_STYLES` keeps its shape: one `CSSProperties` object per tone, applied through `style` by both callers.
 
-- Solid tones keep today's technique: `background` plus `boxShadow: '0 0 0 2px <border>'`.
-- `stats` keeps today's technique: `background` plus `outline: '2px dashed <border>'` with `outlineOffset: '-2px'`.
+- Every tone draws its border the way `stats` does today: `background` plus `outline: '2px <solid|dashed> <border>'` with `outlineOffset: '-2px'`. Only `stats` is dashed.
+- The border sits inside the element. Today's solid tones use an outer `boxShadow` ring, which spills 2 px outside the element. On the group grid below `sm`, cells are 3 px apart (`gap-[3px]`), so two toned neighbours overlap; on the character page, rows 4 px apart (`my-1`) touch. With Great Vault target toned, most cells in a column will be toned, so the outer ring would merge borders and blur the lightness steps. The inset outline keeps each border inside its own cell and covers the group cell's 1 px `border-line` edge.
+- No `boxShadow` remains in `ROW_TONE_STYLES`.
 - Every color is a `var(--color-…)` reference. No hex values in TypeScript. This also replaces today's hardcoded `#2e2513`, `#1a2e20` and `#3e8a4d` in the file.
 
 ### Tokens
@@ -77,6 +78,8 @@ Wrong stats moves from done's gold to pink. The gold came from e1132de ("only th
 
 `src/components/state-legend/StateLegend.tsx` gains `['bg-stats', 'Wrong stats']` after the crests entry, in the order of `ITEM_STATES`. The other entries already use the badge colors and do not change.
 
+The legend stays a key to the badge colors, with solid swatches for every state. It does not show which states are toned or that wrong stats is dashed. This is intended: on the home page the same legend keys the character card's progress bar, whose segments are solid `bg-gold`, `bg-crest`, `bg-vault` and `bg-stats` (`CharacterCard.tsx`). Row-shaped swatches would no longer match the bar. The state word on every row carries the meaning the legend leaves out.
+
 ## Testing
 
 - **`row-tone.test.ts`** (update first, watch it fail):
@@ -84,7 +87,9 @@ Wrong stats moves from done's gold to pink. The gold came from e1132de ("only th
   - `inBags` and `missing` give `null`.
   - With `tracksKnown` false, every state gives `null`.
   - Every value in `ROW_TONE_STYLES` uses only `var(--color-…)` colors, so no hex returns.
-- **By hand**, on the character page and the group page at 375 and 1440 px, with a character that has rows in several states:
-  - Each toned state shows the fill and border above. Plain states show none.
-  - The legend lists all six states.
+  - Every `--color-*` name in `ROW_TONE_STYLES` is declared in `src/app/globals.css`: the test reads the file and matches `--color-<name>:`. A mistyped name would otherwise pass, and the browser would drop the declaration and leave the row plain with no error.
+- **By hand** at 375 and 1440 px, with a character that has rows in several states:
+  - On the character page and the group page, each toned state shows the fill and border above, and plain states show none.
+  - On the group page at 375 px, two toned cells side by side and above each other keep separate borders.
+  - On the home page and the group page, the legend lists all six states. On home, the Wrong stats swatch matches the `bg-stats` segment of the character card bar.
   - In a grayscale view (DevTools "Emulate vision deficiencies", Achromatopsia), done, crests and Great Vault target borders read as three different lightnesses, and wrong stats reads as dashed.
