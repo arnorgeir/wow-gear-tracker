@@ -1,6 +1,6 @@
 # Character page loader
 
-Status: draft, waiting for owner approval. Revised on 2026-10-13 for the spec review's cold-click finding: a route skeleton alone shows nothing until Next has prefetched it, so the clicked link gets its own pending cue.
+Status: approved by the owner on 2026-10-13, with the link cue. Revised on 2026-10-13 for the spec review's cold-click finding: a route skeleton alone shows nothing until Next has prefetched it, so the clicked link gets its own pending cue.
 Date: 2026-10-13
 Issue: #112. Show a loader when opening a character's page
 
