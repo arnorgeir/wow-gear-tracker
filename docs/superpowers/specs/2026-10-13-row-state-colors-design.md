@@ -1,6 +1,6 @@
 # Row colors follow the item state
 
-Status: design approved in chat on 2026-10-13. Spec review rounds 1 and 2 folded in: inset borders, legend kept as a badge-color key in card-bar order, token test.
+Status: design approved in chat on 2026-10-13. Spec review passed on 2026-10-13 in round 3; rounds 1 and 2 folded in: inset borders, legend kept as a badge-color key in card-bar order, token test.
 Date: 2026-10-13
 Issue: #123. Rethink row colors for equipped vs BiS states
 
