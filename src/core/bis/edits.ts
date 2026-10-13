@@ -1,6 +1,6 @@
 import type { BlizzardClient } from '../blizzard/client';
 import type { Db } from '../db/client';
-import { deleteOverride, getSpecSettings, upsertOverride } from '../db/queries/bis-settings';
+import { SOURCE_CHANGED, deleteOverrideIfCurrent, upsertOverrideIfCurrent } from '../db/queries/bis-settings';
 import { listCharacters } from '../db/queries/characters';
 import { findLocalItem, searchLocalItems, upsertCatalogItem } from '../db/queries/item-catalog';
 import { getSpec } from '../db/queries/specs';
@@ -35,8 +35,6 @@ export async function regionForSpec(db: Db, specSlug: string): Promise<Region> {
 }
 
 export const knownSpecSlug = async (db: Db, specSlug: string) => (await classForSpec(db, specSlug)) !== null;
-
-const SOURCE_CHANGED = 'The BiS source changed. Reload the page.';
 
 /** The row a ref points at in the spec's chosen list, with the spec's class. Throws the user-facing reason when anything is missing or stale. */
 async function resolveRow({ db, accountId, now }: ReadDeps, ref: RowRef): Promise<{ row: BisRow; className: string }> {
@@ -100,11 +98,11 @@ export async function saveOverride(deps: EditDeps, ref: RowRef, itemId: number, 
   const canUse = classCanUse(item, className, row);
   if (!canUse.ok) throw new UserError(canUse.reason);
   if (catalyst && !canCatalyst(item, row.slots)) throw new UserError('Only regular items in tier slots can be catalyzed.');
-  await upsertOverride(deps.db, deps.accountId, ref.specSlug, ref.source, ref.listType, { slotKey: ref.slotKey, itemId, catalyst });
+  // The source is checked again inside the write lock: resolveRow's check ran before the Blizzard lookup.
+  await upsertOverrideIfCurrent(deps.db, deps.accountId, ref.specSlug, ref.source, ref.listType, { slotKey: ref.slotKey, itemId, catalyst });
 }
 
-/** Removes even an orphan, so it skips the row check; the source check still applies. */
+/** Removes even an orphan, so it skips the row check; the source check still applies, inside the write lock. */
 export async function removeOverride(deps: EditDeps, ref: RowRef) {
-  if ((await getSpecSettings(deps.db, deps.accountId, ref.specSlug)).source !== ref.source) throw new UserError(SOURCE_CHANGED);
-  await deleteOverride(deps.db, deps.accountId, ref.specSlug, ref.source, ref.listType, ref.slotKey);
+  await deleteOverrideIfCurrent(deps.db, deps.accountId, ref.specSlug, ref.source, ref.listType, ref.slotKey);
 }

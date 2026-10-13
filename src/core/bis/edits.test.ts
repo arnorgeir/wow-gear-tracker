@@ -7,9 +7,11 @@ import { replaceBisLists } from '../db/queries/bis-lists';
 import { replaceSpecs } from '../db/queries/specs';
 import { getCatalogItems } from '../db/queries/item-catalog';
 import { listOverrides, updateSpecSettings } from '../db/queries/bis-settings';
+import { withWriteLock } from '../db/queries/write-lock';
 import { replaceSeason } from '../db/queries/season';
 import type { BisLists } from '../types';
 import { knownSpecSlug, lookupItem, removeOverride, saveOverride, searchItems } from './edits';
+import { chooseManual } from './spec-base';
 
 const lists: BisLists = {
   overall: [],
@@ -31,6 +33,12 @@ async function setup(getItemDetails: BlizzardClient['getItemDetails'] = async ()
   const blizzard = { getItemDetails } as unknown as BlizzardClient;
   return { db, deps: { db, blizzard, now: 5, accountId: 1 } };
 }
+
+const deferred = () => {
+  let resolve!: () => void;
+  const promise = new Promise<void>((r) => { resolve = r; });
+  return { promise, resolve };
+};
 
 const userError = async (p: Promise<unknown>) => {
   const err = await p.catch((e: unknown) => e);
@@ -141,6 +149,31 @@ describe('sources', () => {
     expect(await userError(searchItems(deps, chest, 'robe'))).toBe(changed);
     expect((await listOverrides(db, 1, 'frost-mage', 'method')).mythicPlus).toHaveLength(1);
     expect(await listOverrides(db, 1, 'frost-mage', 'icyVeins')).toEqual(none);
+  });
+
+  it('refuses a save whose source changed during the item lookup, and writes nothing', async () => {
+    const entered = deferred();
+    const resume = deferred();
+    const { db, deps } = await setup(async () => { entered.resolve(); await resume.promise; return info({}); });
+    const pending = saveOverride(deps, chest, 50, false).then(() => 'saved', (e: Error) => e.message);
+    await entered.promise;
+    await chooseManual(db, 1, 'frost-mage', 3);
+    resume.resolve();
+    expect(await pending).toBe('The BiS source changed. Reload the page.');
+    expect(await listOverrides(db, 1, 'frost-mage', 'method')).toEqual(none);
+  });
+
+  it('refuses a removal whose source changed while it waited for the write lock', async () => {
+    const { db, deps } = await setup();
+    await saveOverride(deps, chest, 50, false);
+    const held = deferred();
+    const holder = withWriteLock(db, () => held.promise);
+    const switching = updateSpecSettings(db, 1, 'frost-mage', { source: 'manual' });
+    const removal = removeOverride(deps, chest).then(() => 'removed', (e: Error) => e.message);
+    held.resolve();
+    await Promise.all([holder, switching]);
+    expect(await removal).toBe('The BiS source changed. Reload the page.');
+    expect((await listOverrides(db, 1, 'frost-mage', 'method')).mythicPlus).toHaveLength(1);
   });
 
   it('names the chosen source when its list is missing', async () => {

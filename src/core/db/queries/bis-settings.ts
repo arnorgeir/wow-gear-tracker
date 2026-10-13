@@ -1,6 +1,7 @@
 import { and, eq, or } from 'drizzle-orm';
 import type { Db } from '../client';
 import { accounts, bisOverrides, itemCatalog, specSettings } from '../schema';
+import { UserError } from '../../errors';
 import { FETCHED_SOURCES, type BisOverride, type BisSourceId, type FetchedSourceId, type ListType, type SpecSettings } from '../../types';
 import { withWriteLock } from './write-lock';
 
@@ -31,18 +32,45 @@ export async function listOverrides(db: Db, accountId: number, specSlug: string,
   return result;
 }
 
-export async function upsertOverride(db: Db, accountId: number, specSlug: string, source: BisSourceId, listType: ListType, o: BisOverride) {
-  await withWriteLock(db, () => db.insert(bisOverrides).values({ accountId, specSlug, source, listType, ...o })
+export const SOURCE_CHANGED = 'The BiS source changed. Reload the page.';
+
+const insertOverride = (db: Db, accountId: number, specSlug: string, source: BisSourceId, listType: ListType, o: BisOverride) =>
+  db.insert(bisOverrides).values({ accountId, specSlug, source, listType, ...o })
     .onConflictDoUpdate({
       target: [bisOverrides.accountId, bisOverrides.specSlug, bisOverrides.source, bisOverrides.listType, bisOverrides.slotKey],
       set: { itemId: o.itemId, catalyst: o.catalyst },
-    }));
+    });
+
+const removeOverrideRow = (db: Db, accountId: number, specSlug: string, source: BisSourceId, listType: ListType, slotKey: string) =>
+  db.delete(bisOverrides).where(and(ofSource(accountId, specSlug, source), eq(bisOverrides.listType, listType), eq(bisOverrides.slotKey, slotKey)));
+
+export async function upsertOverride(db: Db, accountId: number, specSlug: string, source: BisSourceId, listType: ListType, o: BisOverride) {
+  await withWriteLock(db, () => insertOverride(db, accountId, specSlug, source, listType, o));
 }
 
 export async function deleteOverride(db: Db, accountId: number, specSlug: string, source: BisSourceId, listType: ListType, slotKey: string) {
-  await withWriteLock(db, () => db.delete(bisOverrides).where(and(
-    ofSource(accountId, specSlug, source), eq(bisOverrides.listType, listType), eq(bisOverrides.slotKey, slotKey),
-  )));
+  await withWriteLock(db, () => removeOverrideRow(db, accountId, specSlug, source, listType, slotKey));
+}
+
+/** Throws when the spec's chosen source isn't `source`. Reads inside the lock, so a source switch queued ahead of the write is seen. */
+async function requireCurrentSource(db: Db, accountId: number, specSlug: string, source: BisSourceId) {
+  if ((await getSpecSettings(db, accountId, specSlug)).source !== source) throw new UserError(SOURCE_CHANGED);
+}
+
+/** Saves only while `source` is still the spec's chosen one, checked in the same lock task as the write. */
+export async function upsertOverrideIfCurrent(db: Db, accountId: number, specSlug: string, source: BisSourceId, listType: ListType, o: BisOverride) {
+  await withWriteLock(db, async () => {
+    await requireCurrentSource(db, accountId, specSlug, source);
+    await insertOverride(db, accountId, specSlug, source, listType, o);
+  });
+}
+
+/** Removes only while `source` is still the spec's chosen one, checked in the same lock task as the delete. */
+export async function deleteOverrideIfCurrent(db: Db, accountId: number, specSlug: string, source: BisSourceId, listType: ListType, slotKey: string) {
+  await withWriteLock(db, async () => {
+    await requireCurrentSource(db, accountId, specSlug, source);
+    await removeOverrideRow(db, accountId, specSlug, source, listType, slotKey);
+  });
 }
 
 /** The fetched sources any account uses for a spec. An account without a settings row uses Method. */
