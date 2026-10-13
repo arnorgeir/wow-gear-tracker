@@ -6,14 +6,14 @@ Issue: #123. Rethink row colors for equipped vs BiS states
 
 ## Goal
 
-Today, gear rows on the character page and cells on the group page get a background and border for only three states: done, upgrade with crests, and wrong stats. A BiS item on a track below Myth, which the badge calls "Great Vault target", shows plain. The colors also disagree with the badges: the crests row is green while its badge and legend swatch are purple, and the wrong-stats row is gold while its badge is pink.
+Today, gear rows on the character page and cells on the group page get a background and border for only three states: done, upgrade with crests, and wrong stats. A BiS item on a track below Myth, which the badge calls "Great Vault target", shows plain. The crests row also disagrees with its badge: the row is green while its badge and legend swatch are purple.
 
-Every state where the BiS item is equipped gets a background and border, in the same color as its badge. States where the BiS item is not equipped stay plain. A colored row then means "you have it", and a plain row means "go get it".
+Every state where the BiS item is equipped gets a background and border, in the same color as its badge, except wrong stats, which keeps done's gold with a dashed border. States where the BiS item is not equipped stay plain. A colored row then means "you have it", and a plain row means "go get it".
 
 ## What success looks like
 
 - Done, upgrade with crests, wrong stats and Great Vault target rows each get a fill and a 2 px border. BiS in bags and missing rows stay plain.
-- Each toned row uses its badge's color family: done gold, crests purple, wrong stats pink, Great Vault target blue. Badge, group cell word, legend swatch and row agree.
+- Done, crests and Great Vault target rows use their badge's color family: gold, purple and blue. Badge, group cell word, legend swatch and row agree. Wrong stats keeps done's gold with a dashed border (see Mapping).
 - The toned states read apart without hue. Border lightness steps down from done to crests to Great Vault target, and wrong stats has a dashed border instead of a solid one. Every row keeps its state word.
 - The character page and the group page use the same mapping, as they do today through `rowTone`.
 - The legend lists wrong stats, which it is missing today.
@@ -41,16 +41,16 @@ Out of scope:
 |---|---|---|---|---|---|
 | `done` | Done | `gold` | `--color-gold-soft` #2e2513 (exists) | 2 px solid `--color-gold` #f2c14e (exists) | 0.58 |
 | `mythUpgradable` | Upgrade with crests | `crest` | `--color-crest-soft` #251d33 (new) | 2 px solid `--color-crest-line` #a585d6 (new) | 0.30 |
-| `wrongStats` | Wrong stats | `stats` | `--color-stats-soft` #2e1a25 (new) | 2 px dashed `--color-stats-line` #d07aa6 (new) | 0.30 |
+| `wrongStats` | Wrong stats | `stats` | `--color-gold-soft` #2e2513 (exists) | 2 px dashed `--color-gold` #f2c14e (exists) | 0.58 |
 | `belowMyth` | Great Vault target | `vault` | `--color-vault-soft` #16222f (new) | 2 px solid `--color-vault-line` #4270a0 (new) | 0.15 |
 | `inBags` | BiS in bags | none | | | |
 | `missing` | Missing | none | | | |
 
 When `tracksKnown` is false, `rowTone` returns `null` for every state, as today.
 
-Luminance is WCAG relative luminance. Each solid border is about 1.8 times as light as the next one down, so done, crests and Great Vault target still separate in grayscale. Wrong stats has the same lightness as crests and is told apart by its dashed border. The Great Vault target border is the dimmest and still has 3.1:1 contrast against its own fill.
+Luminance is WCAG relative luminance. Each solid border is about 1.8 times as light as the next one down, so done, crests and Great Vault target still separate in grayscale. Wrong stats has the same colors as done and is told apart by its dashed border. The Great Vault target border is the dimmest and still has 3.1:1 contrast against its own fill.
 
-Wrong stats moves from done's gold to pink. The gold came from e1132de ("only the stats are off"). The owner chose one color per state over that reasoning, so the row now matches its pink badge.
+Wrong stats keeps done's gold, as since e1132de: it is the right tier piece with only the stats off, so the row reads as nearly done, and the pink badge word names the problem. The design first moved it to pink to match the badge; the owner reverted that on PR #133, because pink read as a different kind of state. Known limit: `stateFor` decides wrong stats before the track, so a wrong-stats piece below Myth also shows gold dashed.
 
 ### Styles
 
@@ -63,13 +63,11 @@ Wrong stats moves from done's gold to pink. The gold came from e1132de ("only th
 
 ### Tokens
 
-`src/app/globals.css` gains six tokens in `@theme`, next to the existing `--color-gold-soft` group:
+`src/app/globals.css` gains four tokens in `@theme`, next to the existing `--color-gold-soft` group:
 
 ```css
 --color-crest-soft: #251d33;
 --color-crest-line: #a585d6;
---color-stats-soft: #2e1a25;
---color-stats-line: #d07aa6;
 --color-vault-soft: #16222f;
 --color-vault-line: #4270a0;
 ```
