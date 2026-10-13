@@ -18,7 +18,7 @@ The project rules in `AGENTS.md` apply to every step and both agents. Both of th
 | 8. `validate`: complete checks and evidence | Claude, with owner for assigned checks | Sonnet | In review | Required checks completed or existing evidence recorded in PR Testing; no code change required |
 | 9. Merge | Owner | | Done, on its own when the pull request closes the issue | Required checks green on the final commit, then a merge commit, never a squash |
 
-- **A step sets its status when it starts,** after claiming the issues as `AGENTS.md` ("Issue board") describes. `plan` moves the issues to Ready when the plan is committed, and `implement` moves them to In review when it opens the pull request.
+- **A step sets its status when it starts,** after claiming the issues as `AGENTS.md` ("Issue board") describes. `plan` moves the issues to Ready when the plan is committed, and `implement` moves them to In review when it opens the pull request. An issue the pull request only covers in part (`Part of #N`, not `Closes #N`) goes back to the status it had: it stays open after the merge, and In review would be wrong.
 - **Small fixes skip steps 1 to 3.** Anything that doesn't need a spec (see `AGENTS.md`, "How work flows") goes from Backlog or Ready straight to `implement` and `pr-review`.
 - **The plan's review is optional.** Add a Codex review of the plan only when the plan is large or risky.
 - **Resolve spec review findings before planning.** Update and commit the spec when a finding changes it. Ask the owner to approve it again only when scope or intended behavior changes; clarifications can proceed without another sign-off.
