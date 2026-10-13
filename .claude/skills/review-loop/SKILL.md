@@ -19,7 +19,7 @@ Runs steps 5 to 8 of `docs/workflow.md` without the owner relaying prompts. The 
 
 1. **Claim.** Read the pull request and its issues. Follow "Starting a step claims its issues" in `AGENTS.md`. Status stays In review.
 2. **Review.** Write the review prompt below to the scratchpad, filling in the pull request number, head SHA, round, spec and plan. Then run one reviewer:
-   - Codex: `codex exec --sandbox workspace-write -c model_reasoning_effort="medium" - < <prompt file>` from the repository root, with a 30-minute timeout. Rounds 2 and 3 may use `"low"`. If `codex` is missing, can't log in or fails, use the Claude reviewer for that round and say so.
+   - Codex: `codex exec -m gpt-6-astra -s workspace-write -c model_reasoning_effort="medium" -o <scratchpad>/codex-last.txt - < <prompt file>` from the repository root, in the background with a 30-minute timeout. Rounds 2 and 3 use `"low"` unless the fixes changed the design or several code paths. If `codex` is missing, isn't logged in (`codex login status`) or fails, use the Claude reviewer for that round and say so.
    - Claude: the Agent tool, `general-purpose`, `model: opus`, with the same prompt. Wait for its completion notice.
 3. **Read the result** from `docs/reviews/pr-<N>.md`. Check each finding against the current code before acting on it.
 4. **Act on the outcome:**
