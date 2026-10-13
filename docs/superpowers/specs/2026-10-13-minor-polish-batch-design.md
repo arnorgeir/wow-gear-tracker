@@ -1,6 +1,6 @@
 # Minor polish batch: BiS settings, tier stats and character cards
 
-Status: recommendations pre-approved by the owner on 2026-10-13 ("I pre-approve your recommended suggestions"). Pending spec review.
+Status: recommendations pre-approved by the owner on 2026-10-13 ("I pre-approve your recommended suggestions"). Spec review round 1 (Codex, at 89a4b56) folded in: S1.1 unverified stats defined from missing stats, not `compareStats`; S1.2 and S1.3 grid wording moved out of `needText`; S1.4 search status keyed by query and row.
 Date: 2026-10-13
 Issues: #135, #136, #137, #138, #142
 
@@ -54,7 +54,7 @@ It is used by the search results and the chosen-item card in `ItemSearch.tsx` (r
 **Loading state.** Reuse the character search bar's indicator (`src/components/add-character-bar/AddCharacterBar.tsx`): a spinner and "Searching…" in a `role="status"` span that stays mounted, inside the input's right edge.
 
 - Extract that markup into `src/components/searching-status/SearchingStatus.tsx`, `SearchingStatus({ searching, className })`, and use it in both search bars. The positioning classes differ per bar, so the caller passes them.
-- `useItemSearch` reports `busy` from the moment the query changes, including the debounce, until its answer or error arrives: it stores the query its last answer was for and derives `busy` as `query !== answeredQuery` for a non-idle query. The pure part (`isSearching(query, answeredQuery)`, idle input is never searching) goes in `search-plan.ts` with tests.
+- `useItemSearch` reports `busy` from the moment the query or row changes, including the debounce, until its answer or error arrives. Its state stores the key its answer is for: `searchKey(row, query)`, the row's four fields and the trimmed query. `busy` is `key !== state.key` for a non-idle query. When the key equals the stored key and the stored answer has no error, the effect issues no request and the stored answer shows: returning from "hoodx" to an answered "hood" reuses that answer instead of searching again unseen. An answer whose effect was cleaned up (a newer key started) is dropped, as now. The pure parts (`searchKey`, and `isSearching(key, answeredKey, idle)`) go in `search-plan.ts` with tests, including the answered-A, pending-B, back-to-A sequence and a row change with the same query.
 - While a Blizzard lookup runs, the existing "Looking up item … on Blizzard…" line shows instead, and the spinner in the input hides, so only one status shows.
 
 **Testing.** `pickQuality` unit tests (Rare and null give Epic, Legendary stays). `searchItems` returns a cached icon and `null` for an uncached one. `lookupItem` caches and returns the icon through the fake fetch. `runSync` caches loot icons in both branches and still reports "loaded" when every icon request fails. `isSearching` tests. Markup tests: a result with `iconUrl` renders an `<img>` in an Epic ring; `SearchingStatus` renders its text only while searching. By hand: search "hood" on a spec's editor; the spinner shows while typing, results show icons and purple names; a pasted item ID shows the Blizzard line, then the item with its icon.
@@ -71,18 +71,19 @@ It is used by the search results and the chosen-item card in `ItemSearch.tsx` (r
 
 ## #138 Tier row with unknown stats says so
 
-**Problem.** `compareStats` returns `unknown` when either side's stats are missing, and `stateFor` in `src/core/gear/evaluate.ts` only reacts to `different`, so such a row shows Done with nothing to say the stats weren't checked.
+**Problem.** When the equipped tier piece's stats or the BiS target's stats are missing, nothing compares them. `compareStats` then falls back to item IDs: equal IDs give `same`, others `unknown`, and `stateFor` in `src/core/gear/evaluate.ts` only reacts to `different`. Either way the row shows Done with nothing to say the stats weren't checked. Equal IDs prove nothing: a catalysed piece can share the target's ID and carry other stats.
 
 **Open question answered.** No new state. The row keeps the state its track gives (Done, Upgrade or Below Myth) and counts toward done as now: the stats are usually right and the next sync fills them, and a new state would touch every count, color and legend. It gets words instead: "Stats unverified".
 
 **Design.**
 
-- `evaluateGear` only compares stats when `statsMatter` is true; otherwise `GearRow.stats` is `null`. Nothing outside tests reads `stats` today, so this changes no behavior, and the doc comment says so.
-- `GearRowView` (`src/server/views/types.ts`) gains `statsUnverified: boolean`, set by `rowView` in `src/server/views/member.ts` to `r.stats === 'unknown'`.
-- `equippedStatText` (`src/components/shared/equipped-stats.ts`) returns `"Stats unverified"` when `statsUnverified` is true, after its existing tier-row and state checks. The character page's gear table and the group grid's cell details already show this text.
-- `needText` (`src/components/group-grid/cell-note.ts`) returns `"Tier stats unverified"` for such a cell, so the grid shows it without opening the cell.
+- `GearRow` gains `statsUnverified: boolean`, set by `evaluateGear`: true when `statsMatter`, the row is a matched tier row with an equipped item, and the target's stats or the equipped item's stats are null or undefined. It doesn't read `compareStats`, so the item-ID fallback can't hide it. `compareStats`, `GearRow.stats` and every state stay as they are.
+- `GearRowView` (`src/server/views/types.ts`) gains `statsUnverified: boolean`, copied by `rowView` in `src/server/views/member.ts`.
+- `equippedStatText` (`src/components/shared/equipped-stats.ts`) returns `"Stats unverified"` when `statsUnverified` is true, after its existing tier-row and state checks. The character page's gear table and the group grid's cell details already show this text on the item line. It is never shown under "Needed".
+- `needText` doesn't change, so the cell details gain no "Needed" target for an unverified row.
+- The compact grid cell (`src/components/group-grid/GroupCell.tsx`) shows the state word with a question mark, "Done?", when `statsUnverified`; the pure part goes in `state-word.ts`. The hover title adds "Tier stats unverified", and `cellLabel` (`cell-label.ts`) adds ", stats unverified" to the accessible name.
 
-**Testing.** `evaluate` tests: unknown stats with `statsMatter` give `stats: 'unknown'` and state Done; with `statsMatter: false`, `stats` is null. `rowView` sets `statsUnverified`. `equippedStatText` and `needText` tests for the new wording, and that a known pair is unchanged. By hand: a character whose tier piece has no stats (for example a fresh SimC paste of a catalysed piece) shows "Stats unverified" on the character page and the group grid.
+**Testing.** `evaluate` tests, each keeping the track's state: missing equipped stats with equal and with different item IDs, and missing target stats with equal and different IDs, all give `statsUnverified: true`; known stats on both sides give false; `statsMatter: false` gives false; a Missing row gives false. `rowView` copies it. `equippedStatText` gives "Stats unverified" and leaves a known pair unchanged. `stateWord` and `cellLabel` tests for the question mark and the label. A `CellDetails` markup test: an unverified Done row shows "Stats unverified" and no "Needed". By hand at 375 px: a character whose tier piece has no stats (for example a fresh SimC paste of a catalysed piece) shows "Done?" in the closed grid cell, and "Stats unverified" in its details and on the character page.
 
 ## #142 Character card identity in three lines
 
