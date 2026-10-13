@@ -27,11 +27,11 @@ describe('concurrent writes', () => {
     const lists: BisLists = { overall: [], raid: [], mythicPlus: [] };
     await Promise.all([
       replaceTracks(db, [{ bonusId: 1, name: 'Hero', step: 1, max: 6, group: null, currencyId: null, currencyName: null, costPerStep: null }]),
-      replaceBisLists(db, 'guardian-druid', lists, 1),
+      replaceBisLists(db, 'method', 'guardian-druid', lists, 1),
       saveSnapshotIfChanged(db, id, 'blizzard', gearToSnapshotItems(gear), 2),
     ]);
     expect((await getTrackMap(db)).size).toBe(1);
-    expect(await getBisLists(db, 'guardian-druid')).not.toBeNull();
+    expect(await getBisLists(db, 'method', 'guardian-druid')).not.toBeNull();
     expect(await getLatestSnapshot(db, id)).not.toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import type { ListType } from '@/core/types';
+import type { BisSourceId, ListType } from '@/core/types';
 import type { GearRowView } from '@/server/views/types';
 import { GearTable } from './GearTable';
 
@@ -10,8 +10,8 @@ const row: GearRowView = {
   slotLabel: 'Head', slot: 'HEAD', state: 'done', equipped, equippedStats: null, upgrade: null,
   bis: { kind: 'item', ...equipped, isTier: false, isCatalyst: false, source: '', targetStats: null, targetIsTierPiece: false },
 };
-const render = (rows: GearRowView[], bisLoading: boolean, fellBackFrom: ListType | null = null) =>
-  renderToStaticMarkup(createElement(GearTable, { rows, tracksKnown: true, bisLoading, listType: 'raid', specSlug: 'guardian-druid', editedCount: 2, doneCount: 1, fellBackFrom })).replace(/<link[^>]*\/>/g, '');
+const render = (rows: GearRowView[], bisLoading: boolean, fellBackFrom: ListType | null = null, source: BisSourceId = 'method') =>
+  renderToStaticMarkup(createElement(GearTable, { rows, tracksKnown: true, bisLoading, listType: 'raid', specSlug: 'guardian-druid', editedCount: 2, doneCount: 1, fellBackFrom, source })).replace(/<link[^>]*\/>/g, '');
 
 describe('GearTable source', () => {
   it('names the compared list and links the source badge to its settings', () => {
@@ -30,6 +30,8 @@ describe('GearTable source', () => {
     const html = render([row], false, 'raid');
     expect(html).toContain('Method has no Raid list for this spec. Showing Overall.');
     expect(render([row], false)).not.toContain('Showing Overall');
+    expect(render([row], false, 'raid', 'icyVeins')).toContain('Icy Veins has no Raid list for this spec. Showing Overall.');
+    expect(render([row], false, 'raid', 'manual')).toContain('Your copy has no Raid list for this spec. Showing Overall.');
   });
 });
 

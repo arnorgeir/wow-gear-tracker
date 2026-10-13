@@ -54,6 +54,7 @@ export async function getCharacterPage(services: Services, key: MemberKey): Prom
     editedCount: bis.editedCount,
     doneCount: rows.filter((r) => r.state === 'done').length,
     fellBackFrom: choice.fellBack ? bis.listType : null,
+    bisSource: bis.source,
     specIconUrl: (await getSpec(db, summary.specSlug))?.iconUrl ?? classIcons.get(character.className) ?? null,
     bisFetchedAt: bis.fetchedAt,
     bisError: bis.error,
@@ -66,6 +67,7 @@ export async function getCharacterPage(services: Services, key: MemberKey): Prom
     priority: {
       listType: choice.listType,
       fellBackFrom: choice.fellBack ? bis.listType : null,
+      source: bis.source,
       season: season.status,
       needsSync: season.needsSync,
       bisLoading: bis.status === 'loading',

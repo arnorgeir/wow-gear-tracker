@@ -1,5 +1,5 @@
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import type { ArmorType, Faction, ItemLocation, ListType, Quality, Region, SlotType, SnapshotSource } from '../types';
+import type { ArmorType, BisSourceId, FetchedSourceId, Faction, ItemLocation, ListType, Quality, Region, SlotType, SnapshotSource } from '../types';
 
 export const characters = sqliteTable('characters', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -57,7 +57,8 @@ export const bisLists = sqliteTable('bis_lists', {
   specSlug: text('spec_slug').notNull(),
   listType: text('list_type').$type<ListType>().notNull(),
   fetchedAt: integer('fetched_at').notNull(),
-}, (t) => [uniqueIndex('bis_lists_spec_type').on(t.specSlug, t.listType)]);
+  source: text('source').$type<FetchedSourceId>().notNull().default('method'),
+}, (t) => [uniqueIndex('bis_lists_source_spec_type').on(t.source, t.specSlug, t.listType)]);
 
 export const bisItems = sqliteTable('bis_items', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -168,9 +169,10 @@ export const specSettings = sqliteTable('spec_settings', {
   specSlug: text('spec_slug').notNull(),
   listType: text('list_type').$type<ListType>().notNull().default('mythicPlus'),
   statsMatter: integer('stats_matter', { mode: 'boolean' }).notNull().default(true),
+  source: text('source').$type<BisSourceId>().notNull().default('method'),
 }, (t) => [primaryKey({ columns: [t.accountId, t.specSlug] })]);
 
-/** One slot of a Method list replaced by an account. `slot_key` is `<slotLabel>#<n>`. */
+/** One slot of a source's list replaced by an account. `slot_key` is `<slotLabel>#<n>`. */
 export const bisOverrides = sqliteTable('bis_overrides', {
   accountId: integer('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
   specSlug: text('spec_slug').notNull(),
@@ -178,7 +180,33 @@ export const bisOverrides = sqliteTable('bis_overrides', {
   slotKey: text('slot_key').notNull(),
   itemId: integer('item_id').notNull(),
   catalyst: integer('catalyst', { mode: 'boolean' }).notNull().default(false),
-}, (t) => [primaryKey({ columns: [t.accountId, t.specSlug, t.listType, t.slotKey] })]);
+  source: text('source').$type<BisSourceId>().notNull().default('method'),
+}, (t) => [primaryKey({ columns: [t.accountId, t.specSlug, t.source, t.listType, t.slotKey] })]);
+
+/** An account's manual lists for a spec. A row exists exactly when the copy exists. */
+export const manualBisLists = sqliteTable('manual_bis_lists', {
+  accountId: integer('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  specSlug: text('spec_slug').notNull(),
+  copiedFrom: text('copied_from').$type<FetchedSourceId>().notNull(),
+  copiedAt: integer('copied_at').notNull(),
+}, (t) => [primaryKey({ columns: [t.accountId, t.specSlug] })]);
+
+/** The rows of an account's manual lists, in the shape of `bis_items`. `source` is the drop source, as there. */
+export const manualBisItems = sqliteTable('manual_bis_items', {
+  accountId: integer('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  specSlug: text('spec_slug').notNull(),
+  listType: text('list_type').$type<ListType>().notNull(),
+  position: integer('position').notNull(),
+  slotLabel: text('slot_label').notNull(),
+  slots: text('slots', { mode: 'json' }).$type<SlotType[]>().notNull(),
+  itemId: integer('item_id'),
+  minItemLevel: integer('min_item_level'),
+  name: text('name').notNull(),
+  bonusIds: text('bonus_ids', { mode: 'json' }).$type<number[]>().notNull(),
+  isTier: integer('is_tier', { mode: 'boolean' }).notNull(),
+  isCatalyst: integer('is_catalyst', { mode: 'boolean' }).notNull(),
+  source: text('source').notNull(),
+}, (t) => [primaryKey({ columns: [t.accountId, t.specSlug, t.listType, t.position] })]);
 
 /** Every item an override names: complete, factual metadata from Blizzard or the season sync. */
 export const itemCatalog = sqliteTable('item_catalog', {

@@ -17,7 +17,7 @@ const IDLE: ItemSearchState = { results: [], unusable: null, busy: false, lookin
 /** Debounced search of local items for one slot, falling through to a Blizzard lookup for an unknown ID or link. */
 export function useItemSearch(row: RowRef, query: string): ItemSearchState {
   const [state, setState] = useState<ItemSearchState>(IDLE);
-  const { specSlug, listType, slotKey } = row;
+  const { specSlug, source, listType, slotKey } = row;
   const idle = searchPlan(query, null).kind === 'idle';
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export function useItemSearch(row: RowRef, query: string): ItemSearchState {
     let stale = false;
     const timer = setTimeout(async () => {
       setState((s) => ({ ...s, busy: true, error: null }));
-      const ref = { specSlug, listType, slotKey };
+      const ref = { specSlug, source, listType, slotKey };
       const local = await runApiAction<SearchReply>(fetch, `/api/items/search?${new URLSearchParams({ ...ref, q: query.trim() })}`);
       if (stale) return;
       if (!local.ok || !local.data) return setState({ ...IDLE, error: local.error });
@@ -46,7 +46,7 @@ export function useItemSearch(row: RowRef, query: string): ItemSearchState {
       stale = true;
       clearTimeout(timer);
     };
-  }, [query, idle, specSlug, listType, slotKey]);
+  }, [query, idle, specSlug, source, listType, slotKey]);
 
   return idle ? IDLE : state;
 }

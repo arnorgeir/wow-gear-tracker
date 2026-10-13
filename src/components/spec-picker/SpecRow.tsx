@@ -24,12 +24,11 @@ export function SpecRow({ spec, now }: { spec: PickerSpecView; now: number }) {
       <SpecIcon url={spec.iconUrl} className="" size={32} />
       <Link href={`/settings/bis/${spec.slug}`} className={`grow text-base font-semibold no-underline ${spec.tracked ? 'text-ink' : 'text-ink/85'}`}>{spec.specName}</Link>
       {spec.tracked && <TrackedPill />}
-      {action && (
-        <>
-          <span className={`text-[13px] ${spec.state.kind === 'failed' ? 'text-missing' : 'text-muted'}`}>{fetchStateLabel(spec.state, now)}</span>
-          <FetchButton specSlug={spec.slug} label={action} />
-        </>
+      {/* The Tracked pill already says "Tracked"; every other state gets its words, with or without a button. */}
+      {spec.state.kind !== 'tracked' && (
+        <span className={`text-[13px] ${spec.state.kind === 'failed' ? 'text-missing' : 'text-muted'}`}>{fetchStateLabel(spec.state, now)}</span>
       )}
+      {action && <FetchButton specSlug={spec.slug} label={action} />}
     </li>
   );
 }

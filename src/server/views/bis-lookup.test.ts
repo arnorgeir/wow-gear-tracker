@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { BlizzardClient } from '@/core/blizzard/client';
 import { openTestDb } from '@/test/db';
 import { syncBisLists } from '@/core/sync/reference-sync';
 import { replaceBisLists } from '@/core/db/queries/bis-lists';
@@ -22,7 +23,7 @@ describe('createBisLookup', () => {
 
   it('names each region’s missing tier stats once the list is stored', async () => {
     const db = await openTestDb();
-    await syncBisLists({ db, source: { name: 'Fake', fetchLists: async () => lists }, now: 1000 }, 'guardian-druid');
+    await syncBisLists({ db, source: { name: 'Fake', fetchLists: async () => lists }, sourceId: 'method', blizzard: {} as BlizzardClient, region: 'eu', now: 1000 }, 'guardian-druid');
     const lookup = createBisLookup(db, 1000, 1);
     const [eu, us] = await Promise.all([lookup('guardian-druid', 'eu'), lookup('guardian-druid', 'us')]);
     expect(eu).toMatchObject({ lists, status: 'ready', due: false, targetsDue: true, dueKeys: ['tiers:eu:guardian-druid'] });
@@ -37,10 +38,10 @@ describe('overrides', () => {
   it('returns overlaid lists, settings, counts and orphans for the account', async () => {
     const db = await openTestDb();
     await db.insert(accounts).values({ id: 2, name: 'Other' });
-    await replaceBisLists(db, 'frost-mage', withNeck, 1);
+    await replaceBisLists(db, 'method', 'frost-mage', withNeck, 1);
     await upsertCatalogItem(db, { itemId: 30, name: 'Birkibjörn Band', inventoryType: 'NECK', armorType: null, quality: 'EPIC', isTier: false }, 1);
-    await upsertOverride(db, 1, 'frost-mage', 'mythicPlus', { slotKey: 'Neck#1', itemId: 30, catalyst: false });
-    await upsertOverride(db, 1, 'frost-mage', 'mythicPlus', { slotKey: 'Gone#1', itemId: 30, catalyst: false });
+    await upsertOverride(db, 1, 'frost-mage', 'method', 'mythicPlus', { slotKey: 'Neck#1', itemId: 30, catalyst: false });
+    await upsertOverride(db, 1, 'frost-mage', 'method', 'mythicPlus', { slotKey: 'Gone#1', itemId: 30, catalyst: false });
     await updateSpecSettings(db, 1, 'frost-mage', { listType: 'raid', statsMatter: false });
     const bis = await createBisLookup(db, 2, 1)('frost-mage', 'eu');
     expect(bis).toMatchObject({ listType: 'raid', statsMatter: false, editedCount: 1 });
@@ -51,9 +52,9 @@ describe('overrides', () => {
 
   it('reports tier targets due for a catalyst override with no stats', async () => {
     const db = await openTestDb();
-    await replaceBisLists(db, 'frost-mage', { ...lists, mythicPlus: [{ ...lists.mythicPlus[0]!, isTier: false } as BisLists['mythicPlus'][number]] }, 1);
+    await replaceBisLists(db, 'method', 'frost-mage', { ...lists, mythicPlus: [{ ...lists.mythicPlus[0]!, isTier: false } as BisLists['mythicPlus'][number]] }, 1);
     await upsertCatalogItem(db, { itemId: 31, name: 'Woven Hood', inventoryType: 'HEAD', armorType: 'cloth', quality: 'EPIC', isTier: false }, 1);
-    await upsertOverride(db, 1, 'frost-mage', 'mythicPlus', { slotKey: 'Head#1', itemId: 31, catalyst: true });
+    await upsertOverride(db, 1, 'frost-mage', 'method', 'mythicPlus', { slotKey: 'Head#1', itemId: 31, catalyst: true });
     expect((await createBisLookup(db, 2, 1)('frost-mage', 'eu')).targetsDue).toBe(true);
   });
 });

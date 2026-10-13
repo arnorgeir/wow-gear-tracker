@@ -14,9 +14,9 @@ describe('chipLabel', () => {
   const MV = ['MASTERY_RATING', 'VERSATILITY'];
 
   it('labels each tier fit by the drop’s own name', () => {
-    expect(chipLabel(tier('bis', 'Primordial Robe of Rites', HM, HM))).toBe('Primordial Robe of Rites (Chest), Method BiS stats Haste/Mastery: catalyst into tier');
-    expect(chipLabel(tier('bis', 'Primordial Robe of Rites', null, null))).toBe('Primordial Robe of Rites (Chest), Method BiS item: catalyst into tier');
-    expect(chipLabel(tier('alternative', 'Hoarded Harvest Wrap', HM, MV))).toBe('Hoarded Harvest Wrap (Chest), catalyst alternative: Mastery/Vers, Method BiS wants Haste/Mastery');
+    expect(chipLabel(tier('bis', 'Primordial Robe of Rites', HM, HM))).toBe('Primordial Robe of Rites (Chest), BiS stats Haste/Mastery: catalyst into tier');
+    expect(chipLabel(tier('bis', 'Primordial Robe of Rites', null, null))).toBe('Primordial Robe of Rites (Chest), BiS item: catalyst into tier');
+    expect(chipLabel(tier('alternative', 'Hoarded Harvest Wrap', HM, MV))).toBe('Hoarded Harvest Wrap (Chest), catalyst alternative: Mastery/Vers, BiS wants Haste/Mastery');
     expect(chipLabel(tier('unverified', 'Hoarded Harvest Wrap', HM, null))).toBe('Hoarded Harvest Wrap (Chest), catalyst into tier, stats unverified');
     expect(chipLabel(tier('any', 'Hoarded Harvest Wrap', null, MV))).toBe('Hoarded Harvest Wrap (Chest), catalyst into tier');
   });

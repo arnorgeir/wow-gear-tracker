@@ -7,6 +7,6 @@ export function creditDetail(credit: Exclude<PriorityCreditView, { kind: 'any' }
   const fit = credit.fit === 'alternative'
     ? `catalyst alternative (${statPairLabel(credit.dropStats ?? [])}, BiS ${statPairLabel(credit.targetStats ?? [])})`
     : credit.fit === 'any' ? 'catalyst into tier'
-    : credit.fit === 'unverified' ? 'stats unverified' : credit.targetStats ? 'Method BiS stats' : 'Method BiS item';
+    : credit.fit === 'unverified' ? 'stats unverified' : credit.targetStats ? 'BiS stats' : 'BiS item';
   return `${credit.slotLabel} · ${fit} · weight ${credit.weight}`;
 }

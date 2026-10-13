@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { isMissingConfigError } from '@/core/config';
 import { UserError, isUserError } from '@/core/errors';
 import type { RowRef } from '@/core/bis/edits';
-import { LIST_TYPES, REGIONS, type ListType, type Region } from '@/core/types';
+import { LIST_TYPES, REGIONS, isBisSourceId, type ListType, type Region } from '@/core/types';
 
 export const parseRegion = (value: unknown): Region | null =>
   typeof value === 'string' && (REGIONS as readonly string[]).includes(value) ? (value as Region) : null;
@@ -28,7 +28,8 @@ export function parseListType(value: unknown): ListType {
 export function parseRowRef(body: Record<string, unknown>): RowRef {
   if (typeof body.specSlug !== 'string' || !body.specSlug) throw new UserError('Unknown spec.');
   if (typeof body.slotKey !== 'string' || !body.slotKey) throw new UserError('Unknown slot.');
-  return { specSlug: body.specSlug, listType: parseListType(body.listType), slotKey: body.slotKey };
+  if (!isBisSourceId(body.source)) throw new UserError('Unknown source.');
+  return { specSlug: body.specSlug, source: body.source, listType: parseListType(body.listType), slotKey: body.slotKey };
 }
 
 export function errorResponse(err: unknown) {

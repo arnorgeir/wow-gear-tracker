@@ -41,10 +41,12 @@ describe('parseSpecOverride', () => {
 
 describe('parseRowRef', () => {
   it('reads a row reference', () => {
-    expect(parseRowRef({ specSlug: 'frost-mage', listType: 'raid', slotKey: 'Head#1' })).toEqual({ specSlug: 'frost-mage', listType: 'raid', slotKey: 'Head#1' });
+    expect(parseRowRef({ specSlug: 'frost-mage', source: 'icyVeins', listType: 'raid', slotKey: 'Head#1' })).toEqual({ specSlug: 'frost-mage', source: 'icyVeins', listType: 'raid', slotKey: 'Head#1' });
   });
   it('rejects bad input with a safe message', () => {
-    expect(() => parseRowRef({ specSlug: 'frost-mage', listType: 'pvp', slotKey: 'Head#1' })).toThrow('Unknown list.');
+    expect(() => parseRowRef({ specSlug: 'frost-mage', source: 'method', listType: 'pvp', slotKey: 'Head#1' })).toThrow('Unknown list.');
+    expect(() => parseRowRef({ specSlug: 'frost-mage', source: 'wowhead', listType: 'raid', slotKey: 'Head#1' })).toThrow('Unknown source.');
+    expect(() => parseRowRef({ specSlug: 'frost-mage', listType: 'raid', slotKey: 'Head#1' })).toThrow('Unknown source.');
     expect(() => parseRowRef({ listType: 'raid', slotKey: 'Head#1' })).toThrow('Unknown spec.');
     expect(() => parseRowRef({ specSlug: 'frost-mage', listType: 'raid', slotKey: '' })).toThrow('Unknown slot.');
   });

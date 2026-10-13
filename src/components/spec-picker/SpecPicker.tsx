@@ -19,7 +19,7 @@ export function SpecPicker({ view, now }: { view: SpecPickerView; now: number })
       <div className="flex flex-col gap-2">
         <h2 className="font-display text-[28px] font-bold">BiS lists</h2>
         <p className="max-w-[760px] text-[15px] leading-normal text-muted md:text-[17px]">
-          Pick which of Method&apos;s lists each spec compares against, and swap single slots for your own picks. A change applies to every character of that spec.
+          Pick each spec&apos;s BiS source and which list it compares against, and swap single slots for your own picks. A change applies to every character of that spec.
         </p>
       </div>
 
@@ -35,7 +35,7 @@ export function SpecPicker({ view, now }: { view: SpecPickerView; now: number })
       <section aria-labelledby="all-classes" className="flex flex-col gap-2 md:gap-3.5">
         <div className="flex items-baseline justify-between gap-4">
           <h3 id="all-classes" className={HEADING}>All classes</h3>
-          <span className="hidden text-sm text-muted md:inline">Untracked specs need Method&apos;s list fetched before you can edit them.</span>
+          <span className="hidden text-sm text-muted md:inline">Untracked specs need their list fetched before you can edit them.</span>
         </div>
 
         <div className="hidden grid-cols-3 items-start gap-3.5 md:grid">

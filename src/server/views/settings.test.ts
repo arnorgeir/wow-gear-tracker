@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { BlizzardClient } from '@/core/blizzard/client';
 import { openTestDb } from '@/test/db';
 import type { Services } from '../services';
 import { replaceBisLists } from '@/core/db/queries/bis-lists';
@@ -39,10 +40,10 @@ async function setup(withCatalog = true) {
 describe('getSpecPicker tracked cards', () => {
   it('lists each tracked spec with its compared list, edit count, character and icon', async () => {
     const { db, s } = await setup();
-    await replaceBisLists(db, 'guardian-druid', lists, 500);
+    await replaceBisLists(db, 'method', 'guardian-druid', lists, 500);
     await upsertCatalogItem(db, { itemId: 21, name: 'Other Neck', inventoryType: 'NECK', armorType: null, quality: 'EPIC', isTier: false }, 1);
-    await upsertOverride(db, 1, 'guardian-druid', 'mythicPlus', { slotKey: 'Neck#1', itemId: 21, catalyst: false });
-    await upsertOverride(db, 1, 'guardian-druid', 'mythicPlus', { slotKey: 'Gone#1', itemId: 21, catalyst: false });
+    await upsertOverride(db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Neck#1', itemId: 21, catalyst: false });
+    await upsertOverride(db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Gone#1', itemId: 21, catalyst: false });
     await upsertClassIcons(db, [{ className: 'Druid', classId: 11, iconUrl: 'https://render/druid.jpg' }], 1);
     const view = await getSpecPicker(s);
     expect(view.tracked).toEqual([expect.objectContaining({
@@ -71,8 +72,8 @@ describe('getSpecPicker tracked cards', () => {
 describe('getSpecPicker', () => {
   it('marks tracked, not fetched, fetched and failed specs, grouped by class', async () => {
     const { db, s } = await setup();
-    await replaceBisLists(db, 'feral-druid', lists, 500);
-    await syncBisLists({ db, source: { name: 'Fake', fetchLists: async () => { throw new Error('down'); } }, now: 600 }, 'balance-druid');
+    await replaceBisLists(db, 'method', 'feral-druid', lists, 500);
+    await syncBisLists({ db, source: { name: 'Fake', fetchLists: async () => { throw new Error('down'); } }, sourceId: 'method', blizzard: {} as BlizzardClient, region: 'eu', now: 600 }, 'balance-druid');
     const view = await getSpecPicker(s);
     expect(view.classes.map((c) => c.className)).toEqual(['Druid', 'Mage']);
     const druid = view.classes.find((c) => c.className === 'Druid')!;
@@ -91,10 +92,10 @@ describe('getSpecPicker', () => {
 describe('getSettingsSpec', () => {
   it('pairs each Method slot with its override and lists orphans', async () => {
     const { db, s } = await setup();
-    await replaceBisLists(db, 'guardian-druid', lists, 500);
+    await replaceBisLists(db, 'method', 'guardian-druid', lists, 500);
     await upsertCatalogItem(db, { itemId: 21, name: 'Other Neck', inventoryType: 'NECK', armorType: null, quality: 'EPIC', isTier: false }, 1);
-    await upsertOverride(db, 1, 'guardian-druid', 'mythicPlus', { slotKey: 'Neck#1', itemId: 21, catalyst: false });
-    await upsertOverride(db, 1, 'guardian-druid', 'mythicPlus', { slotKey: 'Gone#1', itemId: 21, catalyst: false });
+    await upsertOverride(db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Neck#1', itemId: 21, catalyst: false });
+    await upsertOverride(db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Gone#1', itemId: 21, catalyst: false });
     const view = await getSettingsSpec(s, 'guardian-druid', 'mythicPlus');
     expect(view).toMatchObject({ slug: 'guardian-druid', className: 'Druid', specName: 'Guardian', listType: 'mythicPlus', statsMatter: true, editing: 'mythicPlus', hasLists: true });
     expect(view!.lists.mythicPlus.slots.map((x) => [x.slotKey, x.override?.itemId ?? null, x.tierSlot])).toEqual([['Head#1', null, true], ['Neck#1', 21, false]]);
@@ -105,7 +106,7 @@ describe('getSettingsSpec', () => {
 
   it('names who uses the spec, when its list was fetched, and its icons', async () => {
     const { db, s } = await setup();
-    await replaceBisLists(db, 'guardian-druid', lists, 500);
+    await replaceBisLists(db, 'method', 'guardian-druid', lists, 500);
     await upsertClassIcons(db, [{ className: 'Druid', classId: 11, iconUrl: 'https://render/druid.jpg' }], 1);
     const view = await getSettingsSpec(s, 'guardian-druid', 'mythicPlus');
     expect(view).toMatchObject({ fetchedAt: 500, iconUrl: 'https://render/druid.jpg', classIconUrl: 'https://render/druid.jpg' });

@@ -17,6 +17,7 @@ import { replaceSeason } from '@/core/db/queries/season';
 import { setMeta } from '@/core/db/queries/meta';
 import { SEASON_META_KEY } from '@/core/sync/season-sync';
 import { syncReference } from '@/core/sync/reference-run';
+import { chooseManual } from '@/core/bis/spec-base';
 import { DAY_MS, syncBisLists, syncTracks } from '@/core/sync/reference-sync';
 import type { BisLists, GearItem, Track } from '@/core/types';
 import type { BlizzardClient } from '@/core/blizzard/client';
@@ -49,7 +50,7 @@ async function services(bisLists: BisLists = lists): Promise<Services> {
   } as unknown as BlizzardClient;
   return {
     db, blizzard,
-    bisSource: { name: 'Fake', fetchLists: async () => bisLists },
+    bisSources: { icyVeins: { name: 'Icy Veins', fetchLists: async () => { throw new Error('unused'); } }, method: { name: 'Fake', fetchLists: async () => bisLists } },
     fetchRaidbots: async () => ({ tracks, qualities: [] }),
     syncer: { sync: async () => 'skipped' },
     now: () => 1000,
@@ -70,7 +71,7 @@ const birkiPage = async (s: Services) => (await getCharacterPage(s, BIRKI)) as C
 
 /** Fills the reference cache the way the background sync would. */
 const prime = (s: Services) =>
-  syncReference({ db: s.db, bisSource: s.bisSource, fetchRaidbots: s.fetchRaidbots, blizzard: s.blizzard, now: s.now() });
+  syncReference({ db: s.db, bisSources: s.bisSources, fetchRaidbots: s.fetchRaidbots, blizzard: s.blizzard, now: s.now() });
 
 describe('getCharacterPage', () => {
   it('builds rows with states, tracks and icons for the priority list', async () => {
@@ -98,12 +99,31 @@ describe('getCharacterPage', () => {
     expect(cards[0]).toMatchObject({ listType: 'overall' });
   });
 
+  it('reads the chosen source and never shows another source’s rows', async () => {
+    const s = await services();
+    await seed(s);
+    await prime(s);
+    await updateSpecSettings(s.db, 1, 'guardian-druid', { source: 'icyVeins' });
+    const page = await birkiPage(s);
+    expect(page).toMatchObject({ bisLoading: true, rows: [], referenceDue: 'bis:guardian-druid' });
+  });
+
+  it('reads a manual copy without asking for a sync', async () => {
+    const s = await services();
+    await seed(s);
+    await prime(s);
+    await chooseManual(s.db, 1, 'guardian-druid', 1000);
+    const page = await birkiPage(s);
+    expect(page).toMatchObject({ bisLoading: false, bisError: null, referenceDue: null });
+    expect(page.rows.length).toBeGreaterThan(0);
+  });
+
   it('applies an override for every character of the spec', async () => {
     const s = await services();
     await seed(s);
     await prime(s);
     await upsertCatalogItem(s.db, { itemId: 21, name: 'Other Neck', inventoryType: 'NECK', armorType: null, quality: 'EPIC', isTier: false }, 1);
-    await upsertOverride(s.db, 1, 'guardian-druid', 'mythicPlus', { slotKey: 'Neck#1', itemId: 21, catalyst: false });
+    await upsertOverride(s.db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Neck#1', itemId: 21, catalyst: false });
     const page = await birkiPage(s);
     expect(page.rows[1]!.bis).toMatchObject({ itemId: 21 });
     expect(page.rows[1]!.state).toBe('missing');
@@ -417,8 +437,8 @@ describe('reference data off the render path', () => {
   /** Counts the three requests a render must never make; the retained icon and spec calls stay stubbed. */
   function counting(s: Services) {
     const calls = { lists: 0, tracks: 0, items: 0 };
-    const { bisSource, fetchRaidbots, blizzard } = s;
-    s.bisSource = { name: bisSource.name, fetchLists: async (slug) => { calls.lists++; return bisSource.fetchLists(slug); } };
+    const { bisSources: { method: bisSource }, fetchRaidbots, blizzard } = s;
+    s.bisSources.method = { name: bisSource.name, fetchLists: async (slug) => { calls.lists++; return bisSource.fetchLists(slug); } };
     s.fetchRaidbots = async () => { calls.tracks++; return fetchRaidbots(); };
     const getItemDetails = blizzard.getItemDetails.bind(blizzard);
     Object.assign(s.blizzard, { getItemDetails: async (region: string, id: number) => { calls.items++; return getItemDetails(region as 'eu', id); } });
@@ -455,7 +475,7 @@ describe('reference data off the render path', () => {
 
   it('drops failed work from the key, so a failure does not ask again', async () => {
     const s = await services();
-    s.bisSource = { name: 'Fake', fetchLists: async () => { throw new Error('down'); } };
+    s.bisSources.method = { name: 'Fake', fetchLists: async () => { throw new Error('down'); } };
     s.fetchRaidbots = async () => { throw new Error('down'); };
     await seed(s);
     await prime(s);
@@ -468,7 +488,7 @@ describe('reference data off the render path', () => {
     const s = await services();
     const id = await seed(s);
     await saveSnapshotIfChanged(s.db, id, 'simc', gearToSnapshotItems(gear), 900, [{ kind: 'upgrade', currencyId: 3445, quantity: 50 }]);
-    await syncBisLists({ db: s.db, source: s.bisSource, now: 1000 }, 'guardian-druid');
+    await syncBisLists({ db: s.db, source: s.bisSources.method, sourceId: 'method', blizzard: s.blizzard, region: 'eu', now: 1000 }, 'guardian-druid');
     const { cards: [card] } = await getCharacterCards(s);
     expect(card).toMatchObject({ tracksKnown: false });
     expect(card!.crests).toEqual({ balances: [{ currencyId: 3445, name: 'Currency 3445', quantity: 50, steps: null, iconUrl: null }], pastedAt: 900 });
@@ -478,7 +498,7 @@ describe('reference data off the render path', () => {
   it('treats tracks as unknown until stored, and cached tracks with a newer failure as known', async () => {
     const s = await services();
     await seed(s);
-    await syncBisLists({ db: s.db, source: s.bisSource, now: 1000 }, 'guardian-druid');
+    await syncBisLists({ db: s.db, source: s.bisSources.method, sourceId: 'method', blizzard: s.blizzard, region: 'eu', now: 1000 }, 'guardian-druid');
     let page = await birkiPage(s);
     let { cards: [card] } = await getCharacterCards(s);
     expect(page).toMatchObject({ tracksKnown: false, tracksLoading: true, tracksError: null, priority: { approximate: true } });

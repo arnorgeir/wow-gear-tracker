@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { CrestChip } from '@/components/crest-chip/CrestChip';
 import { classTextColor } from '@/components/shared/class-colors';
+import { sourceSubject } from '@/components/shared/fallback-text';
 import { LIST_NAMES } from '@/components/shared/list-names';
 import type { GroupMemberView } from '@/server/views/types';
 
@@ -21,7 +22,7 @@ export function MemberHeader({ member }: { member: GroupMemberView }) {
           : <span className="text-xs text-muted">No crests</span>
       ) : <Link href={c.href} className="text-xs">Import SimC</Link>}
       {member.listType !== 'mythicPlus' && (
-        <span className="text-xs text-muted" title={member.fellBack ? 'Method has no list of that kind for this spec' : undefined}>{LIST_NAMES[member.listType]} list</span>
+        <span className="text-xs text-muted" title={member.fellBack ? `${sourceSubject(member.source)} has no list of that kind for this spec` : undefined}>{LIST_NAMES[member.listType]} list</span>
       )}
     </div>
   );

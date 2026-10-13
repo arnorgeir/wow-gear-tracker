@@ -1,14 +1,15 @@
 import { characterHref } from '@/core/characters/member-key';
 import type { CharacterRow } from '@/core/db/queries/characters';
 import { methodSpecSlug } from '@/core/method/method';
-import type { BisRead } from '@/core/sync/reference-sync';
+import type { SpecBase } from '@/core/bis/spec-base';
 import type { CharacterChipView, SpecFetchState } from './types';
 
 export const trackedSlug = (c: CharacterRow) => methodSpecSlug(c.specOverride || c.specName, c.className);
 
-/** What the picker and the editor say about a spec's Method list. A tracked spec always reads as tracked. */
-export function fetchStateOf(read: BisRead, tracked: boolean): SpecFetchState {
+/** What the picker and the editor say about a spec's list. A tracked spec always reads as tracked. */
+export function fetchStateOf(read: SpecBase, tracked: boolean): SpecFetchState {
   if (tracked) return { kind: 'tracked' };
+  if (read.source === 'manual') return { kind: 'manual' };
   if (read.fetchedAt !== null) return { kind: 'fetched', at: read.fetchedAt };
   return read.status === 'failed' ? { kind: 'failed' } : { kind: 'notFetched' };
 }

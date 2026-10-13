@@ -8,6 +8,7 @@ describe('fetchStateLabel', () => {
     expect(fetchStateLabel({ kind: 'notFetched' }, 0)).toBe('Not fetched');
     expect(fetchStateLabel({ kind: 'failed' }, 0)).toBe('Fetch failed');
     expect(fetchStateLabel({ kind: 'fetched', at: 0 }, 3 * DAY_MS)).toBe('Fetched 3 days ago');
+    expect(fetchStateLabel({ kind: 'manual' }, 0)).toBe('Manual');
   });
 });
 
@@ -17,5 +18,6 @@ describe('fetchAction', () => {
     expect(fetchAction({ kind: 'fetched', at: 0 })).toBe('Refresh');
     expect(fetchAction({ kind: 'failed' })).toBe('Try again');
     expect(fetchAction({ kind: 'tracked' })).toBeNull();
+    expect(fetchAction({ kind: 'manual' })).toBeNull();
   });
 });

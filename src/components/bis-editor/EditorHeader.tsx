@@ -4,9 +4,10 @@ import { classTextColor } from '@/components/shared/class-colors';
 import { SpecIcon } from '@/components/spec-icon/SpecIcon';
 import { FetchButton } from '@/components/spec-picker/FetchButton';
 import type { SettingsSpecView } from '@/server/views/types';
+import { CopyAgain } from './CopyAgain';
 import { fetchedLine } from './editor-text';
 
-/** The spec's icon with its class icon as a corner badge, its name in class color, who uses it, and when Method's list was fetched. */
+/** The spec's icon with its class icon as a corner badge, its name in class color, who uses it, and when its list was fetched or copied. */
 export function EditorHeader({ view, now }: { view: SettingsSpecView; now: number }) {
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-6">
@@ -21,7 +22,7 @@ export function EditorHeader({ view, now }: { view: SettingsSpecView; now: numbe
           </span>
           <div className="flex flex-col gap-0.5 md:gap-1.5">
             <h2 className="font-display text-2xl font-bold md:text-[32px]" style={{ color: classTextColor(view.className) }}>{view.specName} {view.className}</h2>
-            <span className="text-[13px] text-muted md:hidden">{fetchedLine(view.fetchedAt, now)} · <span className="inline-flex align-baseline"><FetchButton specSlug={view.slug} label="Refresh" link /></span></span>
+            <span className="text-[13px] text-muted md:hidden">{fetchedLine(view, now)} · <span className="inline-flex align-baseline">{view.source === 'manual' ? <CopyAgain specSlug={view.slug} copiedFrom={view.copiedFrom} /> : <FetchButton specSlug={view.slug} label="Refresh" link />}</span></span>
           </div>
         </div>
         {view.characters.length > 0 && (
@@ -37,8 +38,8 @@ export function EditorHeader({ view, now }: { view: SettingsSpecView; now: numbe
         )}
       </div>
       <div className="hidden items-center gap-3 md:flex">
-        <span className="text-sm text-muted">{fetchedLine(view.fetchedAt, now)}</span>
-        <FetchButton specSlug={view.slug} label="Refresh" size="lg" />
+        <span className="text-sm text-muted">{fetchedLine(view, now)}</span>
+        {view.source === 'manual' ? <CopyAgain specSlug={view.slug} copiedFrom={view.copiedFrom} /> : <FetchButton specSlug={view.slug} label="Refresh" size="lg" />}
       </div>
     </div>
   );

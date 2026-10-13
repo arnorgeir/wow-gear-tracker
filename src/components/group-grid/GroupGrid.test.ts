@@ -15,7 +15,7 @@ const summary = (id: number, name: string): CharacterSummary => ({
 });
 const member = (over: Partial<GroupMemberView>): GroupMemberView => ({
   key: 'eu.argent-dawn.birkibjörn', name: 'Birkibjörn', realmSlug: 'argent-dawn', character: null, state: 'ready',
-  syncError: null, bisError: null, bisLoading: false, hasRows: true, listType: 'mythicPlus', fellBack: false, crests: null, ...over,
+  syncError: null, bisError: null, bisLoading: false, hasRows: true, listType: 'mythicPlus', fellBack: false, source: 'method', crests: null, ...over,
 });
 const render = (members: GroupMemberView[], grid: GroupGridRow[], tracksKnown = true) =>
   renderToStaticMarkup(createElement(GroupEditsProvider, { keys: members.map((m) => m.key) }, createElement(GroupGrid, { members, grid, tracksKnown }))).replace(/<link[^>]*\/>/g, '');
@@ -82,6 +82,8 @@ describe('GroupGrid', () => {
     expect(html).toContain('data-wowhead="currency=3446"');
     expect(html).toContain('Overall list');
     expect(html).toContain('title="Birkibjörn"');
+    expect(html).toContain('title="Method has no list of that kind for this spec"');
+    expect(render([member({ listType: 'overall', fellBack: true, source: 'icyVeins', character: summary(3, 'Birkibjörn') })], [])).toContain('title="Icy Veins has no list of that kind for this spec"');
   });
 
   it('labels a Raid list, and says nothing for Mythic+', () => {

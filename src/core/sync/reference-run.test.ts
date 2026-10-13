@@ -6,19 +6,23 @@ import { insertCharacter, updateCharacter } from '../db/queries/characters';
 import type { BisLists, Region } from '../types';
 import { readBisLists, readTierTargets, readTracks } from './reference-sync';
 import { syncReference, type ReferenceSyncDeps } from './reference-run';
-import { upsertOverride } from '../db/queries/bis-settings';
+import { updateSpecSettings, upsertOverride } from '../db/queries/bis-settings';
+import { manualBisItems } from '../db/schema';
 import { upsertCatalogItem } from '../db/queries/item-catalog';
 import { listSpecs } from '../db/queries/specs';
 
 const tierRobe: BisLists['mythicPlus'][number] = { kind: 'item', slotLabel: 'Chest', slots: ['CHEST'], itemId: 10, name: 'Tier Robe', bonusIds: [], isTier: true, isCatalyst: false, source: '' };
 const lists: BisLists = { overall: [], raid: [], mythicPlus: [tierRobe] };
+// A catalyst row: tier by its marker, so the sync needs no item lookup for it.
+const icyLists: BisLists = { overall: [{ ...tierRobe, slotLabel: 'Head', slots: ['HEAD'], itemId: 500, isCatalyst: true }], raid: [], mythicPlus: [] };
 const trackData = { tracks: [{ bonusId: 1, name: 'Myth', step: 1, max: 6, group: 618, currencyId: null, currencyName: null, costPerStep: null }], qualities: [] };
 
 function deps(db: Db) {
-  const calls = { lists: [] as string[], tracks: 0, items: [] as string[] };
+  const calls = { lists: [] as string[], icy: [] as string[], tracks: 0, items: [] as string[] };
   const d: ReferenceSyncDeps = {
     db, now: 1000,
-    bisSource: { name: 'Fake', fetchLists: async (slug) => { calls.lists.push(slug); return lists; } },
+    bisSources: { icyVeins: { name: 'Icy Veins', fetchLists: async (slug) => { calls.icy.push(slug); return icyLists; } },
+      method: { name: 'Fake', fetchLists: async (slug) => { calls.lists.push(slug); return lists; } } },
     fetchRaidbots: async () => { calls.tracks++; return trackData; },
     blizzard: { getItemDetails: async (region: string, id: number) => { calls.items.push(`${region}:${id}`); return null; } } as unknown as BlizzardClient,
   };
@@ -34,7 +38,7 @@ describe('syncReference', () => {
     const db = await openTestDb();
     await track(db, 'Birkibjörn', 'Mage', 'Frost');
     await upsertCatalogItem(db, { itemId: 301, name: 'Woven Hood', inventoryType: 'HEAD', armorType: 'cloth', quality: 'EPIC', isTier: false }, 1);
-    await upsertOverride(db, 1, 'frost-mage', 'mythicPlus', { slotKey: 'Head#1', itemId: 301, catalyst: true });
+    await upsertOverride(db, 1, 'frost-mage', 'method', 'mythicPlus', { slotKey: 'Head#1', itemId: 301, catalyst: true });
     const { d, calls } = deps(db);
     d.blizzard = { ...d.blizzard, getClasses: async () => [{ id: 8, name: 'Mage', specs: ['Frost'] }] } as unknown as BlizzardClient;
     await syncReference(d);
@@ -80,11 +84,11 @@ describe('syncReference', () => {
     const db = await openTestDb();
     await track(db, 'Birkibjörn', 'Druid', 'Guardian');
     const { d } = deps(db);
-    d.bisSource = { name: 'Fake', fetchLists: async () => { throw new Error('down'); } };
+    d.bisSources.method = { name: 'Fake', fetchLists: async () => { throw new Error('down'); } };
     d.fetchRaidbots = async () => { throw new Error('down'); };
     expect(await syncReference(d)).toBe('synced');
     expect((await readTracks(db, 1000)).status).toBe('failed');
-    expect((await readBisLists(db, 'guardian-druid', 1000)).status).toBe('failed');
+    expect((await readBisLists(db, 'method', 'guardian-druid', 1000)).status).toBe('failed');
     expect(await syncReference(d)).toBe('skipped');
   });
 
@@ -94,7 +98,7 @@ describe('syncReference', () => {
     const { d, calls } = deps(db);
     let release!: () => void;
     const gate = new Promise<void>((resolve) => { release = resolve; });
-    d.bisSource = { name: 'Fake', fetchLists: async (slug) => { calls.lists.push(slug); if (slug === 'guardian-druid') await gate; return lists; } };
+    d.bisSources.method = { name: 'Fake', fetchLists: async (slug) => { calls.lists.push(slug); if (slug === 'guardian-druid') await gate; return lists; } };
 
     const first = syncReference(d);
     await vi.waitFor(() => expect(calls.lists).toEqual(['guardian-druid']));
@@ -107,6 +111,33 @@ describe('syncReference', () => {
     expect(await first).toBe('synced');
     expect(await second).toBe('synced');
     expect(calls.lists).toEqual(['guardian-druid', 'frost-mage']);
-    expect((await readBisLists(db, 'frost-mage', 1000)).status).toBe('ready');
+    expect((await readBisLists(db, 'method', 'frost-mage', 1000)).status).toBe('ready');
+  });
+
+  it('fetches only the sources in use', async () => {
+    const db = await openTestDb();
+    await track(db, 'Birkibjörn', 'Mage', 'Frost');
+    await updateSpecSettings(db, 1, 'frost-mage', { source: 'icyVeins' });
+    const { d, calls } = deps(db);
+    await syncReference(d);
+    expect(calls.icy).toEqual(['frost-mage']);
+    expect(calls.lists).toEqual([]);
+  });
+
+  it('syncs tier stats for an Icy Veins spec and a Manual spec', async () => {
+    const db = await openTestDb();
+    await track(db, 'Birkibjörn', 'Mage', 'Frost');
+    await track(db, 'Hrafnhildur', 'Warrior', 'Protection');
+    await updateSpecSettings(db, 1, 'frost-mage', { source: 'icyVeins' });
+    await updateSpecSettings(db, 1, 'protection-warrior', { source: 'manual' });
+    await db.insert(manualBisItems).values({
+      accountId: 1, specSlug: 'protection-warrior', listType: 'raid', position: 0, slotLabel: 'Chest', slots: ['CHEST'],
+      itemId: 600, minItemLevel: null, name: 'Manual Plate', bonusIds: [], isTier: true, isCatalyst: false, source: 'Boss',
+    });
+    const { d, calls } = deps(db);
+    await syncReference(d);
+    expect(calls.lists).toEqual([]);
+    expect(calls.items.sort()).toEqual(['eu:500', 'eu:600']);
+    expect((await readTierTargets(db, { region: 'eu', specSlug: 'frost-mage', lists: icyLists }, 1000)).due).toBe(false);
   });
 });

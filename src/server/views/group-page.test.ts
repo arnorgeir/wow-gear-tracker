@@ -40,7 +40,7 @@ async function services() {
   } as unknown as BlizzardClient;
   const s: Services = {
     db, blizzard,
-    bisSource: { name: 'Fake', fetchLists: async (slug) => { fetched.push(slug); if (!LISTS[slug]) throw new Error('down'); return LISTS[slug]!; } },
+    bisSources: { icyVeins: { name: 'Icy Veins', fetchLists: async () => { throw new Error('unused'); } }, method: { name: 'Fake', fetchLists: async (slug) => { fetched.push(slug); if (!LISTS[slug]) throw new Error('down'); return LISTS[slug]!; } } },
     fetchRaidbots: async () => ({ tracks: [], qualities: [] }),
     syncer: { sync: async () => 'skipped' },
     now: () => 10_000_000,
@@ -79,7 +79,7 @@ async function season(s: Services) {
 }
 
 const prime = (s: Services) =>
-  syncReference({ db: s.db, bisSource: s.bisSource, fetchRaidbots: s.fetchRaidbots, blizzard: s.blizzard, now: s.now() });
+  syncReference({ db: s.db, bisSources: s.bisSources, fetchRaidbots: s.fetchRaidbots, blizzard: s.blizzard, now: s.now() });
 
 const keys = (...names: string[]) => parseMemberKeys(names.map((n) => `eu.argent-dawn.${n}`).join(','));
 
@@ -91,7 +91,7 @@ describe('getGroupPage', () => {
     await season(s);
     await s.db.insert(dungeonLoot).values({ challengeModeId: 504, encounterId: 4, encounterName: 'Boss', itemId: 62, itemName: 'Item 62', inventoryType: 'FINGER', armorType: null });
     await upsertCatalogItem(s.db, { itemId: 62, name: 'Item 62', inventoryType: 'FINGER', armorType: null, quality: 'EPIC', isTier: false }, 1);
-    await upsertOverride(s.db, 1, 'guardian-druid', 'mythicPlus', { slotKey: 'Ring#2', itemId: 62, catalyst: false });
+    await upsertOverride(s.db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Ring#2', itemId: 62, catalyst: false });
     await prime(s);
     const page = await getGroupPage(s, keys('birkibjörn', 'sólrún'));
     const rings = page.grid.filter((r) => r.label.startsWith('Ring'));
@@ -108,7 +108,7 @@ describe('getGroupPage', () => {
     await prime(s);
     const page = await getGroupPage(s, keys('hrafnhildur'));
     expect(page.members.map((m) => [m.listType, m.fellBack])).toEqual([['overall', true]]);
-    expect(page.priority.fellBack).toEqual([{ name: 'Hrafnhildur', from: 'raid' }]);
+    expect(page.priority.fellBack).toEqual([{ name: 'Hrafnhildur', from: 'raid', source: 'method' }]);
   });
 
   it('aligns members by evaluated slot, with rings where they sit and an empty off hand', async () => {

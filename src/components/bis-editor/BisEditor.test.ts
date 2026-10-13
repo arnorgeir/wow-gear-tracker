@@ -13,6 +13,7 @@ const empty = { slots: [] as SettingsSlotView[], orphans: [], editedCount: 0 };
 
 const view: SettingsSpecView = {
   slug: 'guardian-druid', className: 'Druid', specName: 'Guardian', listType: 'mythicPlus', statsMatter: true, editing: 'mythicPlus',
+  source: 'method', copiedFrom: null, copiedAt: null,
   hasLists: true, fetchState: { kind: 'tracked' }, fetchedAt: 0, iconUrl: 'https://render/guardian.jpg', classIconUrl: 'https://render/druid.jpg',
   characters: [{ name: 'Birkibjörn', href: '/characters/eu/argent-dawn/birkibj%C3%B6rn', className: 'Druid', avatarUrl: null, classIconUrl: null }],
   lists: {
@@ -42,8 +43,8 @@ describe('BisEditor', () => {
 
   it('offers the three lists as real radio inputs with the compared one checked', () => {
     expect(html).toContain('Compare against');
-    expect(html.match(/type="radio"/g)).toHaveLength(3);
-    expect(html.match(/checked=""/g)).toHaveLength(2); // the Mythic+ radio and the stats checkbox
+    expect(html.match(/name="compare-list"/g)).toHaveLength(3);
+    expect(html.match(/checked=""/g)).toHaveLength(3); // the Method and Mythic+ radios and the stats checkbox
     expect(html).toContain('Tier pieces must have the list&#x27;s stats');
   });
 
@@ -82,5 +83,28 @@ describe('BisEditor', () => {
   it('says so when Method has no list of the edited type', () => {
     const none = renderToStaticMarkup(createElement(BisEditor, { view: { ...view, editing: 'raid' }, now: 0 }));
     expect(none).toContain('Method has no Raid list for this spec.');
+  });
+});
+
+describe('BisEditor sources', () => {
+  const render = (over: Partial<SettingsSpecView>) => renderToStaticMarkup(createElement(BisEditor, { view: { ...view, ...over }, now: 2 * 86_400_000 }));
+
+  it('offers the sources on offer as radios with the chosen one checked', () => {
+    expect(html).toContain('BiS source');
+    expect(html.match(/name="bis-source"/g)).toHaveLength(2);
+    const icy = render({ source: 'icyVeins' });
+    expect(render({ source: 'manual' })).toMatch(/name="bis-source" checked="" value="manual"/);
+    expect(icy).toContain('Icy Veins&#x27;s pick');
+    expect(icy).toContain('Icy Veins list fetched');
+  });
+
+  it('shows a manual list as a copy, with Copy again in place of Refresh', () => {
+    const manual = render({ source: 'manual', fetchedAt: null, copiedFrom: 'icyVeins', copiedAt: 0 });
+    expect(manual).toContain('Copied pick');
+    expect(manual).toContain('Follows your copy');
+    expect(manual).toContain('Manual · copied from Icy Veins 2 days ago');
+    expect(manual).toContain('Copy again');
+    expect(manual).toContain('From Method');
+    expect(manual).not.toContain('Refresh');
   });
 });

@@ -6,7 +6,7 @@ import { useApiAction } from '@/components/hooks/use-api-action';
 import { ItemSearch } from '@/components/item-search/ItemSearch';
 import type { SettingsSlotView } from '@/server/views/types';
 import { EditedPill } from './EditedPill';
-import { anyPickName, methodPickName, rowButton } from './editor-text';
+import { anyPickName, followsText, methodPickName, replaceText, rowButton } from './editor-text';
 import { PickLine } from './PickLine';
 import { overrideLabel } from './slot-row';
 
@@ -22,10 +22,10 @@ function MethodPick({ pick, replaced }: { pick: Method; replaced?: boolean }) {
 
 const BUTTON = 'h-10 justify-self-end rounded-lg border bg-raised px-3.5 text-sm font-semibold text-ink disabled:opacity-60';
 
-export function SlotRow({ slot, specSlug, listType }: { slot: SettingsSlotView; specSlug: string; listType: RowRef['listType'] }) {
+export function SlotRow({ slot, specSlug, source, listType }: { slot: SettingsSlotView; specSlug: string; source: RowRef['source']; listType: RowRef['listType'] }) {
   const [searching, setSearching] = useState(false);
   const reset = useApiAction();
-  const row: RowRef = { specSlug, listType, slotKey: slot.slotKey };
+  const row: RowRef = { specSlug, source, listType, slotKey: slot.slotKey };
   const { override } = slot;
   const edited = override !== null;
   const label = rowButton({ edited, open: searching });
@@ -48,7 +48,7 @@ export function SlotRow({ slot, specSlug, listType }: { slot: SettingsSlotView; 
       <div className="hidden grid-cols-[110px_minmax(0,1fr)_minmax(0,1fr)_120px] items-center gap-4 md:grid">
         <span className="text-[15px] font-semibold text-muted">{slot.slotLabel}</span>
         <MethodPick pick={slot.method} replaced={edited} />
-        {mine ?? <span className="text-sm text-dim">Follows Method</span>}
+        {mine ?? <span className="text-sm text-dim">{followsText(source)}</span>}
         {button}
       </div>
 
@@ -64,7 +64,7 @@ export function SlotRow({ slot, specSlug, listType }: { slot: SettingsSlotView; 
       {reset.error && <span role="alert" className="text-sm text-missing">{reset.error}</span>}
       {searching && !edited && (
         <div className="md:ml-[126px]">
-          <ItemSearch row={row} slotLabel={slot.slotLabel} onDone={() => setSearching(false)} />
+          <ItemSearch row={row} label={replaceText(source, slot.slotLabel)} slotLabel={slot.slotLabel} onDone={() => setSearching(false)} />
         </div>
       )}
     </div>

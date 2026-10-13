@@ -1,12 +1,12 @@
 import { applyOverrides } from '@/core/bis/overlay';
 import { slotKeys } from '@/core/bis/slot-keys';
+import { readSpecBase } from '@/core/bis/spec-base';
 import { getSpecSettings, listOverrides } from '@/core/db/queries/bis-settings';
 import { listCharacters } from '@/core/db/queries/characters';
 import { getCatalogItems } from '@/core/db/queries/item-catalog';
 import { getClassIconMap, getItemIcons } from '@/core/db/queries/media';
 import { getSpec } from '@/core/db/queries/specs';
 import { TIER_SLOTS } from '@/core/priority/slots';
-import { readBisLists } from '@/core/sync/reference-sync';
 import { LIST_TYPES, type BisOverride, type CatalogItem, type ListType, type TierTarget } from '@/core/types';
 import type { Services } from '../services';
 import { itemView } from './item-view';
@@ -36,9 +36,9 @@ export async function getSettingsSpec(services: Services, slug: string, editing:
   if (!who) return null;
   const accountId = services.currentAccountId();
   const classIcons = await getClassIconMap(db);
-  const read = await readBisLists(db, slug, now());
+  const read = await readSpecBase(db, accountId, slug, now());
   const settings = await getSpecSettings(db, accountId, slug);
-  const overrides = await listOverrides(db, accountId, slug);
+  const overrides = await listOverrides(db, accountId, slug, read.source);
   const catalog = await getCatalogItems(db, LIST_TYPES.flatMap((l) => overrides[l].map((o) => o.itemId)));
   const rowsByList = (l: ListType) => read.lists?.[l] ?? [];
   const iconIds = LIST_TYPES.flatMap((l) => [
@@ -69,7 +69,9 @@ export async function getSettingsSpec(services: Services, slug: string, editing:
   return {
     slug, className: who.className, specName: who.specName,
     listType: settings.listType, statsMatter: settings.statsMatter, editing,
-    hasLists: read.lists !== null, fetchState: fetchStateOf(read, who.users.length > 0), fetchedAt: read.fetchedAt,
+    source: read.source, hasLists: read.lists !== null, fetchState: fetchStateOf(read, who.users.length > 0),
+    fetchedAt: read.source === 'manual' ? null : read.fetchedAt,
+    copiedFrom: read.copiedFrom, copiedAt: read.source === 'manual' ? read.fetchedAt : null,
     iconUrl: specIconOf(who.iconUrl, who.className, classIcons), classIconUrl: classIcons.get(who.className) ?? null,
     characters: who.users.map((c) => chipOf(c, classIcons)), lists,
   };

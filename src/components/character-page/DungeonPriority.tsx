@@ -1,6 +1,7 @@
 import { BrandIcon } from '@/components/brand-icon/BrandIcon';
 import { DungeonDisclosure } from '@/components/dungeon-disclosure/DungeonDisclosure';
 import { ItemCard } from '@/components/item-card/ItemCard';
+import { fallbackText } from '@/components/shared/fallback-text';
 import { LIST_NAMES } from '@/components/shared/list-names';
 import { BIS_LOADING } from '@/components/shared/loading-copy';
 import { APPROXIMATE, SEASON_FAILED, SEASON_LOADING, SEASON_STALE, SPLIT_DUNGEON } from '@/components/shared/priority-copy';
@@ -58,7 +59,7 @@ export function DungeonPriority({ priority, specLabel }: { priority: PriorityVie
         <h2 className="flex items-center gap-2.5 font-display text-2xl font-bold"><BrandIcon name="dungeons" size={28} className="text-gold" />Dungeon priority</h2>
         <span className="text-sm text-muted">{LIST_NAMES[priority.listType]} list</span>
       </div>
-      {priority.fellBackFrom && <p className="text-sm text-muted">Using the Overall list: Method has no {LIST_NAMES[priority.fellBackFrom]} list for {specLabel}.</p>}
+      {priority.fellBackFrom && <p className="text-sm text-muted">Using the Overall list: {fallbackText(priority.source, priority.fellBackFrom)} for {specLabel}.</p>}
       {priority.approximate && <p className="text-sm text-muted">{APPROXIMATE}</p>}
       {priority.season === 'stale' && <p className="text-sm text-muted">{SEASON_STALE}</p>}
       <Ranking priority={priority} />

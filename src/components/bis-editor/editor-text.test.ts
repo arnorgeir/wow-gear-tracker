@@ -1,10 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { anyPickName, fetchedLine, methodPickName, orphanLabel, rowButton, tabSub } from './editor-text';
+import { anyPickName, fetchedLine, followsText, replaceText, methodPickName, orphanLabel, orphanText, pickColumn, rowButton, tabSub } from './editor-text';
 
 describe('editor text', () => {
-  it('says when Method list was fetched', () => {
-    expect(fetchedLine(0, 3 * 3_600_000)).toBe('Method list fetched 3 h ago');
-    expect(fetchedLine(null, 0)).toBe('Method list not fetched');
+  it("says when the source's list was fetched or copied", () => {
+    const view = { source: 'method' as const, fetchedAt: 0, copiedFrom: null, copiedAt: null };
+    expect(fetchedLine(view, 3 * 3_600_000)).toBe('Method list fetched 3 h ago');
+    expect(fetchedLine({ ...view, source: 'icyVeins', fetchedAt: null }, 0)).toBe('Icy Veins list not fetched');
+    expect(fetchedLine({ ...view, source: 'manual', fetchedAt: null, copiedFrom: 'icyVeins', copiedAt: 0 }, 2 * 86_400_000)).toBe('Manual · copied from Icy Veins 2 days ago');
+  });
+
+  it('names the pick column and the untouched rows after the source', () => {
+    expect(pickColumn('icyVeins')).toBe("Icy Veins's pick");
+    expect(pickColumn('manual')).toBe('Copied pick');
+    expect(followsText('method')).toBe('Follows Method');
+    expect(followsText('manual')).toBe('Follows your copy');
+    expect(replaceText('icyVeins', 'Head')).toBe("Replace Icy Veins's Head pick");
+    expect(replaceText('manual', 'Head')).toBe('Replace the copied Head pick');
+  });
+
+  it('says who dropped orphaned slots', () => {
+    expect(orphanText('method')).toEqual({ heading: "No longer in Method's list", body: "Method dropped these slots. Your picks for them aren't applied." });
+    expect(orphanText('manual')).toEqual({ heading: 'No longer in your copy', body: "These slots are gone from your copy. Your picks for them aren't applied." });
   });
 
   it('labels the row button by what it does next', () => {

@@ -7,7 +7,7 @@ import { DungeonPriority } from './DungeonPriority';
 // React 19 hoists <link rel="preload"> tags for images ahead of the markup.
 const render = (priority: PriorityView) =>
   renderToStaticMarkup(createElement(DungeonPriority, { priority, specLabel: 'Feral Druid' })).replace(/<link[^>]*\/>/g, '');
-const base: PriorityView = { listType: 'mythicPlus', fellBackFrom: null, season: 'ready', needsSync: false, bisLoading: false, approximate: false, dungeons: [], nothingFrom: [] };
+const base: PriorityView = { listType: 'mythicPlus', fellBackFrom: null, source: 'method', season: 'ready', needsSync: false, bisLoading: false, approximate: false, dungeons: [], nothingFrom: [] };
 
 describe('DungeonPriority', () => {
   it('ranks dungeons with their credits and lists the rest apart', () => {
@@ -45,8 +45,9 @@ describe('DungeonPriority', () => {
   });
 
   it('names the chosen list in the fallback notice', () => {
-    const html = render({ ...base, listType: 'overall', fellBackFrom: 'raid' });
-    expect(html).toContain('Using the Overall list: Method has no Raid list for Feral Druid.');
+    const html = render({ ...base, listType: 'overall', fellBackFrom: 'raid', source: 'icyVeins' });
+    expect(html).toContain('Using the Overall list: Icy Veins has no Raid list for Feral Druid.');
+    expect(render({ ...base, listType: 'overall', fellBackFrom: 'raid', source: 'manual' })).toContain('Using the Overall list: Your copy has no Raid list for Feral Druid.');
     expect(html).not.toContain('Mythic+ list for');
   });
 
