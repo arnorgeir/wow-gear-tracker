@@ -6,6 +6,7 @@ import { pickQuality } from '@/core/bis/pick-quality';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { QUALITY_STYLES } from '@/components/item-card/quality-styles';
 import { wowheadData } from '@/components/item-card/wowhead';
+import { RarityBox } from './RarityBox';
 import { resultDetail } from './result-detail';
 import { useItemSearch } from './use-item-search';
 
@@ -19,10 +20,6 @@ function ItemName({ item }: { item: ItemChoice }) {
       {item.name}
     </a>
   );
-}
-
-function RarityBox({ item }: { item: ItemChoice }) {
-  return <span aria-hidden="true" className="size-[34px] shrink-0 rounded-md border-2 bg-surface" style={{ borderColor: QUALITY_STYLES[pickQuality(item.quality)].ring }} />;
 }
 
 const WarnIcon = () => (

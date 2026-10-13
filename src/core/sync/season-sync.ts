@@ -7,7 +7,7 @@ import type { FetchFn } from '../http';
 import { fetchMainSeason, type MainSeason } from '../raiderio/season';
 import type { Region, SeasonLoot } from '../types';
 import { encodeStats } from '../gear/stat-pair';
-import { DAY_MS } from './reference-sync';
+import { DAY_MS, ensureItemIcons } from './reference-sync';
 
 // The version in the key marks the stored tables' format. Bump it when season_dungeons or
 // dungeon_loot gain columns, so installs reload the season instead of trusting old rows.
@@ -74,7 +74,18 @@ export async function loadSeasonLoot(blizzard: BlizzardClient, region: Region, s
   return { slug: season.slug, dungeons: rows, loot };
 }
 
-async function runSync({ db, blizzard, fetchFn, now, region }: SeasonSyncDeps): Promise<SeasonSyncResult> {
+/** Caches an icon for every loot item, so the override search (a read-only GET) can show them. Never fails the sync. */
+async function cacheLootIcons({ db, blizzard, now, region }: SeasonSyncDeps) {
+  try {
+    const loot = (await getSeasonLoot(db)).flatMap((d) => d.loot.map((i) => i.itemId));
+    await ensureItemIcons({ db, blizzard, now }, region, loot);
+  } catch (err) {
+    console.error('The season’s item icons couldn’t be cached', err);
+  }
+}
+
+async function runSync(deps: SeasonSyncDeps): Promise<SeasonSyncResult> {
+  const { db, blizzard, fetchFn, now, region } = deps;
   const loaded = await getMeta(db, SEASON_META_KEY);
   const failed = await getMeta(db, SEASON_FAILED_META_KEY);
   if (!seasonTiming(loaded, failed, now).due) return 'skipped';
@@ -84,10 +95,12 @@ async function runSync({ db, blizzard, fetchFn, now, region }: SeasonSyncDeps): 
       // Same season: only artwork can have moved, so refresh it without rebuilding loot.
       await updateSeasonArtwork(db, season.slug, season.dungeons);
       await setMeta(db, SEASON_META_KEY, season.slug, now);
+      await cacheLootIcons(deps);
       return 'current';
     }
     await replaceSeason(db, await loadSeasonLoot(blizzard, region, season));
     await setMeta(db, SEASON_META_KEY, season.slug, now);
+    await cacheLootIcons(deps);
     return 'loaded';
   } catch (err) {
     console.error('The season’s loot couldn’t be loaded', err);

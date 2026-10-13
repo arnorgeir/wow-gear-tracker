@@ -2,10 +2,12 @@ import type { BlizzardClient } from '../blizzard/client';
 import type { Db } from '../db/client';
 import { SOURCE_CHANGED, deleteOverrideIfCurrent, upsertOverrideIfCurrent } from '../db/queries/bis-settings';
 import { listCharacters } from '../db/queries/characters';
+import { getItemIcons } from '../db/queries/media';
 import { findLocalItem, searchLocalItems, upsertCatalogItem } from '../db/queries/item-catalog';
 import { getSpec } from '../db/queries/specs';
 import { UserError, isUserError } from '../errors';
 import { methodSpecSlug } from '../method/method';
+import { ensureItemIcons } from '../sync/reference-sync';
 import { SOURCE_NAMES, type BisRow, type BisSourceId, type CatalogItem, type ListType, type Region } from '../types';
 import { canCatalyst, classCanUse, type CanUse } from './class-can-use';
 import { parseItemInput } from './item-input';
@@ -17,7 +19,7 @@ export interface EditDeps { db: Db; blizzard: BlizzardClient; now: number; accou
 export interface RowRef { specSlug: string; source: BisSourceId; listType: ListType; slotKey: string }
 type ReadDeps = Pick<EditDeps, 'db' | 'accountId' | 'now'>;
 /** `source` is the season dungeon the item drops in; null for an item looked up by ID or link. */
-export interface ItemChoice extends CatalogItem { canUse: CanUse; canCatalyst: boolean; source: string | null }
+export interface ItemChoice extends CatalogItem { canUse: CanUse; canCatalyst: boolean; source: string | null; iconUrl: string | null }
 
 const SEARCH_LIMIT = 20;
 
@@ -50,8 +52,8 @@ async function resolveRow({ db, accountId, now }: ReadDeps, ref: RowRef): Promis
   return { row: rows[index]!, className };
 }
 
-const choice = (item: CatalogItem & { source?: string | null }, className: string, row: BisRow): ItemChoice =>
-  ({ ...item, source: item.source ?? null, canUse: classCanUse(item, className, row), canCatalyst: canCatalyst(item, row.slots) });
+const choice = (item: CatalogItem & { source?: string | null }, icons: ReadonlyMap<number, string | null>, className: string, row: BisRow): ItemChoice =>
+  ({ ...item, source: item.source ?? null, iconUrl: icons.get(item.itemId) ?? null, canUse: classCanUse(item, className, row), canCatalyst: canCatalyst(item, row.slots) });
 
 /** The item from local data, else one Blizzard request, cached. Writes nothing when Blizzard fails. */
 async function ensureItem(deps: EditDeps, itemId: number): Promise<CatalogItem> {
@@ -77,7 +79,10 @@ async function ensureItem(deps: EditDeps, itemId: number): Promise<CatalogItem> 
 
 export async function searchItems(deps: ReadDeps, ref: RowRef, query: string) {
   const { row, className } = await resolveRow(deps, ref);
-  const all = (await searchLocalItems(deps.db, query)).map((i) => choice(i, className, row));
+  // A GET must not write, so only cached icons show; the season sync and lookups fill the cache.
+  const found = await searchLocalItems(deps.db, query);
+  const icons = await getItemIcons(deps.db, found.map((i) => i.itemId));
+  const all = found.map((i) => choice(i, icons, className, row));
   const exactId = parseItemInput(query);
   return {
     results: all.filter((i) => i.canUse.ok).slice(0, SEARCH_LIMIT),
@@ -89,7 +94,9 @@ export async function lookupItem(deps: EditDeps, ref: RowRef, input: string): Pr
   const itemId = parseItemInput(input);
   if (itemId === null) throw new UserError('Not a Wowhead item link or ID.');
   const { row, className } = await resolveRow(deps, ref);
-  return choice(await ensureItem(deps, itemId), className, row);
+  const item = await ensureItem(deps, itemId);
+  const icons = await ensureItemIcons(deps, await regionForSpec(deps.db, ref.specSlug), [itemId]);
+  return choice(item, icons, className, row);
 }
 
 export async function saveOverride(deps: EditDeps, ref: RowRef, itemId: number, catalyst: boolean) {

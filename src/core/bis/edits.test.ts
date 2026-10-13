@@ -5,10 +5,12 @@ import type { BlizzardClient } from '../blizzard/client';
 import type { ItemInfo } from '../blizzard/types';
 import { replaceBisLists } from '../db/queries/bis-lists';
 import { replaceSpecs } from '../db/queries/specs';
-import { getCatalogItems } from '../db/queries/item-catalog';
+import { getItemIcons } from '../db/queries/media';
+import { getCatalogItems, upsertCatalogItem } from '../db/queries/item-catalog';
 import { listOverrides, updateSpecSettings } from '../db/queries/bis-settings';
 import { withWriteLock } from '../db/queries/write-lock';
 import { replaceSeason } from '../db/queries/season';
+import { upsertItemIcons } from '../db/queries/media';
 import type { BisLists } from '../types';
 import { knownSpecSlug, lookupItem, removeOverride, saveOverride, searchItems } from './edits';
 import { chooseManual } from './spec-base';
@@ -26,11 +28,11 @@ const ring = { ...chest, slotKey: 'Ring#1' };
 
 const info = (over: Partial<ItemInfo>): ItemInfo => ({ name: 'Woven Robe', quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'cloth', secondaryStats: null, ...over });
 
-async function setup(getItemDetails: BlizzardClient['getItemDetails'] = async () => info({})) {
+async function setup(getItemDetails: BlizzardClient['getItemDetails'] = async () => info({}), getItemIconUrl: BlizzardClient['getItemIconUrl'] = async (_r, id) => `https://render/icons/${id}.jpg`) {
   const db = await openTestDb();
   await replaceSpecs(db, [{ methodSlug: 'frost-mage', classId: 8, className: 'Mage', specName: 'Frost', iconUrl: null }, { methodSlug: 'fire-mage', classId: 8, className: 'Mage', specName: 'Fire', iconUrl: null }], 1);
   await replaceBisLists(db, 'method', 'frost-mage', lists, 1);
-  const blizzard = { getItemDetails } as unknown as BlizzardClient;
+  const blizzard = { getItemDetails, getItemIconUrl } as unknown as BlizzardClient;
   return { db, deps: { db, blizzard, now: 5, accountId: 1 } };
 }
 
@@ -110,6 +112,31 @@ describe('searchItems and lookupItem', () => {
     const out = await searchItems(deps, chest, '70');
     expect(out.results).toEqual([]);
     expect(out.unusable).toMatchObject({ itemId: 70, canUse: { ok: false, reason: "Mage can't wear plate." } });
+  });
+
+  it('returns a cached icon, null for an uncached one, and writes nothing', async () => {
+    const calls: number[] = [];
+    const { db, deps } = await setup(async () => info({ name: 'Cloth Robe', inventoryType: 'ROBE' }), async (_r, id) => { calls.push(id); return null; });
+    for (const [itemId, name] of [[71, 'Cached Robe'], [72, 'Bare Robe']] as const) {
+      await upsertCatalogItem(db, { itemId, name, inventoryType: 'ROBE', armorType: 'cloth', quality: 'EPIC', isTier: false }, 1);
+    }
+    await upsertItemIcons(db, [{ itemId: 71, iconUrl: 'https://render/icons/71.jpg' }], 1);
+    const out = await searchItems(deps, chest, 'Robe');
+    expect(out.results.map((r) => [r.itemId, r.iconUrl]).sort()).toEqual([[71, 'https://render/icons/71.jpg'], [72, null]]);
+    expect(calls).toEqual([]);
+    expect([...(await getItemIcons(db, [71, 72])).keys()]).toEqual([71]);
+  });
+
+  it('looks up the icon with the item, and later searches return it', async () => {
+    const { deps } = await setup(async () => info({ name: 'Cloth Robe', inventoryType: 'ROBE' }));
+    const found = await lookupItem(deps, chest, '73');
+    expect(found.iconUrl).toBe('https://render/icons/73.jpg');
+    expect((await searchItems(deps, chest, '73')).results[0]!.iconUrl).toBe('https://render/icons/73.jpg');
+  });
+
+  it('still returns the item when its icon cannot be fetched', async () => {
+    const { deps } = await setup(async () => info({ name: 'Cloth Robe', inventoryType: 'ROBE' }), async () => { throw new Error('media down'); });
+    expect(await lookupItem(deps, chest, '74')).toMatchObject({ itemId: 74, iconUrl: null });
   });
 
   it('rejects input that is not an ID or link', async () => {
