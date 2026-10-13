@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { ItemChoice, RowRef } from '@/core/bis/edits';
+import { pickQuality } from '@/core/bis/pick-quality';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { QUALITY_STYLES } from '@/components/item-card/quality-styles';
 import { wowheadData } from '@/components/item-card/wowhead';
@@ -11,7 +12,7 @@ import { useItemSearch } from './use-item-search';
 const BUTTON = 'h-9 shrink-0 rounded-lg border border-line-strong bg-raised px-3.5 text-sm font-semibold text-ink disabled:opacity-60 md:h-9';
 
 function ItemName({ item }: { item: ItemChoice }) {
-  const q = QUALITY_STYLES[item.quality ?? 'EPIC'];
+  const q = QUALITY_STYLES[pickQuality(item.quality)];
   return (
     <a href={`https://www.wowhead.com/item=${item.itemId}`} data-wowhead={wowheadData(item.itemId, [], null)} target="_blank" rel="noreferrer"
       className="text-[15px] font-semibold no-underline hover:underline" style={{ color: q.text }}>
@@ -21,7 +22,7 @@ function ItemName({ item }: { item: ItemChoice }) {
 }
 
 function RarityBox({ item }: { item: ItemChoice }) {
-  return <span aria-hidden="true" className="size-[34px] shrink-0 rounded-md border-2 bg-surface" style={{ borderColor: QUALITY_STYLES[item.quality ?? 'EPIC'].ring }} />;
+  return <span aria-hidden="true" className="size-[34px] shrink-0 rounded-md border-2 bg-surface" style={{ borderColor: QUALITY_STYLES[pickQuality(item.quality)].ring }} />;
 }
 
 const WarnIcon = () => (

@@ -104,6 +104,17 @@ describe('getSettingsSpec', () => {
     expect(view!.lists.raid.editedCount).toBe(0);
   });
 
+  it('shows an override of a Rare catalog item as Epic, in the slot and among orphans', async () => {
+    const { db, s } = await setup();
+    await replaceBisLists(db, 'method', 'guardian-druid', lists, 500);
+    await upsertCatalogItem(db, { itemId: 22, name: 'Dungeon Neck', inventoryType: 'NECK', armorType: null, quality: 'RARE', isTier: false }, 1);
+    await upsertOverride(db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Neck#1', itemId: 22, catalyst: false });
+    await upsertOverride(db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Gone#1', itemId: 22, catalyst: false });
+    const view = await getSettingsSpec(s, 'guardian-druid', 'mythicPlus');
+    expect(view!.lists.mythicPlus.slots.find((x) => x.slotKey === 'Neck#1')!.override!.quality).toBe('EPIC');
+    expect(view!.lists.mythicPlus.orphans[0]!.quality).toBe('EPIC');
+  });
+
   it('names who uses the spec, when its list was fetched, and its icons', async () => {
     const { db, s } = await setup();
     await replaceBisLists(db, 'method', 'guardian-druid', lists, 500);
