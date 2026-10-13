@@ -76,6 +76,15 @@ describe('manual lists', () => {
     expect(await getSpecSettings(db, 1, SLUG)).toMatchObject({ source: 'manual' });
   });
 
+  it('copy again keeps the current source, even one another tab chose after Manual', async () => {
+    const db = await seeded();
+    await chooseManual(db, 1, SLUG, 50);
+    await updateSpecSettings(db, 1, SLUG, { source: 'method' });
+    await copyManual(db, 1, SLUG, 'method', 99);
+    expect(await getSpecSettings(db, 1, SLUG)).toMatchObject({ source: 'method' });
+    expect(await getManualLists(db, 1, SLUG)).toMatchObject({ copiedFrom: 'method', copiedAt: 99 });
+  });
+
   it('copy again from a source with no rows refuses and keeps the copy', async () => {
     const db = await seeded();
     await chooseManual(db, 1, SLUG, 50);

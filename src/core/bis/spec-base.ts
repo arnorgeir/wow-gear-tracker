@@ -55,15 +55,15 @@ export async function chooseManual(db: Db, accountId: number, specSlug: string, 
     if (await getManualLists(db, accountId, specSlug)) return setManualSource(db, accountId, specSlug);
     const lists = await effectiveLists(db, accountId, specSlug, source);
     if (!lists) throw new UserError(NOTHING_TO_COPY);
-    await writeManualCopy(db, accountId, specSlug, source, lists, now);
+    await writeManualCopy(db, accountId, specSlug, source, lists, now, true);
   });
 }
 
-/** Replaces the manual lists with a fresh copy of a source's lists. Manual edits are dropped. */
+/** Replaces the manual lists with a fresh copy of a source's lists. Manual edits are dropped; the chosen source stays as it is. */
 export async function copyManual(db: Db, accountId: number, specSlug: string, from: FetchedSourceId, now: number) {
   await withWriteLock(db, async () => {
     const lists = await effectiveLists(db, accountId, specSlug, from);
     if (!lists) throw new UserError(NOTHING_TO_COPY);
-    await writeManualCopy(db, accountId, specSlug, from, lists, now);
+    await writeManualCopy(db, accountId, specSlug, from, lists, now, false);
   });
 }

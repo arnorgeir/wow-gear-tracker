@@ -35,8 +35,8 @@ export async function setManualSource(db: Db, accountId: number, specSlug: strin
     .onConflictDoUpdate({ target: [specSettings.accountId, specSettings.specSlug], set: { source: 'manual' } });
 }
 
-/** Replaces the manual lists with a copy, clears the manual overrides and sets the source to Manual, in one transaction. The caller holds the write lock. */
-export async function writeManualCopy(db: Db, accountId: number, specSlug: string, from: FetchedSourceId, lists: BisLists, now: number) {
+/** Replaces the manual lists with a copy and clears the manual overrides, in one transaction; with `selectManual` it also sets the source to Manual. The caller holds the write lock. */
+export async function writeManualCopy(db: Db, accountId: number, specSlug: string, from: FetchedSourceId, lists: BisLists, now: number, selectManual: boolean) {
   await db.transaction(async (tx) => {
     await tx.delete(manualBisItems).where(ofSpec(accountId, specSlug));
     await tx.delete(bisOverrides).where(and(
@@ -46,7 +46,7 @@ export async function writeManualCopy(db: Db, accountId: number, specSlug: strin
     if (rows.length > 0) await tx.insert(manualBisItems).values(rows);
     await tx.insert(manualBisLists).values({ accountId, specSlug, copiedFrom: from, copiedAt: now })
       .onConflictDoUpdate({ target: [manualBisLists.accountId, manualBisLists.specSlug], set: { copiedFrom: from, copiedAt: now } });
-    await tx.insert(specSettings).values({ accountId, specSlug, source: 'manual' })
+    if (selectManual) await tx.insert(specSettings).values({ accountId, specSlug, source: 'manual' })
       .onConflictDoUpdate({ target: [specSettings.accountId, specSettings.specSlug], set: { source: 'manual' } });
   });
 }
