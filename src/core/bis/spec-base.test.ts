@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import type { Db } from '../db/client';
@@ -87,6 +88,42 @@ describe('manual lists', () => {
     await chooseManual(db, 1, SLUG, 50);
     expect(await getManualLists(db, 2, SLUG)).toBeNull();
     expect(await getSpecSettings(db, 2, SLUG)).toMatchObject({ source: 'method' });
+  });
+});
+
+// A trigger fails the copy's last insert, after its deletes and item inserts have run.
+const failLastCopyWrite = (db: Db) => db.run(sql`CREATE TRIGGER fail_copy BEFORE INSERT ON manual_bis_lists BEGIN SELECT RAISE(ABORT, 'disk full'); END`);
+
+describe('a copy that fails mid-write', () => {
+  it('Choose Manual leaves the source, the manual rows and the overrides untouched', async () => {
+    const db = await seeded();
+    await upsertOverride(db, 1, SLUG, 'method', 'mythicPlus', { slotKey: 'Head#1', itemId: 900, catalyst: false });
+    await failLastCopyWrite(db);
+    await expect(chooseManual(db, 1, SLUG, 50)).rejects.toThrow();
+    expect(await getSpecSettings(db, 1, SLUG)).toMatchObject({ source: 'method' });
+    expect(await getManualLists(db, 1, SLUG)).toBeNull();
+    expect((await listOverrides(db, 1, SLUG, 'method')).mythicPlus).toHaveLength(1);
+  });
+
+  it('Copy again keeps the old copy, its edits and the source', async () => {
+    const db = await seeded();
+    await chooseManual(db, 1, SLUG, 50);
+    await upsertOverride(db, 1, SLUG, 'manual', 'overall', { slotKey: 'Head#1', itemId: 901, catalyst: false });
+    await replaceBisLists(db, 'icyVeins', SLUG, icyLists, 70);
+    await failLastCopyWrite(db);
+    await expect(copyManual(db, 1, SLUG, 'icyVeins', 99)).rejects.toThrow();
+    expect(await getManualLists(db, 1, SLUG)).toMatchObject({ copiedFrom: 'method', copiedAt: 50, lists: methodLists });
+    expect((await listOverrides(db, 1, SLUG, 'manual')).overall).toHaveLength(1);
+    expect(await getSpecSettings(db, 1, SLUG)).toMatchObject({ source: 'manual' });
+  });
+
+  it('the write lock is free afterwards', async () => {
+    const db = await seeded();
+    await failLastCopyWrite(db);
+    await expect(chooseManual(db, 1, SLUG, 50)).rejects.toThrow();
+    await db.run(sql`DROP TRIGGER fail_copy`);
+    await chooseManual(db, 1, SLUG, 60);
+    expect(await getManualLists(db, 1, SLUG)).toMatchObject({ copiedAt: 60 });
   });
 });
 
