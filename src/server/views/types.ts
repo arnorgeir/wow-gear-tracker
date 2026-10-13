@@ -61,6 +61,8 @@ export interface CharacterSummary {
   classIconUrl: string | null;
   /** Race, spec and class, for example "Troll Guardian Druid". */
   identity: string;
+  /** Equipped item level cut to one decimal, from the current snapshot; null without gear or with an unknown item level. */
+  itemLevel: number | null;
 }
 
 export interface CharacterCardView extends CharacterSummary {

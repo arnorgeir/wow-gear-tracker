@@ -21,6 +21,7 @@ export function CharacterHeader({ view, now }: { view: CharacterPageView; now: n
             <SpecIcon url={view.specIconUrl} className={view.className} size={22} ring="class" corner={5} />
             {view.identity}
           </span>
+          {view.itemLevel !== null && <span className="text-muted">Item level <span className="font-mono">{view.itemLevel.toFixed(1)}</span></span>}
         </div>
       </div>
       <div className="flex items-center gap-3">

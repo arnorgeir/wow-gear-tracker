@@ -11,7 +11,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: () => {}, refre
 const summary = (id: number, name: string): CharacterSummary => ({
   id, href: '/characters/eu/argent-dawn/birkibj%C3%B6rn', name, realmName: 'Argent Dawn', realmId: 1, region: 'eu', className: 'Druid', activeSpec: 'Guardian', spec: 'Guardian', specSlug: 'guardian-druid',
   status: 'ok', lastSyncedAt: 5, lastSyncError: null, snapshot: null, sourceAt: null, race: null, faction: null,
-  avatarUrl: null, classIconUrl: null, identity: 'Guardian Druid',
+  avatarUrl: null, classIconUrl: null, identity: 'Guardian Druid', itemLevel: null,
 });
 const member = (over: Partial<GroupMemberView>): GroupMemberView => ({
   key: 'eu.argent-dawn.birkibjörn', name: 'Birkibjörn', realmSlug: 'argent-dawn', character: null, state: 'ready',
@@ -202,5 +202,17 @@ describe('GroupGrid', () => {
   it('puts item level and track on one line in a wide cell', () => {
     const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({})] }]);
     expect(html).toMatch(/<span class="flex max-w-full min-w-0 flex-col items-center gap-px sm:items-start @min-\[162px\]:flex-row @min-\[162px\]:gap-1\.5"><span class="font-mono[^"]*">321<\/span><span class="[^"]*">Myth 2\/6<\/span><\/span>/);
+  });
+});
+
+describe('GroupGrid item level', () => {
+  it('shows the item level outside the screen-reader-only name', () => {
+    const html = render([member({ character: { ...summary(3, 'Birkibjörn'), itemLevel: 334.6 } })], []);
+    expect(html).toMatch(/<span class="[^"]*font-mono[^"]*" title="Equipped item level">334\.6 ilvl<\/span>/);
+    expect(html).not.toMatch(/sr-only[^>]*>[^<]*334\.6/);
+  });
+
+  it('shows no item level when unknown', () => {
+    expect(render([member({ character: summary(3, 'Birkibjörn') })], [])).not.toContain('ilvl');
   });
 });

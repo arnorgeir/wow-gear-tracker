@@ -3,6 +3,7 @@ import { equippedGear, getLatestSnapshot, type Snapshot } from '@/core/db/querie
 import { type CharacterRow } from '@/core/db/queries/characters';
 import { affordableUpgrade, summarizeCrests, type CrestCost } from '@/core/gear/crests';
 import { type GearRow } from '@/core/gear/evaluate';
+import { equippedItemLevel } from '@/core/gear/item-level';
 import { borrowStats } from '@/core/gear/stat-pair';
 import { methodSpecSlug } from '@/core/method/method';
 import { identityLine } from '@/core/characters/identity';
@@ -48,6 +49,7 @@ export function summarize(c: CharacterRow, snapshot: Snapshot | null, classIcons
     avatarUrl: c.avatarUrl,
     classIconUrl: classIcons.get(c.className) ?? null,
     identity: identityLine(c.race, spec, c.className),
+    itemLevel: snapshot ? equippedItemLevel(equippedGear(snapshot)) : null,
   };
 }
 
