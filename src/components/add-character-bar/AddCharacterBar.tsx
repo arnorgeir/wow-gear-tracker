@@ -4,6 +4,7 @@ import { useLayoutEffect, useMemo, useState, useTransition, type KeyboardEvent }
 import { useRouter } from 'next/navigation';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { usePendingCharacter } from '@/components/pending-character/PendingCharacterProvider';
+import { SearchingStatus } from '@/components/searching-status/SearchingStatus';
 import { addingText } from '@/components/shared/loading-copy';
 import { LABEL_CLASS } from '@/components/shared/field-classes';
 import { REGIONS, type Region } from '@/core/types';
@@ -90,16 +91,8 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
           onChange={(e) => { setTerm(e.target.value); setOpen(true); setHighlight({ list: [], index: -1 }); }} onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
           placeholder="Search by name" className={inputClass} />
-        {/* Sits left of the search input's built-in × button, which padding would push inward. Stays mounted so
-            screen readers announce the text when it appears; they skip a live region that arrives with its text. */}
-        <span role="status" className="pointer-events-none absolute bottom-0 right-11 flex h-12 items-center gap-2 text-sm text-muted">
-          {searching && (
-            <>
-              <span aria-hidden className="size-3.5 animate-spin rounded-full border-2 border-line-strong border-t-gold" />
-              Searching…
-            </>
-          )}
-        </span>
+        {/* Sits left of the search input's built-in × button, which padding would push inward. */}
+        <SearchingStatus searching={searching} className="pointer-events-none absolute bottom-0 right-11 flex h-12 items-center gap-2 text-sm text-muted" />
         {showList && (
           <SearchResults results={results} activeIndex={active} term={term.trim()} busy={pending}
             isTracked={(r) => isTracked(trackedLookup, region, r)}

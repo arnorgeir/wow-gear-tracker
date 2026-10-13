@@ -6,6 +6,7 @@ import { pickQuality } from '@/core/bis/pick-quality';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { QUALITY_STYLES } from '@/components/item-card/quality-styles';
 import { wowheadData } from '@/components/item-card/wowhead';
+import { SearchingStatus } from '@/components/searching-status/SearchingStatus';
 import { RarityBox } from './RarityBox';
 import { resultDetail } from './result-detail';
 import { useItemSearch } from './use-item-search';
@@ -55,17 +56,19 @@ export function ItemSearch({ row, label, slotLabel, onDone }: { row: RowRef; lab
   return (
     <div className="flex flex-col gap-2.5 rounded-xl border border-line-strong bg-surface-2 p-3.5">
       <label htmlFor={inputId} className="text-[13px] font-bold uppercase tracking-wider text-muted">{label}</label>
-      <input id={inputId} type="search" value={query} onChange={(e) => { setQuery(e.target.value); setChosen(null); }}
-        onKeyDown={(e) => { if (e.key === 'Escape') onDone(); }}
-        placeholder="Search by name, ID or Wowhead link" autoFocus
-        className={`h-[46px] rounded-[10px] bg-bg px-3.5 text-base text-ink ${query ? 'border-2 border-gold' : 'border border-line-strong'}`} />
+      <div className="relative flex flex-col">
+        <input id={inputId} type="search" value={query} onChange={(e) => { setQuery(e.target.value); setChosen(null); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') onDone(); }}
+          placeholder="Search by name, ID or Wowhead link" autoFocus
+          className={`h-[46px] rounded-[10px] bg-bg px-3.5 text-base text-ink ${query ? 'border-2 border-gold' : 'border border-line-strong'}`} />
+        <SearchingStatus searching={busy && looking === null} className="pointer-events-none absolute inset-y-0 right-11 flex items-center gap-2 text-sm text-muted" />
+      </div>
       {looking !== null && (
         <span role="status" className="flex items-center gap-2.5 text-sm text-muted">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true" className="shrink-0 animate-spin text-gold"><path d="M12 3a9 9 0 1 0 9 9" /></svg>
           Looking up item {looking} on Blizzard…
         </span>
       )}
-      {looking === null && <span role="status" className="sr-only">{busy ? 'Searching…' : ''}</span>}
       {message && <p role="alert" className="flex items-center gap-2.5 text-sm text-missing"><WarnIcon />{message}</p>}
 
       {chosen ? (

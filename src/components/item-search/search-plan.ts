@@ -1,3 +1,4 @@
+import type { RowRef } from '@/core/bis/edits';
 import { parseItemInput } from '@/core/bis/item-input';
 
 /** What the search box does with its input. */
@@ -10,3 +11,9 @@ export function searchPlan(input: string, localResults: number | null): SearchPl
   if (localResults === 0 && parseItemInput(text) !== null) return { kind: 'lookup', input: text };
   return { kind: 'search', q: text };
 }
+
+/** What one search is for: the row's four fields and the trimmed query. */
+export const searchKey = (row: RowRef, query: string) => JSON.stringify([row.specSlug, row.source, row.listType, row.slotKey, query.trim()]);
+
+/** True from the moment the key changes until an answer (result or error) for that key arrives. */
+export const isSearching = (key: string, answeredKey: string | null, idle: boolean) => !idle && key !== answeredKey;
