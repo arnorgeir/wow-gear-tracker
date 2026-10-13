@@ -1,6 +1,6 @@
 # Show an equipped tier piece's real stats
 
-Status: design approved in chat on 2026-10-13.
+Status: design approved in chat on 2026-10-13. Spec review round 1 folded in: pair on its own card line, group outcomes stated, CellDetails test.
 Date: 2026-10-13
 Issue: #134. Tier piece with other stats than the BiS item shows as Done
 
@@ -18,7 +18,7 @@ The issue asked to check every slot. Only tier rows compare stats; every other r
 
 ## What success looks like
 
-- On the character page, a tier row whose piece fills the slot shows the equipped pair at the end of the item's detail line: "Myth 6/6 · 334 · Crit/Haste".
+- On the character page, a tier row whose piece fills the slot shows the equipped pair on its own line in the item card, under "Myth 6/6 · 334". It is never cut off at the widths in Testing.
 - In the group page's cell details, the same pair follows the item level on the track line.
 - A row shows no pair when it isn't a tier row, when the slot isn't filled by a tier piece (Missing, BiS in bags), or when the equipped stats are unknown.
 - The pair shows whether or not "Tier pieces must have the list's stats" is checked. It is information, not a verdict.
@@ -26,7 +26,7 @@ The issue asked to check every slot. Only tier rows compare stats; every other r
 
 ## Scope
 
-In scope: one shared helper and its two callers.
+In scope: one shared helper, its two callers, and an optional `stats` line on `ItemCard`.
 
 Out of scope:
 
@@ -59,17 +59,20 @@ It returns `statPairLabel(row.equippedStats)` when all of these hold, and `null`
 
 ### Character page
 
-In `src/components/character-page/GearTable.tsx`, the `ItemCard`'s `detail` becomes:
+`ItemCard` (`src/components/item-card/ItemCard.tsx`) gains an optional `stats?: string` prop. When set, it renders as a third line under the detail line, in the detail line's style (`font-mono text-[13px] text-muted`, `truncate` or `wrap-anywhere` as `wrap` says). Other callers pass nothing and don't change.
 
-```ts
-[trackText(row.equipped.trackLabel), row.equipped.itemLevel, equippedStatText(row)].filter(Boolean).join(' · ')
-```
+The pair does not join the detail line. That line truncates, and at 1440 px the Equipped column leaves about 21 monospace characters: "Myth 6/6 · 334 · Crit/Haste" is 27, so the pair, the part this issue is about, would be the part cut off. On its own line the longest pair, "Mastery/Vers" (12 characters), or "no secondary stats" (18), fits. The card's `min-h-[62px]` already fits three lines (15 px name, two 13 px lines, two 2 px gaps), so rows don't grow.
 
-`ItemCard`'s detail line keeps the track's color on its leading track name (`detailParts`), and truncates when narrow, as today.
+In `src/components/character-page/GearTable.tsx`, the equipped `ItemCard` gets `stats={equippedStatText(row) ?? undefined}`. Its `detail` doesn't change.
 
 ### Group page
 
-In `src/components/cell-details/CellDetails.tsx`, the track line under the item name appends ` · <pair>` after the item level when `equippedStatText(cell)` is not null. `cell` is a `GearRowView`, so it passes as is.
+In `src/components/cell-details/CellDetails.tsx`, the track line under the item name appends ` · <pair>` after the item level when `equippedStatText(cell)` is not null. `cell` is a `GearRowView`, so it passes as is. The details card is 320 px wide and its track line doesn't truncate, so the pair fits there.
+
+Two outcomes are intended:
+
+- A Wrong stats cell also names the equipped pair in its Needed note ("Tier, Crit/Mastery; BiS wants Crit/Haste"). The track line shows it as well. The repeat is accepted: the track line shows the equipped piece the same way for every state, and the note explains the mismatch.
+- A Done cell has no Needed section, so its details show the equipped pair without the BiS pair. That is enough: with "Tier pieces must have the list's stats" checked, a tier row is Done only when the pairs match or can't be compared (#138).
 
 ## Testing
 
@@ -80,5 +83,6 @@ In `src/components/cell-details/CellDetails.tsx`, the track line under the item 
   - A tier row with `equippedStats: null` gives `null`.
   - A non-tier item row and an "Any" row give `null`, even with stats.
   - Empty stats give "no secondary stats".
-- **`GearTable.test.ts`:** a done tier row's markup contains "· Crit/Haste"; a non-tier row's doesn't.
-- **By hand**, on a character with a catalysed tier piece, at 375 and 1440 px: the character page row and the group cell details show the pair, and it matches the game.
+- **`GearTable.test.ts`:** a done tier row's markup contains "Crit/Haste" as its own element, outside the detail line's text; a non-tier row's markup has no pair.
+- **`CellDetails.test.ts`** (new, `renderToStaticMarkup` like `GearTable.test.ts`): a done tier cell's track line contains "· Crit/Haste"; a non-tier cell's doesn't.
+- **By hand**, on a character with a catalysed tier piece, at 375, 1024 and 1440 px: the character page row shows the whole pair, uncut, and rows keep their height; the group cell details show it too; it matches the game.
