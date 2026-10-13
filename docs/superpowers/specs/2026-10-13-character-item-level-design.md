@@ -1,6 +1,6 @@
 # Show each character's item level
 
-Status: design approved in chat on 2026-10-13. Spec review round 1 folded in: named game reference, weapon-rule gaps, corrected lone one-hander error.
+Status: design approved in chat on 2026-10-13. Spec review passed on 2026-10-13 in round 2; round 1 folded in: named game reference, weapon-rule gaps, corrected lone one-hander error.
 Date: 2026-10-13
 Issue: #140. Show each character's item level on character and group pages
 
