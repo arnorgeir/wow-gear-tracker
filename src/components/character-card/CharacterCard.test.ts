@@ -64,3 +64,13 @@ describe('CharacterCardSkeleton', () => {
     expect(statuses(html)).toBe(0);
   });
 });
+
+describe('CharacterCard item level', () => {
+  it('shows the item level with one decimal', () => {
+    expect(render(card({ itemLevel: 334 }))).toContain('Item level <span class="font-mono">334.0</span>');
+  });
+
+  it('shows no item level when unknown', () => {
+    expect(render(card({}))).not.toContain('Item level');
+  });
+});
