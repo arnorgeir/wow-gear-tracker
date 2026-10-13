@@ -514,3 +514,22 @@ describe('reference data off the render path', () => {
     expect(card).toMatchObject({ tracksKnown: true, tracksLoading: false, tracksError: null });
   });
 });
+
+describe('item level', () => {
+  it('puts the equipped item level on the page and the card', async () => {
+    const s = await services();
+    await seed(s);
+    await prime(s);
+    expect((await birkiPage(s)).itemLevel).toBe(39.9);
+    const { cards: [card] } = await getCharacterCards(s);
+    expect(card!.itemLevel).toBe(39.9);
+  });
+
+  it('gives no item level without gear', async () => {
+    const s = await services();
+    await seed(s, false);
+    await prime(s);
+    const { cards: [card] } = await getCharacterCards(s);
+    expect(card!.itemLevel).toBeNull();
+  });
+});

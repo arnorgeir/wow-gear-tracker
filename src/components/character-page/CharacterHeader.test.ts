@@ -8,7 +8,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => {}, push:
 
 const view = {
   id: 3, name: 'Birkibjörn', realmName: 'Argent Dawn', region: 'eu', className: 'Druid', identity: 'Troll Guardian Druid', avatarUrl: null, classIconUrl: null,
-  snapshot: null, sourceAt: null, specIconUrl: 'https://render/guardian.jpg',
+  itemLevel: null, snapshot: null, sourceAt: null, specIconUrl: 'https://render/guardian.jpg',
 } as unknown as CharacterPageView;
 
 describe('CharacterHeader', () => {
