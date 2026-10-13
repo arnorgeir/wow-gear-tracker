@@ -11,7 +11,7 @@ The project rules in `AGENTS.md` apply to every step and both agents. Both of th
 | 1. `spec`: brainstorm and spec | Claude | Opus | Speccing | `docs/superpowers/specs/<date>-<name>-design.md`, approved by the owner and committed |
 | 2. `spec-review` | Codex | GPT-6 Astra, Medium | Speccing | `docs/reviews/<spec-name>.md` |
 | 3. `plan`: resolve spec findings and plan | Claude | Opus | Speccing, then Ready | Spec findings resolved in the committed spec, then `docs/superpowers/plans/<date>-<name>.md` written and committed, and linked from each issue it covers |
-| 4. `implement` | Claude | Sonnet | In progress, then In review | A branch, implemented inline from the plan with TDD, the full gate green, pushed, and a pull request |
+| 4. `implement` | Claude | Sonnet | In progress, then In review | A branch, implemented inline from the plan with TDD, the full gate green, pushed, and a pull request; then the review loop runs steps 5 to 8 |
 | 5. `pr-review` | Codex | GPT-6 Astra, Medium | In review | `docs/reviews/pr-<N>.md` |
 | 6. `fix`: resolve code findings | Claude | Sonnet | In review | Fix commits pushed to the same branch, required checks rerun |
 | 7. `re-review` | Codex | GPT-6 Astra, Light | In review | Material fixes reviewed against the latest commit; repeat `fix` and `re-review` until findings are resolved |
@@ -25,6 +25,19 @@ The project rules in `AGENTS.md` apply to every step and both agents. Both of th
 - **The owner approves the spec and merges the pull request.** Apart from changes to the approved scope or intended behavior, nothing else needs a sign-off in between.
 - **Claude owns the hand-check checklist and records the results.** Claude runs checks it can perform locally; the owner runs any manual checks assigned to them. Keep unfinished checks explicit in the pull request's Testing section.
 - **Checks apply to the final commit.** After fixes, rerun typecheck, lint and tests, plus build when pages or components changed. Required CI must pass on the final commit before merge.
+
+## Review loop
+
+Steps 5 to 8 run on their own. When `implement` opens the pull request, the same session continues with the `review-loop` skill (`.claude/skills/review-loop/`) instead of handing a prompt back to the owner:
+
+- **A fresh reviewer reviews each round:** Codex through `codex exec` when the CLI is installed and logged in, otherwise a fresh Claude subagent on Opus. The pull request says which one ran.
+- **At most 3 rounds of review and fix.** The loop stops early when a review passes. Findings still open after round 3 go in the pull request for the owner.
+- **The loop stops and asks** when a fix would change the spec's scope or intended behavior, when a finding contradicts the spec, or when a check needs the owner.
+- **It ends with `validate`** and one report: each round's outcome, the fixes, anything open, and the owner's checks. The owner reads the pull request and merges.
+
+The manual steps below still work: run them one at a time when a loop stopped, or when the reviewer should be a session the owner starts.
+
+One-time setup for Codex reviews: `npm i -g @openai/codex`, then `codex login`.
 
 ## Filing issues
 
