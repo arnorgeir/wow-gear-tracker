@@ -1,0 +1,93 @@
+# Row colors follow the item state
+
+Status: design approved in chat on 2026-10-13. Spec review passed on 2026-10-13 in round 3; rounds 1 and 2 folded in: inset borders, legend kept as a badge-color key in card-bar order, token test.
+Date: 2026-10-13
+Issue: #123. Rethink row colors for equipped vs BiS states
+
+## Goal
+
+Today, gear rows on the character page and cells on the group page get a background and border for only three states: done, upgrade with crests, and wrong stats. A BiS item on a track below Myth, which the badge calls "Great Vault target", shows plain. The crests row also disagrees with its badge: the row is green while its badge and legend swatch are purple.
+
+Every state where the BiS item is equipped gets a background and border, in the same color as its badge, except wrong stats, which keeps done's gold with a dashed border. States where the BiS item is not equipped stay plain. A colored row then means "you have it", and a plain row means "go get it".
+
+## What success looks like
+
+- Done, upgrade with crests, wrong stats and Great Vault target rows each get a fill and a 2 px border. BiS in bags and missing rows stay plain.
+- Done, crests and Great Vault target rows use their badge's color family: gold, purple and blue. Badge, group cell word, legend swatch and row agree. Wrong stats keeps done's gold with a dashed border (see Mapping).
+- The toned states read apart without hue. Border lightness steps down from done to crests to Great Vault target, and wrong stats has a dashed border instead of a solid one. Every row keeps its state word.
+- The character page and the group page use the same mapping, as they do today through `rowTone`.
+- The legend lists wrong stats, which it is missing today.
+- No row is toned while upgrade track data is unavailable, as today.
+
+## Scope
+
+In scope: the row tone mapping and styles, new color tokens, and the legend.
+
+Out of scope:
+
+- Badge text colors and wording. They stay as they are.
+- The green upgrade arrow on group cells and the upgrade badge. Green there means "an upgrade exists", which is not a state.
+- Item states themselves. `stateFor` in `src/core/gear/evaluate.ts` does not change.
+
+## Design
+
+### Mapping
+
+`rowTone(state, tracksKnown)` in `src/components/shared/row-tone.ts` stays the one place that picks a tone. Both `GearTable` and `GroupCell` already call it, so they need no change.
+
+`RowTone` becomes `'gold' | 'crest' | 'stats' | 'vault'`. The `green` tone is removed.
+
+| State | Badge text | Tone | Fill | Border | Border luminance |
+|---|---|---|---|---|---|
+| `done` | Done | `gold` | `--color-gold-soft` #2e2513 (exists) | 2 px solid `--color-gold` #f2c14e (exists) | 0.58 |
+| `mythUpgradable` | Upgrade with crests | `crest` | `--color-crest-soft` #251d33 (new) | 2 px solid `--color-crest-line` #a585d6 (new) | 0.30 |
+| `wrongStats` | Wrong stats | `stats` | `--color-gold-soft` #2e2513 (exists) | 2 px dashed `--color-gold` #f2c14e (exists) | 0.58 |
+| `belowMyth` | Great Vault target | `vault` | `--color-vault-soft` #16222f (new) | 2 px solid `--color-vault-line` #4270a0 (new) | 0.15 |
+| `inBags` | BiS in bags | none | | | |
+| `missing` | Missing | none | | | |
+
+When `tracksKnown` is false, `rowTone` returns `null` for every state, as today.
+
+Luminance is WCAG relative luminance. Each solid border is about 1.8 times as light as the next one down, so done, crests and Great Vault target still separate in grayscale. Wrong stats has the same colors as done and is told apart by its dashed border. The Great Vault target border is the dimmest and still has 3.1:1 contrast against its own fill.
+
+Wrong stats keeps done's gold, as since e1132de: it is the right tier piece with only the stats off, so the row reads as nearly done, and the pink badge word names the problem. The design first moved it to pink to match the badge; the owner reverted that on PR #133, because pink read as a different kind of state. Known limit: `stateFor` decides wrong stats before the track, so a wrong-stats piece below Myth also shows gold dashed.
+
+### Styles
+
+`ROW_TONE_STYLES` keeps its shape: one `CSSProperties` object per tone, applied through `style` by both callers.
+
+- Every tone draws its border the way `stats` does today: `background` plus `outline: '2px <solid|dashed> <border>'` with `outlineOffset: '-2px'`. Only `stats` is dashed.
+- The border sits inside the element. Today's solid tones use an outer `boxShadow` ring, which spills 2 px outside the element. On the group grid below `sm`, cells are 3 px apart (`gap-[3px]`), so two toned neighbours overlap; on the character page, rows 4 px apart (`my-1`) touch. With Great Vault target toned, most cells in a column will be toned, so the outer ring would merge borders and blur the lightness steps. The inset outline keeps each border inside its own cell and covers the group cell's 1 px `border-line` edge.
+- No `boxShadow` remains in `ROW_TONE_STYLES`.
+- Every color is a `var(--color-…)` reference. No hex values in TypeScript. This also replaces today's hardcoded `#2e2513`, `#1a2e20` and `#3e8a4d` in the file.
+
+### Tokens
+
+`src/app/globals.css` gains four tokens in `@theme`, next to the existing `--color-gold-soft` group:
+
+```css
+--color-crest-soft: #251d33;
+--color-crest-line: #a585d6;
+--color-vault-soft: #16222f;
+--color-vault-line: #4270a0;
+```
+
+### Legend
+
+`src/components/state-legend/StateLegend.tsx` gains `['bg-stats', 'Wrong stats']` after the Great Vault target entry, so it reads Done, Upgrade with crests, Great Vault target, Wrong stats, BiS in bags, Missing. This matches the segment order of the home card bar (`bg-gold`, `bg-crest`, `bg-vault`, `bg-stats` in `CharacterCard.tsx`). The bar's segments have no words, so for a color-blind player their order is the only cue that maps a segment to a legend entry. The other entries already use the badge colors and do not change.
+
+The legend stays a key to the badge colors, with solid swatches for every state. It does not show which states are toned or that wrong stats is dashed. This is intended: on the home page the same legend keys the character card's progress bar, whose segments are solid `bg-gold`, `bg-crest`, `bg-vault` and `bg-stats` (`CharacterCard.tsx`). Row-shaped swatches would no longer match the bar. The state word on every row carries the meaning the legend leaves out.
+
+## Testing
+
+- **`row-tone.test.ts`** (update first, watch it fail):
+  - `done` gives `gold`, `mythUpgradable` gives `crest`, `wrongStats` gives `stats`, `belowMyth` gives `vault`.
+  - `inBags` and `missing` give `null`.
+  - With `tracksKnown` false, every state gives `null`.
+  - Every value in `ROW_TONE_STYLES` uses only `var(--color-…)` colors, so no hex returns.
+  - Every `--color-*` name in `ROW_TONE_STYLES` is declared in `src/app/globals.css`: the test reads the file and matches `--color-<name>:`. A mistyped name would otherwise pass, and the browser would drop the declaration and leave the row plain with no error.
+- **By hand** at 375 and 1440 px, with a character that has rows in several states:
+  - On the character page and the group page, each toned state shows the fill and border above, and plain states show none.
+  - On the group page at 375 px, two toned cells side by side and above each other keep separate borders.
+  - On the home page and the group page, the legend lists all six states. On home, the Wrong stats swatch matches the `bg-stats` segment of the character card bar.
+  - In a grayscale view (DevTools "Emulate vision deficiencies", Achromatopsia), done, crests and Great Vault target borders read as three different lightnesses, and wrong stats reads as dashed.
