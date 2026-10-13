@@ -1,6 +1,6 @@
 # Show an equipped tier piece's real stats
 
-Status: design approved in chat on 2026-10-13. Spec review round 1 folded in: pair on its own card line, group outcomes stated, CellDetails test.
+Status: design approved in chat on 2026-10-13. Spec review rounds 1 and 2 folded in: pair on its own card line (taller tier rows, owner's choice), group outcomes stated, CellDetails test.
 Date: 2026-10-13
 Issue: #134. Tier piece with other stats than the BiS item shows as Done
 
@@ -61,7 +61,7 @@ It returns `statPairLabel(row.equippedStats)` when all of these hold, and `null`
 
 `ItemCard` (`src/components/item-card/ItemCard.tsx`) gains an optional `stats?: string` prop. When set, it renders as a third line under the detail line, in the detail line's style (`font-mono text-[13px] text-muted`, `truncate` or `wrap-anywhere` as `wrap` says). Other callers pass nothing and don't change.
 
-The pair does not join the detail line. That line truncates, and at 1440 px the Equipped column leaves about 21 monospace characters: "Myth 6/6 · 334 · Crit/Haste" is 27, so the pair, the part this issue is about, would be the part cut off. On its own line the longest pair, "Mastery/Vers" (12 characters), or "no secondary stats" (18), fits. The card's `min-h-[62px]` already fits three lines (15 px name, two 13 px lines, two 2 px gaps), so rows don't grow.
+The pair does not join the detail line. That line truncates, and at 1440 px the Equipped column leaves about 21 monospace characters: "Myth 6/6 · 334 · Crit/Haste" is 27, so the pair, the part this issue is about, would be the part cut off. On its own line the longest pair, "Mastery/Vers" (12 characters), or "no secondary stats" (18), fits. Tier rows with a pair grow taller. The lines inherit Preflight's 1.5 line height, so a three-line card is about 80 px against the 62 px minimum that fits today's two lines: such rows are about 18 px taller than the others. The owner chose this over keeping two lines, since every two-line layout cuts off either the pair, the item name or the item level.
 
 In `src/components/character-page/GearTable.tsx`, the equipped `ItemCard` gets `stats={equippedStatText(row) ?? undefined}`. Its `detail` doesn't change.
 
@@ -85,4 +85,4 @@ Two outcomes are intended:
   - Empty stats give "no secondary stats".
 - **`GearTable.test.ts`:** a done tier row's markup contains "Crit/Haste" as its own element, outside the detail line's text; a non-tier row's markup has no pair.
 - **`CellDetails.test.ts`** (new, `renderToStaticMarkup` like `GearTable.test.ts`): a done tier cell's track line contains "· Crit/Haste"; a non-tier cell's doesn't.
-- **By hand**, on a character with a catalysed tier piece, at 375, 1024 and 1440 px: the character page row shows the whole pair, uncut, and rows keep their height; the group cell details show it too; it matches the game.
+- **By hand**, on a character with a catalysed tier piece, at 375, 1024 and 1440 px: the character page row shows the whole pair, uncut; only tier rows with a pair are taller, and the table still lines up; the group cell details show it too; it matches the game.
