@@ -14,6 +14,8 @@ param(
   [string]$Worktree = 'C:\workspace\wgt-nightly-scan'
 )
 $ErrorActionPreference = 'Stop'
+# Task Scheduler's PATH can miss the per-user claude install.
+$env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
 $logDir = Join-Path $env:LOCALAPPDATA 'wgt-nightly-scan'
 New-Item -ItemType Directory -Force $logDir | Out-Null
 $log = Join-Path $logDir ((Get-Date -Format 'yyyy-MM-dd_HHmm') + $(if ($DryRun) { '-dry' } else { '' }) + '.log')
