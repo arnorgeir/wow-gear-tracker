@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { ItemChoice, RowRef } from '@/core/bis/edits';
 import { pickQuality } from '@/core/bis/pick-quality';
 import { useApiAction } from '@/components/hooks/use-api-action';
@@ -13,13 +13,21 @@ import { useItemSearch } from './use-item-search';
 
 const BUTTON = 'h-9 shrink-0 rounded-lg border border-line-strong bg-raised px-3.5 text-sm font-semibold text-ink disabled:opacity-60 md:h-9';
 
-function ItemName({ item }: { item: ItemChoice }) {
-  const q = QUALITY_STYLES[pickQuality(item.quality)];
+/** Icon, name and anything else passed in, as one Wowhead link: its tooltip only scans links, so the whole span hovers. */
+function ItemLink({ item, className, children }: { item: ItemChoice; className: string; children: ReactNode }) {
   return (
     <a href={`https://www.wowhead.com/item=${item.itemId}`} data-wowhead={wowheadData(item.itemId, [], null)} target="_blank" rel="noreferrer"
-      className="text-[15px] font-semibold no-underline hover:underline" style={{ color: q.text }}>
-      {item.name}
+      className={`group no-underline ${className}`}>
+      {children}
     </a>
+  );
+}
+
+function ItemName({ item }: { item: ItemChoice }) {
+  return (
+    <span className="text-[15px] font-semibold group-hover:underline" style={{ color: QUALITY_STYLES[pickQuality(item.quality)].text }}>
+      {item.name}
+    </span>
   );
 }
 
@@ -73,7 +81,7 @@ export function ItemSearch({ row, label, slotLabel, onDone }: { row: RowRef; lab
 
       {chosen ? (
         <div className="flex flex-col gap-3 rounded-xl border border-line-strong bg-surface-2 p-3.5">
-          <div className="flex items-center gap-3"><RarityBox item={chosen} /><ItemName item={chosen} /></div>
+          <ItemLink item={chosen} className="flex items-center gap-3 self-start"><RarityBox item={chosen} /><ItemName item={chosen} /></ItemLink>
           <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px] font-semibold">
             <input type="checkbox" role="switch" checked={catalyst} onChange={(e) => setCatalyst(e.target.checked)} className="size-5 accent-[var(--color-gold)]" />
             Catalyst into tier
@@ -91,8 +99,10 @@ export function ItemSearch({ row, label, slotLabel, onDone }: { row: RowRef; lab
         <ul aria-label="Matching items" className="flex flex-col gap-0.5">
           {results.map((item) => (
             <li key={item.itemId} className="flex min-h-[52px] items-center gap-3 rounded-lg px-2 hover:bg-surface">
-              <RarityBox item={item} />
-              <span className="flex min-w-0 grow flex-col gap-px"><ItemName item={item} /><span className="text-[13px] text-muted">{resultDetail(item)}</span></span>
+              <ItemLink item={item} className="flex min-w-0 grow items-center gap-3 self-stretch">
+                <RarityBox item={item} />
+                <span className="flex min-w-0 flex-col gap-px"><ItemName item={item} /><span className="text-[13px] text-muted">{resultDetail(item)}</span></span>
+              </ItemLink>
               <button type="button" disabled={save.busy} onClick={() => choose(item)} className={BUTTON}>Choose</button>
             </li>
           ))}
