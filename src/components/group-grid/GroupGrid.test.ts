@@ -126,7 +126,8 @@ describe('GroupGrid', () => {
     const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ equipped: { ...equipped, trackLabel: null } })] }]);
     expect(html).toContain('>No track<');
     expect(html).not.toContain('Legacy');
-    expect(html).toContain('title="Not on a current season upgrade track. Often an item from an earlier season."');
+    expect(html).toContain("<p class=\"mt-1 text-[13px] text-muted\">Not on a current season upgrade track. Often an item from an earlier season.</p>");
+    expect(html).not.toContain("title=\"Not on a current season");
   });
 
   it('shows no hint when the track data is unavailable, and no track at all when nothing is equipped', () => {
