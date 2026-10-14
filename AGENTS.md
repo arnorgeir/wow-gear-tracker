@@ -35,7 +35,8 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 3. The spec is the authority. When a plan and the spec disagree, the spec wins.
 4. Work happens on a branch named `feat/<description>`, `fix/<description>`, `chore/<description>` or `docs/<description>`, and reaches `main` through a pull request. `main` is protected: CI must pass, and a review is required.
 5. `docs/workflow.md` says who does each step, on which model, and how work passes between steps.
-6. **Every step ends with a "Next" block:** the next step's name, who runs it, and a one-line prompt that starts it, as `docs/workflow.md` describes. The owner copies the prompt instead of looking up the flow.
+6. **Repository rules beat skill defaults.** A skill (Caveman, Superpowers or any other) shapes how a step runs. It never drops a required check, review evidence, a document section or a commit or pull request format. `docs/workflow.md` ("Caveman usage by step") says which skill fits which step.
+7. **Every step ends with a "Next" block:** the next step's name, who runs it, and a one-line prompt that starts it, as `docs/workflow.md` describes. The owner copies the prompt instead of looking up the flow.
 
 ## Issue board
 
