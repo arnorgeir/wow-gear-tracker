@@ -18,7 +18,11 @@ export const test = base.extend<{ isolation: void }>({
       const before = readUnmatched().length;
       await use();
       // Server side: a request the fake doesn't know fails the test that caused it.
-      expect(readUnmatched().slice(before), 'unmatched upstream requests').toEqual([]);
+      try {
+        expect(readUnmatched().slice(before), 'unmatched upstream requests').toEqual([]);
+      } finally {
+        clearUnmatched(); // a failing test's entries must not reach the next one
+      }
     },
     { auto: true },
   ],

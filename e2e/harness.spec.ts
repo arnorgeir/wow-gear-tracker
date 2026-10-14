@@ -1,11 +1,9 @@
-import { clearUnmatched, expect, readUnmatched, test } from './fixtures';
+import { expect, test } from './fixtures';
 
-// The fake must record a request nobody routed. The KR realm list is deliberately unrouted.
-test('an unrouted upstream request is recorded', async ({ page }) => {
+// The KR realm list is deliberately unrouted. The fixture's teardown must fail the test that causes
+// the request, and test.fail turns that failure into a pass. A teardown that stops checking turns
+// this test red.
+test.fail('an unrouted upstream request fails the test', async ({ page }) => {
   await page.goto('/');
-  const before = readUnmatched().length;
   await page.request.get('/api/realms?region=kr');
-  expect(readUnmatched().length).toBe(before + 1);
-  expect(readUnmatched().at(-1)).toContain('kr.api.blizzard.com');
-  clearUnmatched();
 });
