@@ -436,6 +436,16 @@ describe('creditView', () => {
     }, new Map([[251147, 'https://i/251147.jpg']]));
     expect(view).toMatchObject({ kind: 'tier', fit: 'alternative', targetName: 'Primordial Robe of Rites', item: { itemId: 251147, iconUrl: 'https://i/251147.jpg' } });
   });
+
+  it('gives an item credit and a BiS target the pick rarity', () => {
+    const view = creditView({ kind: 'item', slotLabel: 'Trinket', weight: 2, itemId: 242395, name: 'Astral Antenna', bonusIds: [] }, new Map());
+    expect(view).toMatchObject({ item: { quality: 'EPIC' } });
+    const row: GearRow = {
+      row: { kind: 'item', slotLabel: 'Chest', slots: ['CHEST'], itemId: 273785, name: 'Primordial Robe of Rites', bonusIds: [], isTier: true, isCatalyst: false, source: 'Altar of Fangs' },
+      slot: 'CHEST', equipped: null, track: null, matched: false, stats: 'unknown', statsUnverified: false, state: 'missing',
+    };
+    expect(rowView(row, new Map(), new Map(), new Map(), new Map()).bis).toMatchObject({ quality: 'EPIC' });
+  });
 });
 
 describe('reference data off the render path', () => {

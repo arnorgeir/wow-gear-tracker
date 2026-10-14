@@ -1,3 +1,4 @@
+import { pickQuality } from '@/core/bis/pick-quality';
 import type { Db } from '@/core/db/client';
 import type { CharacterRow } from '@/core/db/queries/characters';
 import type { SnapshotItemInput } from '@/core/db/queries/snapshots';
@@ -50,7 +51,7 @@ export function bisView(row: BisRow, icons: ReadonlyMap<number, string | null>, 
   return row.kind === 'item'
     ? {
         kind: 'item' as const,
-        ...itemView({ itemId: row.itemId, name: row.name, itemLevel: null, quality: 'EPIC', bonusIds: row.bonusIds }, icons, null),
+        ...itemView({ itemId: row.itemId, name: row.name, itemLevel: null, quality: pickQuality(null), bonusIds: row.bonusIds }, icons, null),
         isTier: row.isTier,
         isCatalyst: row.isCatalyst,
         source: row.source,
@@ -86,7 +87,7 @@ export function vaultChoicesFor(items: SnapshotItemInput[], listRows: BisRow[], 
 
 export function creditView(cr: Credit, icons: ReadonlyMap<number, string | null>): PriorityCreditView {
   if (cr.kind === 'any') return cr;
-  const item = itemView({ itemId: cr.itemId, name: cr.name, itemLevel: null, quality: 'EPIC', bonusIds: cr.bonusIds }, icons, null);
+  const item = itemView({ itemId: cr.itemId, name: cr.name, itemLevel: null, quality: pickQuality(null), bonusIds: cr.bonusIds }, icons, null);
   if (cr.kind === 'item') return { kind: 'item', slotLabel: cr.slotLabel, weight: cr.weight, item };
   return { kind: 'tier', slotLabel: cr.slotLabel, weight: cr.weight, fit: cr.fit, item, dropStats: cr.dropStats, targetName: cr.targetName, targetStats: cr.targetStats };
 }
