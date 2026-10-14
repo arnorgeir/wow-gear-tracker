@@ -1,9 +1,12 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { BisSourceId, ListType } from '@/core/types';
 import type { GearRowView } from '@/server/views/types';
 import { GearTable } from './GearTable';
+
+// Client children need the App Router context, which a static render doesn't have. vi.mock is hoisted above the imports.
+vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: () => {}, refresh: () => {}, push: () => {} }) }));
 
 const equipped = { itemId: 271528, name: 'Enigmatic Dreamwatcher’s Somnolent Stare', itemLevel: 321, quality: 'EPIC' as const, bonusIds: [12], iconUrl: null, trackLabel: 'Myth 2/6' };
 const row: GearRowView = {
@@ -11,7 +14,7 @@ const row: GearRowView = {
   bis: { kind: 'item', ...equipped, isTier: false, isCatalyst: false, source: '', targetStats: null, targetIsTierPiece: false },
 };
 const render = (rows: GearRowView[], bisLoading: boolean, fellBackFrom: ListType | null = null, source: BisSourceId = 'method') =>
-  renderToStaticMarkup(createElement(GearTable, { rows, tracksKnown: true, bisLoading, listType: 'raid', specSlug: 'guardian-druid', editedCount: 2, doneCount: 1, fellBackFrom, source })).replace(/<link[^>]*\/>/g, '');
+  renderToStaticMarkup(createElement(GearTable, { rows, tracksKnown: true, bisLoading, listType: 'raid', specSlug: 'guardian-druid', characterId: 7, editedCount: 2, doneCount: 1, fellBackFrom, source })).replace(/<link[^>]*\/>/g, '');
 
 describe('GearTable source', () => {
   it('names the compared list and links the source badge to its settings', () => {
@@ -32,6 +35,14 @@ describe('GearTable source', () => {
     expect(render([row], false)).not.toContain('Showing Overall');
     expect(render([row], false, 'raid', 'icyVeins')).toContain('Icy Veins has no Raid list for this spec. Showing Overall.');
     expect(render([row], false, 'raid', 'manual')).toContain('Your copy has no Raid list for this spec. Showing Overall.');
+  });
+});
+
+describe('GearTable stat marks', () => {
+  it('offers marks on an unverified tier row', () => {
+    const tier: GearRowView = { ...row, statsUnverified: true, bis: { ...row.bis, isTier: true } as GearRowView['bis'] };
+    expect(render([tier], false)).toContain('Right stats');
+    expect(render([row], false)).not.toContain('Right stats');
   });
 });
 

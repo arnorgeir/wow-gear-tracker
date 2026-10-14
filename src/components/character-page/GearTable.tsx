@@ -7,6 +7,7 @@ import { LIST_NAMES } from '@/components/shared/list-names';
 import { BIS_LOADING } from '@/components/shared/loading-copy';
 import { ROW_TONE_STYLES, rowTone } from '@/components/shared/row-tone';
 import { trackText } from '@/components/shared/track-label';
+import { StatMark } from '@/components/stat-mark/StatMark';
 import { StateBadge } from '@/components/state-badge/StateBadge';
 import { UpgradeBadge } from '@/components/upgrade-badge/UpgradeBadge';
 import type { BisSourceId, ListType } from '@/core/types';
@@ -26,9 +27,10 @@ interface Props {
   /** The list the spec asked for when its source has none and Overall is shown instead. */
   fellBackFrom: ListType | null;
   source: BisSourceId;
+  characterId: number;
 }
 
-export function GearTable({ rows, tracksKnown, bisLoading, listType, specSlug, editedCount, doneCount, fellBackFrom, source }: Props) {
+export function GearTable({ characterId, rows, tracksKnown, bisLoading, listType, specSlug, editedCount, doneCount, fellBackFrom, source }: Props) {
   return (
     <section aria-label="Gear by slot" className="flex flex-col rounded-2xl border border-line bg-surface pb-1">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-raised px-5 py-4">
@@ -66,6 +68,7 @@ export function GearTable({ rows, tracksKnown, bisLoading, listType, specSlug, e
           <div className="flex flex-col gap-1.5">
             <StateBadge state={row.state} />
             {row.upgrade && <UpgradeBadge upgrade={row.upgrade} />}
+            <StatMark characterId={characterId} row={row} />
           </div>
         </div>
         );

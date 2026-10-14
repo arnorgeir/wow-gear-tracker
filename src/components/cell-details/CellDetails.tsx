@@ -9,6 +9,7 @@ import { wowheadData } from '@/components/item-card/wowhead';
 import { classTextColor } from '@/components/shared/class-colors';
 import { equippedStatText } from '@/components/shared/equipped-stats';
 import { trackDisplay } from '@/components/shared/track-label';
+import { StatMark } from '@/components/stat-mark/StatMark';
 import { StateBadge } from '@/components/state-badge/StateBadge';
 import { UpgradeBadge } from '@/components/upgrade-badge/UpgradeBadge';
 import type { CharacterSummary, GearRowView } from '@/server/views/types';
@@ -85,6 +86,7 @@ export function CellDetails({ id, tracksKnown, anchor, cell, slotLabel, characte
         <StateBadge state={cell.state} />
         {cell.upgrade && <UpgradeBadge upgrade={cell.upgrade} />}
       </div>
+      {character && <div className="mt-2"><StatMark characterId={character.id} row={cell} /></div>}
       {needed && (
         <div className="mt-3 flex flex-col gap-1.5">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted">Needed</span>
