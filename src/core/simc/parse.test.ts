@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { parseSimc, SimcParseError } from './parse';
+import { isSimcParseError, parseSimc, SimcParseError } from './parse';
 
 const text = readFileSync(new URL('./__fixtures__/export.txt', import.meta.url), 'utf8');
 
@@ -71,8 +71,13 @@ describe('parseSimc', () => {
       parseSimc('druid="Birkibjörn"\nregion=eu\nserver=tarren_mill\nhead=,bonus_id=1');
       expect.unreachable();
     } catch (err) {
-      expect(err).toBeInstanceOf(SimcParseError);
+      expect(isSimcParseError(err)).toBe(true);
       expect((err as SimcParseError).line).toBe(4);
     }
+  });
+
+  it('tells its parse errors from other errors', () => {
+    expect(isSimcParseError(new Error('boom'))).toBe(false);
+    expect(isSimcParseError(null)).toBe(false);
   });
 });
