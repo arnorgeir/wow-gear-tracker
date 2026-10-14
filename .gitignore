@@ -9,3 +9,6 @@ next-env.d.ts
 
 # Review handoff notes: local only, findings land in commits and pull requests
 docs/reviews/
+.next-e2e/
+test-results/
+playwright-report/
