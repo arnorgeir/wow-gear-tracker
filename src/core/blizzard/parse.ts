@@ -1,4 +1,4 @@
-import { SLOT_TYPES, type ArmorType, type GearItem, type Quality, type SlotType } from '../types';
+import { SLOT_TYPES, type ArmorType, type GearItem, type JournalSection, type Quality, type SlotType } from '../types';
 import type {
   CharacterProfile, ItemInfo, JournalEncounter, JournalInstance, JournalInstanceRef, KeystoneDungeon,
 } from './types';
@@ -103,9 +103,39 @@ export interface RawJournalInstance { id: number; name: string; map?: { id: numb
 export const parseJournalInstance = (raw: RawJournalInstance): JournalInstance =>
   ({ id: raw.id, name: raw.name, mapId: raw.map?.id ?? null, encounterIds: (raw.encounters ?? []).map((e) => e.id) });
 
-export interface RawJournalEncounter { id: number; name: string; items?: { item: { id: number; name: string } }[] }
+export interface RawJournalSection {
+  title?: string;
+  spell?: { id?: number; name?: string };
+  body_text?: string;
+  sections?: RawJournalSection[];
+}
+export interface RawJournalEncounter {
+  id: number; name: string; description?: string; sections?: RawJournalSection[];
+  items?: { item: { id: number; name: string } }[];
+}
+
+// Titleless nodes are skipped with their children. Siblings repeating a title and spell are the journal listing
+// one ability twice, so only the first stays.
+function parseSections(raw: RawJournalSection[] | undefined): JournalSection[] {
+  const seen = new Set<string>();
+  const out: JournalSection[] = [];
+  for (const node of raw ?? []) {
+    if (typeof node?.title !== 'string') continue;
+    const spellId = typeof node.spell?.id === 'number' ? node.spell.id : null;
+    const key = `${node.title}
+${spellId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ title: node.title, spellId, bodyText: node.body_text ? node.body_text : null, sections: parseSections(node.sections) });
+  }
+  return out;
+}
+
 // The journal sometimes names an item twice for one encounter; the loot table keys on (dungeon, encounter, item).
 export const parseJournalEncounter = (raw: RawJournalEncounter): JournalEncounter => {
   const items = new Map((raw.items ?? []).map((i) => [i.item.id, { itemId: i.item.id, name: i.item.name }]));
-  return { id: raw.id, name: raw.name, items: [...items.values()] };
+  return {
+    id: raw.id, name: raw.name, description: raw.description ? raw.description : null,
+    sections: parseSections(raw.sections), items: [...items.values()],
+  };
 };
