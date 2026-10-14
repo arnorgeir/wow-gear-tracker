@@ -53,6 +53,8 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
   function pick(r: SearchResult) { return add(r.name, { name: r.name, realmId: r.blizzardRealmId }); }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    // Escape on an open list only closes it: Chromium would also clear the search field. A second Escape still clears.
+    if (e.key === 'Escape' && showList) { e.preventDefault(); return; }
     const action = keyAction({ key: e.key, isOpen: showList, count: results.length, active, pending, isComposing: e.nativeEvent.isComposing });
     if (!action) return;
     e.preventDefault();
