@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { PendingCharacterProvider } from '@/components/pending-character/PendingCharacterProvider';
 import { CharacterGrid } from './CharacterGrid';
 
-const render = (count: number, withProvider = true) => {
-  const grid = createElement(CharacterGrid, { count, empty: createElement('p', null, 'No characters yet.') }, createElement('article', null, 'Birkibjörn'));
+const render = (count: number, withProvider = true, view: 'grid' | 'list' = 'grid') => {
+  const grid = createElement(CharacterGrid, { count, view, empty: createElement('p', null, 'No characters yet.') }, createElement('article', null, 'Birkibjörn'));
   return renderToStaticMarkup(withProvider ? createElement(PendingCharacterProvider, null, grid) : grid);
 };
 
@@ -19,6 +19,17 @@ describe('CharacterGrid', () => {
     expect(html).toContain('xl:grid-cols-4');
     expect(html).toContain('<article>Birkibjörn</article>');
     expect(html).not.toContain('Adding');
+  });
+
+  it('lays the rows out in a column in list view', () => {
+    const html = render(1, true, 'list');
+    expect(html).toContain('flex flex-col gap-3');
+    expect(html).not.toContain('xl:grid-cols-4');
+    expect(html).toContain('<article>Birkibjörn</article>');
+  });
+
+  it('shows the same empty text in list view', () => {
+    expect(render(0, true, 'list')).toBe('<p>No characters yet.</p>');
   });
 
   it('works without a provider', () => {

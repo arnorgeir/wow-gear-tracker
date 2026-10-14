@@ -34,7 +34,7 @@ export default async function CharactersPage() {
       <PendingCharacterProvider>
         <AddCharacterBar trackedCharacters={cards.map((c) => ({ region: c.region, realmId: c.realmId, name: c.name }))} />
         <StateLegend />
-        <CharacterGrid count={cards.length} empty={<p className="text-muted">No characters yet. Search for one above.</p>}>
+        <CharacterGrid count={cards.length} view="grid" empty={<p className="text-muted">No characters yet. Search for one above.</p>}>
           {cards.map((card) => <CharacterCard key={card.id} card={card} now={now} />)}
         </CharacterGrid>
       </PendingCharacterProvider>
