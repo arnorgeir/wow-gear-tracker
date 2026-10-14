@@ -208,6 +208,18 @@ export const manualBisItems = sqliteTable('manual_bis_items', {
   source: text('source').notNull(),
 }, (t) => [primaryKey({ columns: [t.accountId, t.specSlug, t.listType, t.position] })]);
 
+/** A player's verdict on a tier piece whose stats couldn't be compared. Applies only while the piece and target match. */
+export const tierStatMarks = sqliteTable('tier_stat_marks', {
+  accountId: integer('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  characterId: integer('character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
+  slot: text('slot').$type<SlotType>().notNull(),
+  itemId: integer('item_id').notNull(),
+  /** Sorted ascending, so it compares with `itemKey`. */
+  bonusIds: text('bonus_ids', { mode: 'json' }).$type<number[]>().notNull(),
+  targetItemId: integer('target_item_id').notNull(),
+  right: integer('right', { mode: 'boolean' }).notNull(),
+}, (t) => [primaryKey({ columns: [t.accountId, t.characterId, t.slot] })]);
+
 /** Every item an override names: complete, factual metadata from Blizzard or the season sync. */
 export const itemCatalog = sqliteTable('item_catalog', {
   itemId: integer('item_id').primaryKey(),

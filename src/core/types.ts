@@ -84,3 +84,6 @@ export interface TierTarget { secondaryStats: string[] | null; isTier: boolean }
 export interface LootItem { itemId: number; name: string; inventoryType: string | null; armorType: ArmorType | null; secondaryStats?: string[] | null }
 /** One season dungeon and what it drops. `split` marks half of a dungeon credited with the whole instance's loot. */
 export interface SeasonLoot { challengeModeId: number; name: string; shortName: string; imageUrl: string | null; split: boolean; loot: LootItem[] }
+
+/** A player's verdict on a tier piece whose stats couldn't be compared. Applies only while the piece and target match. */
+export interface StatMark { slot: SlotType; itemId: number; bonusIds: number[]; targetItemId: number; right: boolean }
