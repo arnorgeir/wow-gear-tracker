@@ -18,14 +18,15 @@ describe('DungeonPriority', () => {
           item: { itemId: 80, name: 'Hoarded Harvest Wrap', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } },
         { kind: 'any', slotLabel: 'Shoulders', weight: 3, minItemLevel: 334 },
       ] }],
-      nothingFrom: ['Beta Spire', 'Gamma Deep'],
+      nothingFrom: [{ challengeModeId: 502, name: 'Beta Spire' }, { challengeModeId: 503, name: 'Gamma Deep' }],
     });
     expect(html).toContain('Mythic+ list');
     expect(html).toContain('Alpha Hollow');
     expect(html).toContain('Hoarded Harvest Wrap');
     expect(html).toContain('Chest · catalyst alternative (Mastery/Vers, BiS Haste/Mastery) · weight 4');
     expect(html).toContain('Any item, level 334+');
-    expect(html).toContain('Nothing you need from: Beta Spire, Gamma Deep.');
+    expect(html).toContain('Nothing you need from: <a href="/dungeons/502">Beta Spire</a>, <a href="/dungeons/503">Gamma Deep</a>.');
+    expect(html).toContain('href="/dungeons/501"');
   });
 
   it('says so while the season loads, and when it could not load', () => {
@@ -36,7 +37,7 @@ describe('DungeonPriority', () => {
   });
 
   it('explains the fallback, approximate weights, older data and an empty ranking', () => {
-    const html = render({ ...base, listType: 'overall', fellBackFrom: 'mythicPlus', approximate: true, season: 'stale', nothingFrom: ['Alpha Hollow'] });
+    const html = render({ ...base, listType: 'overall', fellBackFrom: 'mythicPlus', approximate: true, season: 'stale', nothingFrom: [{ challengeModeId: 501, name: 'Alpha Hollow' }] });
     expect(html).toContain('Using the Overall list: Method has no Mythic+ list for Feral Druid.');
     expect(html).toContain('Weights are approximate while upgrade track data is unavailable.');
     expect(html).toContain('Showing older loot data');

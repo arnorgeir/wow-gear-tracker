@@ -15,7 +15,7 @@ export function DungeonRow({ dungeon, rank }: { dungeon: GroupDungeonView; rank:
     </span>
   ));
   return (
-    <DungeonDisclosure rank={rank} name={dungeon.name} score={dungeon.score} imageUrl={dungeon.imageUrl} shortName={dungeon.shortName} summaryExtra={chips}>
+    <DungeonDisclosure rank={rank} name={dungeon.name} score={dungeon.score} imageUrl={dungeon.imageUrl} shortName={dungeon.shortName} challengeModeId={dungeon.challengeModeId} summaryExtra={chips}>
       {dungeon.split && <p className="text-xs text-muted">{SPLIT_DUNGEON}</p>}
       {dungeon.members.map((m) => (
         <div key={m.key} className="flex items-start gap-2">

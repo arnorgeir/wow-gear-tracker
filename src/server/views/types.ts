@@ -97,7 +97,7 @@ export interface PriorityView {
   bisLoading: boolean;
   approximate: boolean;
   dungeons: DungeonPriorityView[];
-  nothingFrom: string[];
+  nothingFrom: { challengeModeId: number; name: string }[];
 }
 
 export interface CharacterPageView extends CharacterSummary {
@@ -161,7 +161,7 @@ export interface GroupPriorityView {
   /** Members ranked on Overall because their spec's source has no rows for the list it chose. */
   fellBack: { name: string; from: ListType; source: BisSourceId }[];
   /** Null when no member is eligible: the ranking is unavailable, which is not the same as nothing needed. */
-  ranking: { dungeons: GroupDungeonView[]; nothingFrom: string[] } | null;
+  ranking: { dungeons: GroupDungeonView[]; nothingFrom: { challengeModeId: number; name: string }[] } | null;
 }
 export interface GroupVaultView { key: string; name: string; className: string; avatarUrl: string | null; classIconUrl: string | null; pastedAt: number | null; choices: VaultChoiceView[] }
 export interface GroupPageView {
