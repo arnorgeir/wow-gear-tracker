@@ -57,6 +57,9 @@ test('Escape mid-drag changes nothing', async ({ page }) => {
   await page.mouse.move(to.x + 150, to.y, { steps: 10 });
   await page.keyboard.press('Escape');
   await page.mouse.up();
+  // A drop would change these at once; the URL only follows the server render, so it is checked last.
+  await expect(handles(page).first()).toHaveAccessibleName(/^Move birkiþór/i);
+  await expect(page.getByRole('status').filter({ hasText: 'moved to position' })).toBeHidden();
   await page.waitForTimeout(300);
   expect(chars(page)).toBe(`${A},${B}`);
 });
