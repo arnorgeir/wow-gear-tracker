@@ -8,6 +8,7 @@ import { GroupLayout } from '@/components/group-layout/GroupLayout';
 import { GroupPrioritySkeleton } from '@/components/group-priority/GroupPrioritySkeleton';
 import { GroupVaultSkeleton } from '@/components/group-vault/GroupVaultSkeleton';
 import type { GroupGridRow, GroupMemberView } from '@/server/views/types';
+import { sameMembers } from './same-members';
 import { groupBodyMode } from './group-body-mode';
 import { PANEL_BOX } from './panel-box';
 
@@ -23,16 +24,16 @@ export interface GroupBodyContent {
 /**
  * The group page below the picker. It reads the membership asked for, which runs ahead of the server's render
  * during an edit: members already rendered keep their grid column, and each new one gets a skeleton column.
- * The group-wide dungeon and vault panels skeleton, as they depend on every member. Both branches render
+ * The group-wide dungeon and vault panels skeleton, as they depend on every member, unless the edit is a reorder. Both branches render
  * GroupLayout at the same place, so the selected phone tab survives an edit.
  */
 export function GroupBody({ legend, empty, content }: { legend: ReactNode; empty: ReactNode; content: GroupBodyContent | null }) {
   const { keys, pending } = useGroupEdits();
-  const mode = groupBodyMode(pending, keys.length, content !== null);
+  const mode = groupBodyMode(pending, keys.length, content !== null, content !== null && sameMembers(keys, content.grid.members.map((m) => m.key)));
   if (mode === 'empty') return <>{empty}</>;
   const live = mode === 'content' ? content : null;
   const gear = content
-    ? <GroupGrid members={content.grid.members} grid={content.grid.rows} tracksKnown={content.grid.tracksKnown} requestedKeys={live ? undefined : keys} />
+    ? <GroupGrid members={content.grid.members} grid={content.grid.rows} tracksKnown={content.grid.tracksKnown} requestedKeys={pending ? keys : undefined} />
     : <GroupGridSkeleton members={keys.length} />;
   return (
     <>

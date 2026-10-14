@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { groupHref } from '@/core/characters/member-key';
-import { createGroupEdits } from './group-edits';
+import { createGroupEdits, type MovedMember } from './group-edits';
 
 interface GroupEdits {
   /** The membership asked for, which can be ahead of what the page shows while it loads. */
@@ -12,9 +12,13 @@ interface GroupEdits {
   pending: boolean;
   add: (key: string) => void;
   remove: (key: string) => void;
+  move: (key: string, name: string, toIndex: number) => void;
+  /** The last move while the group still loads it, for the status line. */
+  moved: MovedMember | null;
 }
 
-const GroupEditsContext = createContext<GroupEdits | null>(null);
+/** Exported so a test can render a pending context. */
+export const GroupEditsContext = createContext<GroupEdits | null>(null);
 
 export function useGroupEdits(): GroupEdits {
   const edits = useContext(GroupEditsContext);
@@ -39,7 +43,7 @@ export function GroupEditsProvider({ keys: committed, children }: { keys: string
   }, [pending, committedKey, edits]);
 
   return (
-    <GroupEditsContext.Provider value={{ keys: pending ? intent : committed, pending, add: edits.add, remove: edits.remove }}>
+    <GroupEditsContext.Provider value={{ keys: pending ? intent : committed, pending, add: edits.add, remove: edits.remove, move: edits.move, moved: pending ? edits.moved() : null }}>
       {children}
     </GroupEditsContext.Provider>
   );

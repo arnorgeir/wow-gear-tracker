@@ -43,10 +43,10 @@ export function GroupGrid({ members, grid, tracksKnown, requestedKeys }: Props) 
               if (c.kind === 'pending') return <CellSkeleton key={c.key} />;
               const i = c.index;
               const note = notes[i];
-              if (note && 'skeleton' in note) return <CellSkeleton key={i} />;
-              if (note) return <div key={i} className={`p-1 text-xs ${note.dim ? 'text-muted opacity-60' : 'text-muted'}`}>{note.text}</div>;
+              if (note && 'skeleton' in note) return <CellSkeleton key={members[i]!.key} />;
+              if (note) return <div key={members[i]!.key} className={`p-1 text-xs ${note.dim ? 'text-muted opacity-60' : 'text-muted'}`}>{note.text}</div>;
               const m = members[i]!;
-              return <GroupCell key={i} cell={row.cells[i] ?? null} tracksKnown={tracksKnown} slotLabel={row.label} memberName={m.name} character={m.character} />;
+              return <GroupCell key={m.key} cell={row.cells[i] ?? null} tracksKnown={tracksKnown} slotLabel={row.label} memberName={m.name} character={m.character} />;
             })}
           </div>
         ))}
