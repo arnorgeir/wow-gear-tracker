@@ -8,7 +8,7 @@ import { GroupLayout } from '@/components/group-layout/GroupLayout';
 import { GroupPrioritySkeleton } from '@/components/group-priority/GroupPrioritySkeleton';
 import { GroupVaultSkeleton } from '@/components/group-vault/GroupVaultSkeleton';
 import type { GroupGridRow, GroupMemberView } from '@/server/views/types';
-import { sameMembers } from './same-members';
+import { sameMembers } from '@/components/shared/same-members';
 import { groupBodyMode } from './group-body-mode';
 import { PANEL_BOX } from './panel-box';
 

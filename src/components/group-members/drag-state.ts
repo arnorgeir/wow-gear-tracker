@@ -1,5 +1,5 @@
 import { moveMember } from '@/core/characters/member-key';
-import { sameMembers } from '@/components/group-body/same-members';
+import { sameMembers } from '@/components/shared/same-members';
 
 /** A member picked up by a tap, with the members it was picked among: any other edit puts it down. */
 export interface Picked { key: string; members: string[] }
