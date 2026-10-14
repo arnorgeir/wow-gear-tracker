@@ -81,6 +81,14 @@ export function addMember(keys: readonly string[], key: string): string[] {
 
 export const removeMember = (keys: readonly string[], key: string) => keys.filter((k) => k !== key);
 
+/** `toIndex` is clamped to the list. An unknown key changes nothing. */
+export function moveMember(keys: readonly string[], key: string, toIndex: number): string[] {
+  if (!keys.includes(key)) return [...keys];
+  const rest = keys.filter((k) => k !== key);
+  rest.splice(Math.min(Math.max(toIndex, 0), keys.length - 1), 0, key);
+  return rest;
+}
+
 /** Commas stay readable; each key is encoded on its own so `ö` survives. */
 export const groupHref = (keys: readonly string[]) => `/group?chars=${keys.map(encodeURIComponent).join(',')}`;
 

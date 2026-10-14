@@ -48,4 +48,30 @@ describe('createGroupEdits', () => {
     edits.remove('b');
     expect(emitted).toEqual([['b'], []]);
   });
+
+  it('moves a member, composing with an add still loading', () => {
+    const { edits, emitted } = setup(['a', 'b']);
+    edits.add('c');
+    edits.move('c', 'Cee', 0);
+    expect(emitted).toEqual([['a', 'b', 'c'], ['c', 'a', 'b']]);
+    expect(edits.moved()).toEqual({ name: 'Cee', position: 1, count: 3, keys: ['c', 'a', 'b'] });
+  });
+
+  it('says nothing for a move that changes nothing', () => {
+    const { edits, emitted } = setup(['a', 'b']);
+    edits.move('a', 'A', 0);
+    edits.move('b', 'B', 9);
+    expect(emitted).toEqual([]);
+    expect(edits.moved()).toBeNull();
+  });
+
+  it('forgets the move after an add or remove, and once the keys no longer match', () => {
+    const { edits } = setup(['a', 'b', 'c']);
+    edits.move('c', 'C', 0);
+    edits.remove('a');
+    expect(edits.moved()).toBeNull();
+    edits.move('c', 'C', 1);
+    edits.reset(['a', 'b']);
+    expect(edits.moved()).toBeNull();
+  });
 });
