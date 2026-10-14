@@ -74,15 +74,26 @@ export async function loadSeasonLoot(blizzard: BlizzardClient, region: Region, s
   return { slug: season.slug, dungeons: rows, loot };
 }
 
-/** Caches an icon for every loot item, so the override search (a read-only GET) can show them. Never fails the sync. */
-async function cacheLootIcons({ db, blizzard, now, region }: SeasonSyncDeps) {
-  try {
+const iconRuns = new WeakMap<Db, Promise<void>>();
+
+/**
+ * Caches an icon for every loot item, so the override search (a read-only GET) can show them. Runs in the
+ * background: a few hundred icons, or a hanging media endpoint, must not hold the season answer back. One
+ * run per database at a time; errors are logged, never thrown.
+ */
+function cacheLootIcons({ db, blizzard, now, region }: SeasonSyncDeps) {
+  if (iconRuns.has(db)) return;
+  const run = (async () => {
     const loot = (await getSeasonLoot(db)).flatMap((d) => d.loot.map((i) => i.itemId));
     await ensureItemIcons({ db, blizzard, now }, region, loot);
-  } catch (err) {
-    console.error('The season’s item icons couldn’t be cached', err);
-  }
+  })()
+    .catch((err) => console.error('The season’s item icons couldn’t be cached', err))
+    .finally(() => iconRuns.delete(db));
+  iconRuns.set(db, run);
 }
+
+/** Resolves once a background icon run for this database has finished. For tests. */
+export const lootIconsSettled = (db: Db): Promise<void> => iconRuns.get(db) ?? Promise.resolve();
 
 async function runSync(deps: SeasonSyncDeps): Promise<SeasonSyncResult> {
   const { db, blizzard, fetchFn, now, region } = deps;
@@ -95,12 +106,12 @@ async function runSync(deps: SeasonSyncDeps): Promise<SeasonSyncResult> {
       // Same season: only artwork can have moved, so refresh it without rebuilding loot.
       await updateSeasonArtwork(db, season.slug, season.dungeons);
       await setMeta(db, SEASON_META_KEY, season.slug, now);
-      await cacheLootIcons(deps);
+      cacheLootIcons(deps);
       return 'current';
     }
     await replaceSeason(db, await loadSeasonLoot(blizzard, region, season));
     await setMeta(db, SEASON_META_KEY, season.slug, now);
-    await cacheLootIcons(deps);
+    cacheLootIcons(deps);
     return 'loaded';
   } catch (err) {
     console.error('The season’s loot couldn’t be loaded', err);

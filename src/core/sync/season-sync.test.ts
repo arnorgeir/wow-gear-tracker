@@ -7,7 +7,7 @@ import type { BlizzardClient } from '../blizzard/client';
 import { DAY_MS } from './reference-sync';
 import { getMeta, setMeta } from '../db/queries/meta';
 import { replaceSeason } from '../db/queries/season';
-import { readSeason, SEASON_META_KEY, syncSeason } from './season-sync';
+import { lootIconsSettled, readSeason, SEASON_META_KEY, syncSeason } from './season-sync';
 
 const T = Date.parse('2026-09-30T12:00:00Z');
 
@@ -106,6 +106,7 @@ describe('syncSeason', () => {
     it('caches an icon for every loot item when the season loads', async () => {
       const d = await deps(fakeBlizzard().blizzard);
       expect(await syncSeason(d)).toBe('loaded');
+      await lootIconsSettled(d.db);
       const icons = await getItemIcons(d.db, LOOT_IDS);
       expect([...icons.keys()].sort()).toEqual(LOOT_IDS);
       expect(icons.get(100)).toBe('https://render/icons/100.jpg');
@@ -115,8 +116,10 @@ describe('syncSeason', () => {
       const noIcons = fakeBlizzard({ getItemIconUrl: async () => { throw new Error('no media'); } });
       const d = await deps(noIcons.blizzard);
       expect(await syncSeason(d)).toBe('loaded');
+      await lootIconsSettled(d.db);
       expect((await getItemIcons(d.db, LOOT_IDS)).size).toBe(0);
       expect(await syncSeason({ ...d, blizzard: fakeBlizzard().blizzard, now: T + DAY_MS + 1 })).toBe('current');
+      await lootIconsSettled(d.db);
       expect((await getItemIcons(d.db, LOOT_IDS)).size).toBe(4);
     });
 
@@ -124,7 +127,15 @@ describe('syncSeason', () => {
       const failing = fakeBlizzard({ getItemIconUrl: async () => { throw new Error('no media'); } });
       const d = await deps(failing.blizzard);
       expect(await syncSeason(d)).toBe('loaded');
+      await lootIconsSettled(d.db);
       expect((await getMeta(d.db, SEASON_META_KEY))?.value).toBe('season-test-2');
+    });
+
+    it('answers without waiting for icons, so a hanging media endpoint never holds the season back', async () => {
+      const hanging = fakeBlizzard({ getItemIconUrl: () => new Promise<string | null>(() => {}) });
+      const d = await deps(hanging.blizzard);
+      expect(await syncSeason(d)).toBe('loaded');
+      expect((await readSeason(d.db, T)).dungeons.length).toBeGreaterThan(0);
     });
 
   });
