@@ -38,12 +38,12 @@ test('AddCharacterBar sends one request while adding', async ({ page }) => {
 
 test('SearchResults sends one request while adding', async ({ page }) => {
   await page.goto('/');
-  await page.getByPlaceholder('Search by name').fill('Birki');
-  const result = page.getByRole('listbox', { name: 'Matching characters' }).getByRole('button', { name: /Birkibjörn/ });
+  await page.getByPlaceholder('Search by name').fill('Birkipick');
+  const result = page.getByRole('listbox', { name: 'Matching characters' }).getByRole('button', { name: /Birkipick/ });
   const hold = await holdRequest(page, 'POST', '/api/characters');
   await doubleClick(result, hold);
   await hold.release();
-  await expect(page.getByRole('link', { name: /Birkibjörn/ }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /Birkipick/ }).first()).toBeVisible();
 });
 
 test('RefreshButton sends one request while syncing', async ({ page }) => {

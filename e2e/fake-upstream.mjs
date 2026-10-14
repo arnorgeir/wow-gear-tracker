@@ -42,9 +42,14 @@ const routes = [
     { id: 1096, name: 'Argent Dawn', slug: 'argent-dawn' },
   ] })],
   // A term containing "outage" makes Raider.IO fail, which sends the bar to the manual realm picker.
-  ['raider.io/api/search', (url) => url.includes('outage') ? json({}, 500) : json({ matches: [
-    { type: 'character', data: { name: 'Birkibjörn', region: { slug: 'eu' }, realm: { name: 'Kazzak', wowRealmId: 1305 }, class: { name: 'Druid' }, faction: 'horde' } },
-  ] })],
+  // The term "birki" finds Birkibjörn; a longer term starting with it finds a character of that name, so a test can search its own.
+  ['raider.io/api/search', (url) => {
+    const term = new URL(url).searchParams.get('term') ?? '';
+    const name = term.toLowerCase().startsWith('birki') && term.length > 5 ? term[0].toUpperCase() + term.slice(1) : 'Birkibjörn';
+    return url.includes('outage') ? json({}, 500) : json({ matches: [
+      { type: 'character', data: { name, region: { slug: 'eu' }, realm: { name: 'Kazzak', wowRealmId: 1305 }, class: { name: 'Druid' }, faction: 'horde' } },
+    ] });
+  }],
   // Any made-up character whose name starts with "birki" exists, a Guardian Druid ("birkiferal": Feral) on the realm in the URL.
   [/\/profile\/wow\/character\/([^/]+)\/(birki[^/?]*)\/equipment/, () => json({ equipped_items: [
     { slot: { type: 'HEAD' }, item: { id: 271875 }, name: 'Gaze of the Coiled Watcher', level: { value: 250 }, quality: { type: 'EPIC' }, bonus_list: [] },
