@@ -39,3 +39,13 @@ test('a search outage falls back to picking the realm by hand', async ({ page })
   await expect(page.getByText('Search is unavailable. Pick the realm yourself.')).toBeVisible();
   await expect(page.getByLabel('Realm')).toContainText('Kazzak');
 });
+
+test('typing quickly sends one search request', async ({ page }) => {
+  await page.goto('/');
+  const searches: string[] = [];
+  page.on('request', (r) => { if (r.url().includes('/api/search')) searches.push(r.url()); });
+  const field = page.getByPlaceholder('Search by name');
+  await field.pressSequentially('Birki', { delay: 20 });
+  await expect(page.getByRole('listbox', { name: 'Matching characters' }).getByText('Birkibjörn')).toBeVisible();
+  expect(searches).toHaveLength(1);
+});

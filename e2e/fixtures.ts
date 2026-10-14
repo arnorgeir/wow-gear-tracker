@@ -44,3 +44,10 @@ export async function holdRequest(page: Page, method: string, urlPart: string) {
 }
 
 export { expect };
+
+/** Tracks a made-up character through the same route a user's click reaches. Names must start with "Birki". */
+export async function trackCharacter(page: Page, name: string, realmSlug = 'kazzak') {
+  const res = await page.request.post('/api/characters', { data: { region: 'eu', name, realmSlug } });
+  expect(res.status()).toBeLessThan(300);
+  return (await res.json()) as { id: number; key: string };
+}
