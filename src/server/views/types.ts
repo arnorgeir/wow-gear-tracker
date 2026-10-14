@@ -1,6 +1,6 @@
 import type { TierFit } from '@/core/priority/rank';
 import { type CrestBalance, type UpgradeOption } from '@/core/gear/crests';
-import { type BisSourceId, type FetchedSourceId, type Faction, type ItemState, type ListType, type Quality, type Region, type SlotType, type SnapshotSource } from '@/core/types';
+import { type BisSourceId, type FetchedSourceId, type Faction, type ArmorType, type ItemState, type ListType, type Quality, type Region, type SlotType, type SnapshotSource } from '@/core/types';
 
 export interface ItemView {
   itemId: number;
@@ -237,4 +237,24 @@ export interface SettingsSpecView {
   classIconUrl: string | null;
   characters: CharacterChipView[];
   lists: Record<ListType, { slots: SettingsSlotView[]; orphans: (ItemView & { slotKey: string })[]; editedCount: number }>;
+}
+
+export interface DungeonLootItemView {
+  itemId: number;
+  name: string;
+  quality: Quality;
+  iconUrl: string | null;
+  inventoryType: string | null;
+  armorType: ArmorType | null;
+  /** Secondary stat types; null when unknown or the item has none. */
+  stats: string[] | null;
+}
+export interface DungeonBossView { encounterId: number; name: string; items: DungeonLootItemView[] }
+export interface DungeonPageView {
+  challengeModeId: number;
+  name: string;
+  shortName: string;
+  imageUrl: string | null;
+  split: boolean;
+  bosses: DungeonBossView[];
 }
