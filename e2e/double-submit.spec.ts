@@ -19,9 +19,12 @@ async function doubleClick(button: Locator, hold: Awaited<ReturnType<typeof hold
 /** Sets the spec's source through the routes, so a test never leans on what an earlier one left. */
 async function useSource(page: Page, source: 'method' | 'manual') {
   await trackCharacter(page, 'Birkieditor');
-  const res = await page.request.patch('/api/bis/settings', { data: { specSlug: SPEC, source, listType: 'mythicPlus' } });
-  expect(res.ok()).toBe(true);
-  if (source === 'method') expect((await page.request.post('/api/bis/fetch', { data: { specSlug: SPEC } })).ok()).toBe(true);
+  const patch = async (to: 'method' | 'manual') =>
+    expect((await page.request.patch('/api/bis/settings', { data: { specSlug: SPEC, source: to, listType: 'mythicPlus' } })).ok()).toBe(true);
+  // Manual copies a fetched list, so Method is chosen and fetched first either way.
+  await patch('method');
+  expect((await page.request.post('/api/bis/fetch', { data: { specSlug: SPEC } })).ok()).toBe(true);
+  if (source === 'manual') await patch('manual');
 }
 
 const clearOverride = async (page: Page, row: Record<string, string>) =>
