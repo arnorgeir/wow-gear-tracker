@@ -9,7 +9,7 @@ import { CrestChip } from '@/components/crest-chip/CrestChip';
 import { LinkPending } from '@/components/link-pending/LinkPending';
 import { BIS_LOADING, TRACKS_LOADING } from '@/components/shared/loading-copy';
 import { Skeleton } from '@/components/skeleton/Skeleton';
-import { barSegments, bisSummary } from './bis-summary';
+import { barSegments, bisSummary } from '@/components/shared/bis-summary';
 import { CardProgressSkeleton } from './CardProgressSkeleton';
 import { crestLine } from './crest-line';
 
