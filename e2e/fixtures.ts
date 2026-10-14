@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from '@playwright/test';
+import { test as base, expect, type Locator, type Page } from '@playwright/test';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
 export const UNMATCHED_LOG = '.cache/e2e/unmatched.log';
@@ -45,6 +45,14 @@ export async function holdRequest(page: Page, method: string, urlPart: string) {
 
 export { expect };
 
+/** Clicks twice, the second time through a disabled button, and checks the request went out once. */
+export async function doubleClick(button: Locator, hold: Awaited<ReturnType<typeof holdRequest>>) {
+  await button.click();
+  await button.click({ force: true });
+  await expect(button).toBeDisabled();
+  expect(hold.count()).toBe(1);
+}
+
 /** Tracks a made-up character through the same route a user's click reaches. Names must start with "Birki". */
 export async function trackCharacter(page: Page, name: string, realmSlug = 'kazzak') {
   const res = await page.request.post('/api/characters', { data: { region: 'eu', name, realmSlug } });
@@ -60,7 +68,8 @@ const SKEW_POLL_MS = 150; // the fake re-reads its skew file at most every 50 ms
 
 /**
  * Makes the server fetch a spec's Method list again, past its one-day cache, and returns the clock to
- * normal afterwards. `withoutCloak` has the fake serve a page whose Cloak row is gone.
+ * normal afterwards. `withoutCloak` has the fake serve this spec a page whose Cloak row is gone, and
+ * only this spec: the fetch is the spec's alone, so no other test reads what it changes.
  */
 export async function refetchMethod(page: Page, specSlug: string, { withoutCloak = false } = {}) {
   mkdirSync('.cache/e2e', { recursive: true });
@@ -68,7 +77,7 @@ export async function refetchMethod(page: Page, specSlug: string, { withoutCloak
   const count = (existsSync(SKEW_COUNT_FILE) ? Number(readFileSync(SKEW_COUNT_FILE, 'utf8')) : 0) + 1;
   writeFileSync(SKEW_COUNT_FILE, String(count));
   writeFileSync(CLOCK_SKEW_FILE, String(count * FIVE_DAYS_MS));
-  if (withoutCloak) writeFileSync(METHOD_WITHOUT_CLOAK_FLAG, '');
+  if (withoutCloak) writeFileSync(METHOD_WITHOUT_CLOAK_FLAG, specSlug);
   try {
     await page.waitForTimeout(SKEW_POLL_MS);
     expect((await page.request.post('/api/bis/fetch', { data: { specSlug } })).ok()).toBe(true);

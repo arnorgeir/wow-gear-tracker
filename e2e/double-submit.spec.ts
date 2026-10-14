@@ -1,20 +1,12 @@
 import { readFileSync } from 'node:fs';
-import type { Locator, Page } from '@playwright/test';
-import { expect, holdRequest, refetchMethod, test, trackCharacter } from './fixtures';
+import type { Page } from '@playwright/test';
+import { doubleClick, expect, holdRequest, test, trackCharacter } from './fixtures';
 
 const SPEC = 'guardian-druid';
 const CLOAK = { specSlug: SPEC, source: 'method', listType: 'mythicPlus', slotKey: 'Cloak#1' } as const;
 const HEAD = { specSlug: SPEC, source: 'method', listType: 'overall', slotKey: 'Head#1' } as const;
 const CLOAK_ITEM = 900101;
 const HELM_ITEM = 900201;
-
-/** Clicks twice, the second time through a disabled button, and checks the request went out once. */
-async function doubleClick(button: Locator, hold: Awaited<ReturnType<typeof holdRequest>>) {
-  await button.click();
-  await button.click({ force: true });
-  await expect(button).toBeDisabled();
-  expect(hold.count()).toBe(1);
-}
 
 /** Sets the spec's source through the routes, so a test never leans on what an earlier one left. */
 async function useSource(page: Page, source: 'method' | 'manual') {
@@ -112,21 +104,6 @@ test('CopyAgain sends one request while replacing', async ({ page }) => {
   await doubleClick(page.getByRole('button', { name: 'Replace' }), hold);
   await hold.release();
   await expect(page.getByRole('button', { name: 'From Method' })).toBeVisible();
-});
-
-test('OrphanList sends one request while removing', async ({ page }) => {
-  await useSource(page, 'method');
-  await putOverride(page, CLOAK, CLOAK_ITEM);
-  // Method drops the Cloak row on its next fetch, which leaves the override with no slot.
-  await refetchMethod(page, SPEC, { withoutCloak: true });
-  await page.goto(`/settings/bis/${SPEC}?list=mythicPlus`);
-  const orphans = page.locator('section[aria-labelledby="orphans"]');
-  const hold = await holdRequest(page, 'DELETE', '/api/bis/overrides');
-  await doubleClick(orphans.getByRole('button', { name: /^Remov/ }), hold);
-  await hold.release();
-  await expect(orphans).toHaveCount(0);
-  // Put the Cloak row back for the tests after this one.
-  await refetchMethod(page, SPEC);
 });
 
 test('SlotRow sends one request while resetting', async ({ page }) => {

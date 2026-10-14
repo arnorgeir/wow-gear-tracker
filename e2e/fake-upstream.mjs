@@ -45,7 +45,7 @@ const routes = [
   ['raider.io/api/search', (url) => url.includes('outage') ? json({}, 500) : json({ matches: [
     { type: 'character', data: { name: 'Birkibjörn', region: { slug: 'eu' }, realm: { name: 'Kazzak', wowRealmId: 1305 }, class: { name: 'Druid' }, faction: 'horde' } },
   ] })],
-  // Any made-up character whose name starts with "birki" exists, a Guardian Druid on the realm in the URL.
+  // Any made-up character whose name starts with "birki" exists, a Guardian Druid ("birkiferal": Feral) on the realm in the URL.
   [/\/profile\/wow\/character\/([^/]+)\/(birki[^/?]*)\/equipment/, () => json({ equipped_items: [
     { slot: { type: 'HEAD' }, item: { id: 271875 }, name: 'Gaze of the Coiled Watcher', level: { value: 250 }, quality: { type: 'EPIC' }, bonus_list: [] },
     { slot: { type: 'NECK' }, item: { id: 268265 }, name: 'Aqirbane Reliquary', level: { value: 240 }, quality: { type: 'RARE' }, bonus_list: [] },
@@ -62,7 +62,7 @@ const routes = [
     return json({
       name: decoded[0].toUpperCase() + decoded.slice(1),
       realm: { id: slug === 'kazzak' ? 1305 : 1096, name: slug === 'kazzak' ? 'Kazzak' : 'Argent Dawn', slug },
-      character_class: { name: 'Druid' }, active_spec: { name: 'Guardian' }, race: { name: 'Troll' }, faction: { type: 'HORDE' },
+      character_class: { name: 'Druid' }, active_spec: { name: decoded.startsWith('birkiferal') ? 'Feral' : 'Guardian' }, race: { name: 'Troll' }, faction: { type: 'HORDE' },
     });
   }],
   [/eu\.api\.blizzard\.com\/data\/wow\/playable-class\/index/, () => json({ classes: [{ id: 11, name: 'Druid' }] })],
@@ -78,9 +78,10 @@ const routes = [
     '12805': { id: 12805, quality: 4 },
   })],
   ['nether.wowhead.com/tooltip/currency/', () => new Response(CURRENCY_TOOLTIP, { headers: { 'content-type': 'application/json' } })],
-  // A test that needs a row to vanish from Method's list writes the flag file; the Cloak row is then dropped.
-  ['method.gg/guides/', () => {
-    const page = existsSync(METHOD_WITHOUT_CLOAK_FLAG) ? METHOD_PAGE.replace(/<tr><td>Cloak<\/td>.*<\/tr>\n/, '') : METHOD_PAGE;
+  // A test that needs a row to vanish from a spec's list writes that spec's slug to the flag file; its Cloak row is then dropped.
+  ['method.gg/guides/', (url) => {
+    const dropCloak = existsSync(METHOD_WITHOUT_CLOAK_FLAG) && url.includes(`/guides/${readFileSync(METHOD_WITHOUT_CLOAK_FLAG, 'utf8')}/`);
+    const page = dropCloak ? METHOD_PAGE.replace(/<tr><td>Cloak<\/td>.*<\/tr>\n/, '') : METHOD_PAGE;
     return new Response(page, { headers: { 'content-type': 'text/html' } });
   }],
   // No started season: the dungeon ranking stays empty and the app logs a tolerated season failure.
