@@ -10,6 +10,8 @@ export interface GearRow {
   matched: boolean;
   /** For a matched tier row: whether the piece carries Method's secondary stats. Null otherwise. */
   stats: StatMatch | null;
+  /** A matched tier row whose stats were not compared because the piece's or the target's are unknown. Only worded, never a state. */
+  statsUnverified: boolean;
   state: ItemState;
 }
 
@@ -65,7 +67,9 @@ export function evaluateGear({ equipped, bisRows, tracks, bagItemIds = new Set()
     const stats = matched && row.kind === 'item' && row.isTier && item
       ? compareStats({ itemId: row.itemId, stats: targets.get(row.itemId)?.secondaryStats }, { itemId: item.itemId, stats: item.secondaryStats })
       : null;
-    return { row, slot, equipped: item, track, matched, stats, state: stateFor(row, matched, track, bagItemIds, stats, statsMatter) };
+    const statsUnverified = statsMatter && matched && row.kind === 'item' && row.isTier && item !== null
+      && (targets.get(row.itemId)?.secondaryStats == null || item.secondaryStats == null);
+    return { row, slot, equipped: item, track, matched, stats, statsUnverified, state: stateFor(row, matched, track, bagItemIds, stats, statsMatter) };
   });
 }
 

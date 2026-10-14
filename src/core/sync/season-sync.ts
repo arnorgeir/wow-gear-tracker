@@ -7,11 +7,12 @@ import type { FetchFn } from '../http';
 import { fetchMainSeason, type MainSeason } from '../raiderio/season';
 import type { Region, SeasonLoot } from '../types';
 import { encodeStats } from '../gear/stat-pair';
-import { DAY_MS } from './reference-sync';
+import { DAY_MS, ensureItemIcons } from './reference-sync';
 
 // The version in the key marks the stored tables' format. Bump it when season_dungeons or
-// dungeon_loot gain columns, so installs reload the season instead of trusting old rows.
-export const SEASON_META_KEY = 'season.v4';
+// dungeon_loot gain columns, or when a sync starts caching more per item (v5: loot icons),
+// so installs reload the season instead of trusting old rows until the next daily check.
+export const SEASON_META_KEY = 'season.v5';
 const SEASON_FAILED_META_KEY = 'season.failedAt';
 const SEASON_RETRY_MS = 60 * 60 * 1000;
 
@@ -74,7 +75,29 @@ export async function loadSeasonLoot(blizzard: BlizzardClient, region: Region, s
   return { slug: season.slug, dungeons: rows, loot };
 }
 
-async function runSync({ db, blizzard, fetchFn, now, region }: SeasonSyncDeps): Promise<SeasonSyncResult> {
+const iconRuns = new WeakMap<Db, Promise<void>>();
+
+/**
+ * Caches an icon for every loot item, so the override search (a read-only GET) can show them. Runs in the
+ * background: a few hundred icons, or a hanging media endpoint, must not hold the season answer back. One
+ * run per database at a time; errors are logged, never thrown.
+ */
+function cacheLootIcons({ db, blizzard, now, region }: SeasonSyncDeps) {
+  if (iconRuns.has(db)) return;
+  const run = (async () => {
+    const loot = (await getSeasonLoot(db)).flatMap((d) => d.loot.map((i) => i.itemId));
+    await ensureItemIcons({ db, blizzard, now }, region, loot);
+  })()
+    .catch((err) => console.error('The season’s item icons couldn’t be cached', err))
+    .finally(() => iconRuns.delete(db));
+  iconRuns.set(db, run);
+}
+
+/** Resolves once a background icon run for this database has finished. For tests. */
+export const lootIconsSettled = (db: Db): Promise<void> => iconRuns.get(db) ?? Promise.resolve();
+
+async function runSync(deps: SeasonSyncDeps): Promise<SeasonSyncResult> {
+  const { db, blizzard, fetchFn, now, region } = deps;
   const loaded = await getMeta(db, SEASON_META_KEY);
   const failed = await getMeta(db, SEASON_FAILED_META_KEY);
   if (!seasonTiming(loaded, failed, now).due) return 'skipped';
@@ -84,10 +107,12 @@ async function runSync({ db, blizzard, fetchFn, now, region }: SeasonSyncDeps): 
       // Same season: only artwork can have moved, so refresh it without rebuilding loot.
       await updateSeasonArtwork(db, season.slug, season.dungeons);
       await setMeta(db, SEASON_META_KEY, season.slug, now);
+      cacheLootIcons(deps);
       return 'current';
     }
     await replaceSeason(db, await loadSeasonLoot(blizzard, region, season));
     await setMeta(db, SEASON_META_KEY, season.slug, now);
+    cacheLootIcons(deps);
     return 'loaded';
   } catch (err) {
     console.error('The season’s loot couldn’t be loaded', err);

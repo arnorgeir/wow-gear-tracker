@@ -1,27 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { ItemChoice, RowRef } from '@/core/bis/edits';
+import { pickQuality } from '@/core/bis/pick-quality';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { QUALITY_STYLES } from '@/components/item-card/quality-styles';
 import { wowheadData } from '@/components/item-card/wowhead';
+import { SearchingStatus } from '@/components/searching-status/SearchingStatus';
+import { RarityBox } from './RarityBox';
 import { resultDetail } from './result-detail';
 import { useItemSearch } from './use-item-search';
 
 const BUTTON = 'h-9 shrink-0 rounded-lg border border-line-strong bg-raised px-3.5 text-sm font-semibold text-ink disabled:opacity-60 md:h-9';
 
-function ItemName({ item }: { item: ItemChoice }) {
-  const q = QUALITY_STYLES[item.quality ?? 'EPIC'];
+/** Icon, name and anything else passed in, as one Wowhead link: its tooltip only scans links, so the whole span hovers. */
+function ItemLink({ item, className, children }: { item: ItemChoice; className: string; children: ReactNode }) {
   return (
     <a href={`https://www.wowhead.com/item=${item.itemId}`} data-wowhead={wowheadData(item.itemId, [], null)} target="_blank" rel="noreferrer"
-      className="text-[15px] font-semibold no-underline hover:underline" style={{ color: q.text }}>
-      {item.name}
+      className={`group no-underline ${className}`}>
+      {children}
     </a>
   );
 }
 
-function RarityBox({ item }: { item: ItemChoice }) {
-  return <span aria-hidden="true" className="size-[34px] shrink-0 rounded-md border-2 bg-surface" style={{ borderColor: QUALITY_STYLES[item.quality ?? 'EPIC'].ring }} />;
+function ItemName({ item }: { item: ItemChoice }) {
+  return (
+    <span className="text-[15px] font-semibold group-hover:underline" style={{ color: QUALITY_STYLES[pickQuality(item.quality)].text }}>
+      {item.name}
+    </span>
+  );
 }
 
 const WarnIcon = () => (
@@ -57,22 +64,24 @@ export function ItemSearch({ row, label, slotLabel, onDone }: { row: RowRef; lab
   return (
     <div className="flex flex-col gap-2.5 rounded-xl border border-line-strong bg-surface-2 p-3.5">
       <label htmlFor={inputId} className="text-[13px] font-bold uppercase tracking-wider text-muted">{label}</label>
-      <input id={inputId} type="search" value={query} onChange={(e) => { setQuery(e.target.value); setChosen(null); }}
-        onKeyDown={(e) => { if (e.key === 'Escape') onDone(); }}
-        placeholder="Search by name, ID or Wowhead link" autoFocus
-        className={`h-[46px] rounded-[10px] bg-bg px-3.5 text-base text-ink ${query ? 'border-2 border-gold' : 'border border-line-strong'}`} />
+      <div className="relative flex flex-col">
+        <input id={inputId} type="search" value={query} onChange={(e) => { setQuery(e.target.value); setChosen(null); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') onDone(); }}
+          placeholder="Search by name, ID or Wowhead link" autoFocus
+          className={`h-[46px] rounded-[10px] bg-bg px-3.5 text-base text-ink ${query ? 'border-2 border-gold' : 'border border-line-strong'}`} />
+        <SearchingStatus searching={busy && looking === null} className="pointer-events-none absolute inset-y-0 right-11 flex items-center gap-2 text-sm text-muted" />
+      </div>
       {looking !== null && (
         <span role="status" className="flex items-center gap-2.5 text-sm text-muted">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true" className="shrink-0 animate-spin text-gold"><path d="M12 3a9 9 0 1 0 9 9" /></svg>
           Looking up item {looking} on Blizzard…
         </span>
       )}
-      {looking === null && <span role="status" className="sr-only">{busy ? 'Searching…' : ''}</span>}
       {message && <p role="alert" className="flex items-center gap-2.5 text-sm text-missing"><WarnIcon />{message}</p>}
 
       {chosen ? (
         <div className="flex flex-col gap-3 rounded-xl border border-line-strong bg-surface-2 p-3.5">
-          <div className="flex items-center gap-3"><RarityBox item={chosen} /><ItemName item={chosen} /></div>
+          <ItemLink item={chosen} className="flex items-center gap-3 self-start"><RarityBox item={chosen} /><ItemName item={chosen} /></ItemLink>
           <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px] font-semibold">
             <input type="checkbox" role="switch" checked={catalyst} onChange={(e) => setCatalyst(e.target.checked)} className="size-5 accent-[var(--color-gold)]" />
             Catalyst into tier
@@ -90,8 +99,10 @@ export function ItemSearch({ row, label, slotLabel, onDone }: { row: RowRef; lab
         <ul aria-label="Matching items" className="flex flex-col gap-0.5">
           {results.map((item) => (
             <li key={item.itemId} className="flex min-h-[52px] items-center gap-3 rounded-lg px-2 hover:bg-surface">
-              <RarityBox item={item} />
-              <span className="flex min-w-0 grow flex-col gap-px"><ItemName item={item} /><span className="text-[13px] text-muted">{resultDetail(item)}</span></span>
+              <ItemLink item={item} className="flex min-w-0 grow items-center gap-3 self-stretch">
+                <RarityBox item={item} />
+                <span className="flex min-w-0 flex-col gap-px"><ItemName item={item} /><span className="text-[13px] text-muted">{resultDetail(item)}</span></span>
+              </ItemLink>
               <button type="button" disabled={save.busy} onClick={() => choose(item)} className={BUTTON}>Choose</button>
             </li>
           ))}

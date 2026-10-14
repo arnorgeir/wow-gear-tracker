@@ -150,6 +150,34 @@ describe('tier stat pairs', () => {
   });
 });
 
+describe('statsUnverified', () => {
+  const HM = ['HASTE_RATING', 'MASTERY_RATING'];
+  const crown = row(['HEAD'], 777, true);
+  const withStats = (id: number, secondaryStats?: string[] | null): GearItem => ({ ...item('HEAD', id, [1], true), secondaryStats });
+  const run = (equipped: GearItem, targetStats: string[] | null, over: { statsMatter?: boolean; rows?: BisRow[] } = {}) =>
+    evaluateGear({ equipped: [equipped], bisRows: over.rows ?? [crown], tracks, targets: new Map([[777, { secondaryStats: targetStats, isTier: true }]]), statsMatter: over.statsMatter })[0]!;
+
+  it('flags a matched tier row when either side lacks stats, whether the item IDs are equal or not', () => {
+    for (const id of [777, 555]) {
+      expect(run(withStats(id, null), HM)).toMatchObject({ statsUnverified: true, state: 'done' });
+      expect(run(withStats(id, HM), null)).toMatchObject({ statsUnverified: true, state: 'done' });
+      expect(evaluateGear({ equipped: [withStats(id, HM)], bisRows: [crown], tracks })[0]).toMatchObject({ statsUnverified: true, state: 'done' });
+    }
+  });
+
+  it('is false when both sides know their stats', () => {
+    expect(run(withStats(555, HM), HM).statsUnverified).toBe(false);
+    expect(run(withStats(555, ['CRIT_RATING', 'VERSATILITY']), HM).statsUnverified).toBe(false);
+  });
+
+  it('is false when stats do not matter, on Missing rows and on non-tier rows', () => {
+    expect(run(withStats(777, null), HM, { statsMatter: false }).statsUnverified).toBe(false);
+    expect(run(item('NECK', 1, [1]), HM).statsUnverified).toBe(false);
+    expect(run(withStats(555, null), HM, { rows: [row(['NECK'], 10)] }).statsUnverified).toBe(false);
+    expect(evaluateGear({ equipped: [], bisRows: [crown], tracks })[0]!.statsUnverified).toBe(false);
+  });
+});
+
 describe('statsMatter', () => {
   const crown = row(['HEAD'], 10, true);
   const targets = new Map([[10, { secondaryStats: ['HASTE_RATING', 'MASTERY_RATING'], isTier: true }]]);

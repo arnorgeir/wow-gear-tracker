@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { dungeonLoot } from '../db/schema';
+import { getItemIcons } from '../db/queries/media';
 import { fakeFetch, json, on } from '@/test/fake-fetch';
 import type { BlizzardClient } from '../blizzard/client';
 import { DAY_MS } from './reference-sync';
 import { getMeta, setMeta } from '../db/queries/meta';
 import { replaceSeason } from '../db/queries/season';
-import { readSeason, SEASON_META_KEY, syncSeason } from './season-sync';
+import { lootIconsSettled, readSeason, SEASON_META_KEY, syncSeason } from './season-sync';
 
 const T = Date.parse('2026-09-30T12:00:00Z');
 
@@ -62,6 +63,7 @@ function fakeBlizzard(overrides: Partial<Record<string, unknown>> = {}) {
       const info = ITEMS[id];
       return info ? { quality: 'EPIC', isTier: false, ...info } : null;
     },
+    getItemIconUrl: async (_r: string, id: number) => `https://render/icons/${id}.jpg`,
     ...overrides,
   } as unknown as BlizzardClient;
   return { blizzard, calls };
@@ -70,8 +72,8 @@ function fakeBlizzard(overrides: Partial<Record<string, unknown>> = {}) {
 const deps = async (blizzard: BlizzardClient, fetchFn = raiderIo().fn) => ({ db: await openTestDb(), blizzard, fetchFn, now: T, region: 'eu' as const });
 
 describe('syncSeason', () => {
-  it('stores the season under season.v4', () => {
-    expect(SEASON_META_KEY).toBe('season.v4');
+  it('stores the season under season.v5', () => {
+    expect(SEASON_META_KEY).toBe('season.v5');
   });
 
   it('joins each dungeon to its journal instance by map ID and stores the loot with slots', async () => {
@@ -96,6 +98,46 @@ describe('syncSeason', () => {
     // Both Beta halves share instance 902: its encounters and items are fetched once.
     expect([...calls.encounters].sort()).toEqual([1, 2, 3]);
     expect([...calls.items].sort()).toEqual([100, 101, 200, 300]);
+  });
+
+  describe('loot icons', () => {
+    const LOOT_IDS = [100, 101, 200, 300];
+
+    it('caches an icon for every loot item when the season loads', async () => {
+      const d = await deps(fakeBlizzard().blizzard);
+      expect(await syncSeason(d)).toBe('loaded');
+      await lootIconsSettled(d.db);
+      const icons = await getItemIcons(d.db, LOOT_IDS);
+      expect([...icons.keys()].sort()).toEqual(LOOT_IDS);
+      expect(icons.get(100)).toBe('https://render/icons/100.jpg');
+    });
+
+    it('fills them on the daily check of an install that has none', async () => {
+      const noIcons = fakeBlizzard({ getItemIconUrl: async () => { throw new Error('no media'); } });
+      const d = await deps(noIcons.blizzard);
+      expect(await syncSeason(d)).toBe('loaded');
+      await lootIconsSettled(d.db);
+      expect((await getItemIcons(d.db, LOOT_IDS)).size).toBe(0);
+      expect(await syncSeason({ ...d, blizzard: fakeBlizzard().blizzard, now: T + DAY_MS + 1 })).toBe('current');
+      await lootIconsSettled(d.db);
+      expect((await getItemIcons(d.db, LOOT_IDS)).size).toBe(4);
+    });
+
+    it('still reports loaded, and writes the season meta, when every icon request fails', async () => {
+      const failing = fakeBlizzard({ getItemIconUrl: async () => { throw new Error('no media'); } });
+      const d = await deps(failing.blizzard);
+      expect(await syncSeason(d)).toBe('loaded');
+      await lootIconsSettled(d.db);
+      expect((await getMeta(d.db, SEASON_META_KEY))?.value).toBe('season-test-2');
+    });
+
+    it('answers without waiting for icons, so a hanging media endpoint never holds the season back', async () => {
+      const hanging = fakeBlizzard({ getItemIconUrl: () => new Promise<string | null>(() => {}) });
+      const d = await deps(hanging.blizzard);
+      expect(await syncSeason(d)).toBe('loaded');
+      expect((await readSeason(d.db, T)).dungeons.length).toBeGreaterThan(0);
+    });
+
   });
 
   it('shares one load between two requests arriving together', async () => {

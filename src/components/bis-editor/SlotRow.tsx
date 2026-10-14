@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { RowRef } from '@/core/bis/edits';
+import type { FetchedSourceId } from '@/core/types';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { ItemSearch } from '@/components/item-search/ItemSearch';
 import type { SettingsSlotView } from '@/server/views/types';
@@ -22,7 +23,7 @@ function MethodPick({ pick, replaced }: { pick: Method; replaced?: boolean }) {
 
 const BUTTON = 'h-10 justify-self-end rounded-lg border bg-raised px-3.5 text-sm font-semibold text-ink disabled:opacity-60';
 
-export function SlotRow({ slot, specSlug, source, listType }: { slot: SettingsSlotView; specSlug: string; source: RowRef['source']; listType: RowRef['listType'] }) {
+export function SlotRow({ slot, specSlug, source, copiedFrom, listType }: { slot: SettingsSlotView; specSlug: string; source: RowRef['source']; copiedFrom: FetchedSourceId | null; listType: RowRef['listType'] }) {
   const [searching, setSearching] = useState(false);
   const reset = useApiAction();
   const row: RowRef = { specSlug, source, listType, slotKey: slot.slotKey };
@@ -64,7 +65,7 @@ export function SlotRow({ slot, specSlug, source, listType }: { slot: SettingsSl
       {reset.error && <span role="alert" className="text-sm text-missing">{reset.error}</span>}
       {searching && !edited && (
         <div className="md:ml-[126px]">
-          <ItemSearch row={row} label={replaceText(source, slot.slotLabel)} slotLabel={slot.slotLabel} onDone={() => setSearching(false)} />
+          <ItemSearch row={row} label={replaceText(source, slot.slotLabel, copiedFrom)} slotLabel={slot.slotLabel} onDone={() => setSearching(false)} />
         </div>
       )}
     </div>

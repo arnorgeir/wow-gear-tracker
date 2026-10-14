@@ -70,6 +70,7 @@ export function rowView(
     state: r.state,
     equipped: r.equipped && itemView(r.equipped, icons, r.track),
     equippedStats: r.equipped?.secondaryStats ?? null,
+    statsUnverified: r.statsUnverified,
     bis: bisView(r.row, icons, targets),
     upgrade: upgradeFor(r, costs, balances),
   };

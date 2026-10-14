@@ -1,4 +1,5 @@
 import { applyOverrides } from '@/core/bis/overlay';
+import { pickQuality } from '@/core/bis/pick-quality';
 import { slotKeys } from '@/core/bis/slot-keys';
 import { readSpecBase } from '@/core/bis/spec-base';
 import { getSpecSettings, listOverrides } from '@/core/db/queries/bis-settings';
@@ -27,7 +28,7 @@ async function identify(services: Services, slug: string) {
 
 const orphanView = (o: BisOverride, catalog: ReadonlyMap<number, CatalogItem>, icons: ReadonlyMap<number, string | null>) => {
   const item = catalog.get(o.itemId);
-  return { slotKey: o.slotKey, ...itemView({ itemId: o.itemId, name: item?.name ?? `Item ${o.itemId}`, itemLevel: null, quality: item?.quality ?? 'EPIC', bonusIds: [] }, icons, null) };
+  return { slotKey: o.slotKey, ...itemView({ itemId: o.itemId, name: item?.name ?? `Item ${o.itemId}`, itemLevel: null, quality: pickQuality(item?.quality ?? null), bonusIds: [] }, icons, null) };
 };
 
 export async function getSettingsSpec(services: Services, slug: string, editing: ListType): Promise<SettingsSpecView | null> {
@@ -58,7 +59,7 @@ export async function getSettingsSpec(services: Services, slug: string, editing:
         slotLabel: row.slotLabel,
         method: bisView(row, icons, NO_TARGETS),
         override: shown.kind === 'item' && shown.edited
-          ? { ...itemView({ itemId: shown.itemId, name: shown.name, itemLevel: null, quality: catalog.get(shown.itemId)?.quality ?? 'EPIC', bonusIds: [] }, icons, null), catalyst: shown.isCatalyst }
+          ? { ...itemView({ itemId: shown.itemId, name: shown.name, itemLevel: null, quality: pickQuality(catalog.get(shown.itemId)?.quality ?? null), bonusIds: [] }, icons, null), catalyst: shown.isCatalyst }
           : null,
         tierSlot: row.slots.some((s) => TIER_SLOTS.has(s)),
       };

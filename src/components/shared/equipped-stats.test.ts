@@ -8,7 +8,7 @@ const tierBis: BisView = { kind: 'item', ...item, isTier: true, isCatalyst: true
 const plainBis: BisView = { ...tierBis, isTier: false, isCatalyst: false };
 const anyBis: BisView = { kind: 'any', minItemLevel: 330, source: '' };
 const CRIT_HASTE = ['CRIT_RATING', 'HASTE_RATING'];
-const row = (state: ItemState, equippedStats: string[] | null, bis: BisView = tierBis) => ({ bis, state, equippedStats });
+const row = (state: ItemState, equippedStats: string[] | null, bis: BisView = tierBis, statsUnverified = false) => ({ bis, state, equippedStats, statsUnverified });
 
 describe('equippedStatText', () => {
   it('words the pair of a tier piece that fills the slot', () => {
@@ -26,6 +26,11 @@ describe('equippedStatText', () => {
 
   it('gives no pair while the stats are unknown', () => {
     expect(equippedStatText(row('done', null))).toBeNull();
+  });
+
+  it('says so when the stats could not be checked, even with no equipped stats', () => {
+    expect(equippedStatText(row('done', null, tierBis, true))).toBe('Stats unverified');
+    expect(equippedStatText(row('missing', null, tierBis, true))).toBeNull();
   });
 
   it('gives no pair on non-tier rows', () => {

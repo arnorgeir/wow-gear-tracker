@@ -18,4 +18,10 @@ describe('stateWord', () => {
   it('says Stats for a tier piece with the wrong stats', () => {
     expect(stateWord('wrongStats', true)).toEqual({ word: 'Stats', className: 'text-stats' });
   });
+
+  it('adds a question mark when the stats are unverified', () => {
+    expect(stateWord('done', true, true).word).toBe('Done?');
+    expect(stateWord('mythUpgradable', true, true).word).toBe('Crests?');
+    expect(stateWord('done', true).word).toBe('Done');
+  });
 });

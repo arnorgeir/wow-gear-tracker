@@ -392,7 +392,7 @@ describe('upgradeFor', () => {
   const costs = new Map([[700, { group: 700, currencyId: 3500, currencyName: 'Myth Crest', costPerStep: 20, iconUrl: null }]]);
   const balances = new Map([[3500, 50]]);
   const base: GearRow = {
-    row: lists.mythicPlus[0]!, slot: 'HEAD', equipped: { ...gear[0]!, bonusIds: [1] }, track: myth, matched: true, stats: 'same', state: 'belowMyth',
+    row: lists.mythicPlus[0]!, slot: 'HEAD', equipped: { ...gear[0]!, bonusIds: [1] }, track: myth, matched: true, stats: 'same', statsUnverified: false, state: 'belowMyth',
   };
 
   it('offers a crest upgrade on a tier piece with the wrong stats, as on any matched tracked row', () => {
@@ -407,13 +407,18 @@ describe('rowView stat pairs', () => {
   const tierRow: GearRow = {
     row: { kind: 'item', slotLabel: 'Chest', slots: ['CHEST'], itemId: 273785, name: 'Primordial Robe of Rites', bonusIds: [], isTier: true, isCatalyst: false, source: 'Altar of Fangs' },
     slot: 'CHEST', equipped: { slot: 'CHEST', itemId: 271531, name: 'Lunar Raiment', itemLevel: 321, quality: 'EPIC', bonusIds: [], isTier: true, secondaryStats: ['CRIT_RATING', 'MASTERY_RATING'] },
-    track: null, matched: true, stats: 'different', state: 'wrongStats',
+    track: null, matched: true, stats: 'different', statsUnverified: false, state: 'wrongStats',
   };
 
   it('carries the equipped and target pairs and the tier-token flag', () => {
     const view = rowView(tierRow, new Map(), new Map(), new Map(), new Map([[273785, { secondaryStats: HM, isTier: false }]]));
     expect(view.equippedStats).toEqual(['CRIT_RATING', 'MASTERY_RATING']);
     expect(view.bis).toMatchObject({ kind: 'item', targetStats: HM, targetIsTierPiece: false });
+  });
+
+  it('copies statsUnverified', () => {
+    expect(rowView({ ...tierRow, statsUnverified: true }, new Map(), new Map(), new Map(), new Map()).statsUnverified).toBe(true);
+    expect(rowView(tierRow, new Map(), new Map(), new Map(), new Map()).statsUnverified).toBe(false);
   });
 
   it('renders without pairs when the target lookup failed', () => {

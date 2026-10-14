@@ -22,12 +22,15 @@ export function SpecRow({ spec, now }: { spec: PickerSpecView; now: number }) {
   return (
     <li className={`flex min-h-[52px] items-center gap-2.5 rounded-lg px-2 ${spec.tracked ? 'bg-gold-wash' : ''}`}>
       <SpecIcon url={spec.iconUrl} className="" size={32} />
-      <Link href={`/settings/bis/${spec.slug}`} className={`grow text-base font-semibold no-underline ${spec.tracked ? 'text-ink' : 'text-ink/85'}`}>{spec.specName}</Link>
+      {/* The state sits under the name, so "Fetched 9 days ago" never wraps beside it or shifts the button. */}
+      <Link href={`/settings/bis/${spec.slug}`} className="flex min-w-0 grow flex-col gap-px no-underline">
+        <span className={`truncate text-base font-semibold ${spec.tracked ? 'text-ink' : 'text-ink/85'}`}>{spec.specName}</span>
+        {/* The Tracked pill already says "Tracked"; every other state gets its words, with or without a button. */}
+        {spec.state.kind !== 'tracked' && (
+          <span className={`truncate text-[13px] ${spec.state.kind === 'failed' ? 'text-missing' : 'text-muted'}`}>{fetchStateLabel(spec.state, now)}</span>
+        )}
+      </Link>
       {spec.tracked && <TrackedPill />}
-      {/* The Tracked pill already says "Tracked"; every other state gets its words, with or without a button. */}
-      {spec.state.kind !== 'tracked' && (
-        <span className={`text-[13px] ${spec.state.kind === 'failed' ? 'text-missing' : 'text-muted'}`}>{fetchStateLabel(spec.state, now)}</span>
-      )}
       {action && <FetchButton specSlug={spec.slug} label={action} />}
     </li>
   );

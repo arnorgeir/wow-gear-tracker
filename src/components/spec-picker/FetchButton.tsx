@@ -3,7 +3,7 @@
 import { useApiAction } from '@/components/hooks/use-api-action';
 import type { FetchAction } from './fetch-state';
 
-const HEIGHT = { sm: 'h-9', md: 'h-10', lg: 'h-11' } as const;
+const HEIGHT = { sm: 'h-8', md: 'h-10', lg: 'h-11' } as const;
 
 interface Props {
   specSlug: string;
@@ -21,7 +21,7 @@ export function FetchButton({ specSlug, label, size = 'sm', link }: Props) {
         onClick={() => run('/api/bis/fetch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ specSlug }) })}
         className={link
           ? 'text-gold underline-offset-2 hover:underline disabled:opacity-60'
-          : `${HEIGHT[size]} rounded-lg border border-line-strong bg-raised px-3 text-sm font-semibold disabled:opacity-60`}>
+          : `${HEIGHT[size]} inline-flex min-w-[5.5rem] items-center justify-center rounded-lg border border-line-strong bg-raised px-2.5 text-sm font-semibold disabled:opacity-60`}>
         {busy ? 'Fetching…' : label}
       </button>
       {error && <span role="alert" className="text-sm text-missing">{error}</span>}

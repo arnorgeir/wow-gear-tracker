@@ -22,7 +22,7 @@ const render = (members: GroupMemberView[], grid: GroupGridRow[], tracksKnown = 
 
 const equipped = { itemId: 271528, name: 'Enigmatic Dreamwatcher’s Somnolent Stare', itemLevel: 321, quality: 'EPIC' as const, bonusIds: [12], iconUrl: 'https://render.worldofwarcraft.com/icons/56/stare.jpg', trackLabel: 'Myth 2/6' };
 const cell = (over: Partial<GearRowView>): GearRowView => ({
-  slotLabel: 'Head', slot: 'HEAD', state: 'mythUpgradable', equipped, equippedStats: null, upgrade: null,
+  slotLabel: 'Head', slot: 'HEAD', state: 'mythUpgradable', equipped, equippedStats: null, statsUnverified: false, upgrade: null,
   bis: { kind: 'item', ...equipped, isTier: false, isCatalyst: false, source: '', targetStats: null, targetIsTierPiece: false }, ...over,
 });
 

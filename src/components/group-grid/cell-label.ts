@@ -6,6 +6,7 @@ export function cellLabel(memberName: string, slotLabel: string, cell: GearRowVi
   const item = cell.equipped
     ? `${cell.equipped.name}${cell.equipped.itemLevel ? `, item level ${cell.equipped.itemLevel}` : ''}`
     : 'nothing equipped';
+  const unverified = cell.statsUnverified ? ', stats unverified' : '';
   const upgrade = cell.upgrade ? ', can upgrade now' : '';
-  return `${memberName}, ${slotLabel}: ${item}, ${STATE_LABELS[cell.state].text.toLowerCase()}${upgrade}`;
+  return `${memberName}, ${slotLabel}: ${item}, ${STATE_LABELS[cell.state].text.toLowerCase()}${unverified}${upgrade}`;
 }

@@ -23,11 +23,11 @@ export function GroupCell({ cell, tracksKnown, slotLabel, memberName, character 
   const button = useRef<HTMLButtonElement>(null);
   if (!cell) return <div className="p-1 text-center text-muted">&mdash;</div>;
   const tone = rowTone(cell.state, tracksKnown);
-  const word = stateWord(cell.state, cell.bis.kind === 'item' && cell.bis.isTier);
+  const word = stateWord(cell.state, cell.bis.kind === 'item' && cell.bis.isTier, cell.statsUnverified);
   const eq = cell.equipped;
   const track = trackDisplay(eq ? eq.trackLabel : null, tracksKnown);
   // Hovering shows what the cell still needs; an item on no track also says what that means.
-  const hover = [needText(cell), eq && eq.trackLabel === null ? track.hint ?? null : null].filter(Boolean).join('. ') || undefined;
+  const hover = [needText(cell), cell.statsUnverified ? 'Tier stats unverified' : null, eq && eq.trackLabel === null ? track.hint ?? null : null].filter(Boolean).join('. ') || undefined;
   const q = eq ? QUALITY_STYLES[eq.quality] ?? QUALITY_STYLES.COMMON : null;
   const icon = eq?.iconUrl
     ? <img src={eq.iconUrl} alt="" width={36} height={36} className="size-[34px] rounded-md border-2 sm:size-9" style={{ borderColor: q!.ring }} />

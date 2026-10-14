@@ -10,12 +10,15 @@ describe('editor text', () => {
   });
 
   it('names the pick column and the untouched rows after the source', () => {
-    expect(pickColumn('icyVeins')).toBe("Icy Veins's pick");
-    expect(pickColumn('manual')).toBe('Copied pick');
+    expect(pickColumn('icyVeins', null)).toBe("Icy Veins's pick");
+    expect(pickColumn('method', null)).toBe("Method's pick");
+    expect(pickColumn('manual', null)).toBe('Copied pick');
+    expect(pickColumn('manual', 'method')).toBe('Copied from Method');
     expect(followsText('method')).toBe('Follows Method');
     expect(followsText('manual')).toBe('Follows your copy');
-    expect(replaceText('icyVeins', 'Head')).toBe("Replace Icy Veins's Head pick");
-    expect(replaceText('manual', 'Head')).toBe('Replace the copied Head pick');
+    expect(replaceText('icyVeins', 'Head', null)).toBe("Replace Icy Veins's Head pick");
+    expect(replaceText('manual', 'Head', null)).toBe('Replace the copied Head pick');
+    expect(replaceText('manual', 'Head', 'method')).toBe('Replace the Head pick copied from Method');
   });
 
   it('says who dropped orphaned slots', () => {

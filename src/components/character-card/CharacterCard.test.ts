@@ -66,11 +66,14 @@ describe('CharacterCardSkeleton', () => {
 });
 
 describe('CharacterCard item level', () => {
-  it('shows the item level with one decimal', () => {
-    expect(render(card({ itemLevel: 334 }))).toContain('Item level <span class="font-mono">334.0</span>');
+  it('puts realm and item level, one decimal, on one line', () => {
+    expect(render(card({ itemLevel: 642.34 }))).toContain('Argent Dawn · <span class="font-mono">642.3</span> ilvl</span>');
+    expect(render(card({ itemLevel: 642.34 }))).not.toContain('Item level');
   });
 
-  it('shows no item level when unknown', () => {
-    expect(render(card({}))).not.toContain('Item level');
+  it('shows the realm alone when the item level is unknown', () => {
+    const html = render(card({}));
+    expect(html).toContain('Argent Dawn');
+    expect(html).not.toContain('ilvl');
   });
 });
