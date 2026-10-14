@@ -72,8 +72,8 @@ function fakeBlizzard(overrides: Partial<Record<string, unknown>> = {}) {
 const deps = async (blizzard: BlizzardClient, fetchFn = raiderIo().fn) => ({ db: await openTestDb(), blizzard, fetchFn, now: T, region: 'eu' as const });
 
 describe('syncSeason', () => {
-  it('stores the season under season.v4', () => {
-    expect(SEASON_META_KEY).toBe('season.v4');
+  it('stores the season under season.v5', () => {
+    expect(SEASON_META_KEY).toBe('season.v5');
   });
 
   it('joins each dungeon to its journal instance by map ID and stores the loot with slots', async () => {

@@ -10,8 +10,9 @@ import { encodeStats } from '../gear/stat-pair';
 import { DAY_MS, ensureItemIcons } from './reference-sync';
 
 // The version in the key marks the stored tables' format. Bump it when season_dungeons or
-// dungeon_loot gain columns, so installs reload the season instead of trusting old rows.
-export const SEASON_META_KEY = 'season.v4';
+// dungeon_loot gain columns, or when a sync starts caching more per item (v5: loot icons),
+// so installs reload the season instead of trusting old rows until the next daily check.
+export const SEASON_META_KEY = 'season.v5';
 const SEASON_FAILED_META_KEY = 'season.failedAt';
 const SEASON_RETRY_MS = 60 * 60 * 1000;
 
