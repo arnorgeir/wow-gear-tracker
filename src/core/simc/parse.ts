@@ -7,6 +7,8 @@ export interface SimcItem {
   name: string | null;
   itemLevel: number | null;
   bonusIds: number[];
+  /** The item whose stats this one keeps (a catalysed piece names its input), null when it has its own. */
+  statsItemId: number | null;
 }
 
 export interface SimcCurrency {
@@ -63,6 +65,7 @@ function parseItem(body: string, location: ItemLocation, pending: { name: string
   const itemId = Number(options.get('id'));
   if (!Number.isInteger(itemId) || itemId <= 0) throw new SimcParseError(`The ${match[1]} item on line ${lineNo} has no item id`, lineNo);
   const bonus = options.get('bonus_id');
+  const redirect = Number(options.get('redirected_base_stats'));
   return {
     location,
     slot,
@@ -70,6 +73,7 @@ function parseItem(body: string, location: ItemLocation, pending: { name: string
     name: pending?.name ?? null,
     itemLevel: pending?.itemLevel ?? null,
     bonusIds: bonus ? bonus.split('/').map(Number).filter((n) => Number.isInteger(n)) : [],
+    statsItemId: Number.isInteger(redirect) && redirect > 0 ? redirect : null,
   };
 }
 

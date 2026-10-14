@@ -4,7 +4,7 @@ import { getCharacter } from '../db/queries/characters';
 import { saveSnapshotIfChanged, type SnapshotItemInput } from '../db/queries/snapshots';
 import { UserError } from '../errors';
 import { qualityFromBonuses } from '../raidbots/tracks';
-import { ensureItemDetails } from '../sync/reference-sync';
+import { ensureItemDetails, ensureItemStats } from '../sync/reference-sync';
 import type { ItemLocation, Quality } from '../types';
 import { parseSimc, SimcParseError, type SimcProfile } from './parse';
 
@@ -54,6 +54,10 @@ export async function importSimc({ db, blizzard, qualities, now }: Deps, charact
   if (profile.items.some((i) => i.location !== 'bag' && !details.has(i.itemId))) {
     throw new UserError('Couldn’t reach Blizzard to check which items are tier pieces. Try the import again in a moment.');
   }
+  // Only equipped tier pieces get stats: a catalysed one keeps its input item's, a dropped one has its own.
+  const isEquippedTier = (i: SimcProfile['items'][number]) => i.location === 'equipped' && details.get(i.itemId)?.isTier === true;
+  const statsSource = (i: SimcProfile['items'][number]) => i.statsItemId ?? i.itemId;
+  const stats = await ensureItemStats({ db, blizzard, now: time }, character.region, profile.items.filter(isEquippedTier).map(statsSource));
   const items: SnapshotItemInput[] = profile.items.map((item) => ({
     location: item.location,
     slot: item.slot,
@@ -63,8 +67,7 @@ export async function importSimc({ db, blizzard, qualities, now }: Deps, charact
     quality: qualityFromBonuses(item.bonusIds, qualities) ?? details.get(item.itemId)?.quality ?? 'COMMON',
     bonusIds: item.bonusIds,
     isTier: details.get(item.itemId)?.isTier ?? false,
-    // SimC exports carry no item stats.
-    secondaryStats: null,
+    secondaryStats: isEquippedTier(item) ? stats.get(statsSource(item)) ?? null : null,
   }));
 
   const { changed } = await saveSnapshotIfChanged(db, characterId, 'simc', items, time, profile.currencies);

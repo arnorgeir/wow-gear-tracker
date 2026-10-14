@@ -19,7 +19,7 @@ spec=guardian
 talents=CgGAAAAAAAAAAAAAAAAAAAAAAAAAA
 
 # Enigmatic Dreamwatcher's Somnolent Stare (321)
-head=,id=271528,enchant_id=7960,bonus_id=13692/13440/6652/13696/13698/12850
+head=,id=271528,enchant_id=7960,bonus_id=13692/13440/6652/13696/13698/12850,redirected_base_stats=251223
 # Yoke of the Charging Bear (318)
 neck=,id=251173,gem_id=240892,bonus_id=13440/6652/13668/12699/12845
 # Plain Shirt (1)

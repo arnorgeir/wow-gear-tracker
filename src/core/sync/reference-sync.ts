@@ -228,6 +228,26 @@ export async function syncTierTargets(deps: { db: Db; blizzard: BlizzardClient; 
   return true;
 }
 
+/** Secondary stats for items, from the item_details cache, requesting the ones that need it. Never throws for an upstream failure. */
+export async function ensureItemStats(
+  deps: { db: Db; blizzard: BlizzardClient; now: number }, region: Region, itemIds: number[],
+): Promise<Map<number, string[] | null>> {
+  const { db, blizzard, now } = deps;
+  const ids = [...new Set(itemIds)];
+  const rows = await getTierTargetRows(db, ids);
+  const fetched = await Promise.all(ids.filter((id) => needsStats(rows.get(id), now)).map(async (itemId) => {
+    try {
+      return { itemId, info: await blizzard.getItemDetails(region, itemId) };
+    } catch {
+      return null;
+    }
+  }));
+  const found = fetched.filter((entry): entry is { itemId: number; info: ItemInfo | null } => entry !== null);
+  if (found.length > 0) await upsertTierTargets(db, found, now);
+  const after = found.length > 0 ? await getTierTargetRows(db, ids) : rows;
+  return new Map(ids.map((id) => [id, after.get(id)?.secondaryStats ?? null]));
+}
+
 const SPEC_ICON_PARALLEL = 6;
 const SPECS_META_KEY = 'specs.v2.fetchedAt';
 const SPECS_FAILED_META_KEY = 'specs.failedAt';
