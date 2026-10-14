@@ -13,7 +13,7 @@ describe('ItemLink', () => {
     const html = render('RARE');
     expect(html.match(/<a /g)).toHaveLength(1);
     expect(html).toContain('data-wowhead="item=9"');
-    expect(html).toMatch(/<a [^>]*class="[^"]*inline-flex max-w-full/);
+    expect(html).toMatch(/<a [^>]*class="[^"]*inline-flex w-fit max-w-full/);
     expect(html).toContain('border-color:#0070dd');
     expect(html).toContain('color:#5eaaff');
     expect(html.indexOf('Leather · Waist')).toBeLessThan(html.indexOf('</a>'));
