@@ -3,11 +3,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { RarityBox } from './RarityBox';
 
-const render = (item: Parameters<typeof RarityBox>[0]['item']) => renderToStaticMarkup(createElement(RarityBox, { item }));
+const render = (props: Parameters<typeof RarityBox>[0]) => renderToStaticMarkup(createElement(RarityBox, props)).replace(/<link[^>]*\/>/g, '');
 
 describe('RarityBox', () => {
-  it('shows the icon in an Epic ring for a Rare base quality', () => {
-    const html = render({ quality: 'RARE', iconUrl: 'https://render/icons/9.jpg' });
+  it('shows the icon in a ring of the quality it is given', () => {
+    const html = render({ quality: 'EPIC', iconUrl: 'https://render/icons/9.jpg' });
     expect(html).toContain('<img src="https://render/icons/9.jpg"');
     expect(html).toContain('border-color:#a335ee');
   });
@@ -15,6 +15,6 @@ describe('RarityBox', () => {
   it('keeps an empty ring when no icon is cached', () => {
     const html = render({ quality: 'RARE', iconUrl: null });
     expect(html).not.toContain('<img');
-    expect(html).toContain('border-color:#a335ee');
+    expect(html).toContain('border-color:#0070dd');
   });
 });

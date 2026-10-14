@@ -91,6 +91,15 @@ describe('GroupGrid', () => {
     expect(render([member({ character: summary(3, 'Birkibjörn') })], [])).not.toContain(' list<');
   });
 
+  it('puts the pending cue in the name link and in the Import SimC link', () => {
+    const crests = { balances: [], pastedAt: 0 };
+    const withCrests = render([member({ crests, character: summary(3, 'Birkibjörn') })], []);
+    expect(withCrests.match(/animate-spin/g)).toHaveLength(1);
+    const without = render([member({ character: summary(3, 'Birkibjörn') })], []);
+    expect(without.match(/animate-spin/g)).toHaveLength(2);
+    expect(without).toMatch(/Import SimC<span aria-hidden="true" class="[^"]*animate-spin/);
+  });
+
   it('asks for a paste when a member has no crests yet', () => {
     const html = render([member({ character: summary(3, 'Birkibjörn') })], []);
     expect(html).toContain('Import SimC');
@@ -117,7 +126,8 @@ describe('GroupGrid', () => {
     const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ equipped: { ...equipped, trackLabel: null } })] }]);
     expect(html).toContain('>No track<');
     expect(html).not.toContain('Legacy');
-    expect(html).toContain('title="Not on a current season upgrade track. Often an item from an earlier season."');
+    expect(html).toContain("<p class=\"mt-1 text-[13px] text-muted\">Not on a current season upgrade track. Often an item from an earlier season.</p>");
+    expect(html).not.toContain("title=\"Not on a current season");
   });
 
   it('shows no hint when the track data is unavailable, and no track at all when nothing is equipped', () => {
@@ -137,11 +147,12 @@ describe('GroupGrid', () => {
     expect(html).toMatch(/text-track-myth[^>]*>Myth 2[/]6</);
   });
 
-  it('shows what is needed when hovering a cell that still needs something', () => {
-    const missing = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'missing', bis: { kind: 'item', ...equipped, name: 'Greathelm of Temptation', isTier: false, isCatalyst: false, source: 'Kings’ Rest', targetStats: null, targetIsTierPiece: false } })] }]);
+  it('shows what is needed when hovering an empty cell that still needs something, and not over an equipped item', () => {
+    const missing = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'missing', equipped: null, bis: { kind: 'item', ...equipped, name: 'Greathelm of Temptation', isTier: false, isCatalyst: false, source: 'Kings’ Rest', targetStats: null, targetIsTierPiece: false } })] }]);
     expect(missing).toMatch(/<button[^>]*title="Need: Greathelm of Temptation"/);
     const done = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'done' })] }]);
     expect(done).not.toMatch(/<button[^>]*title=/);
+    expect(render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'HEAD', label: 'Head', cells: [cell({ state: 'missing' })] }])).not.toMatch(/<button[^>]*title=/);
   });
 
   it('shows the needed item as a card in the details, like the gear overview, and not when nothing is needed', () => {
@@ -170,7 +181,7 @@ describe('GroupGrid', () => {
 
   it('says Need tier for a missing tier piece, and the card names the piece', () => {
     const bis = { kind: 'item' as const, ...equipped, name: 'Enigmatic Dreamwatcher’s Plumage', isTier: true, isCatalyst: true, source: '', targetStats: null, targetIsTierPiece: false };
-    const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'SHOULDER', label: 'Shoulders', cells: [cell({ state: 'missing', slot: 'SHOULDER', bis })] }]);
+    const html = render([member({ character: summary(3, 'Birkibjörn') })], [{ slot: 'SHOULDER', label: 'Shoulders', cells: [cell({ state: 'missing', equipped: null, slot: 'SHOULDER', bis })] }]);
     expect(html).toContain('>Need tier<');
     expect(html).toContain('Need: tier (catalyst Enigmatic Dreamwatcher’s Plumage)');
     expect(html).toContain('>Shldr<');

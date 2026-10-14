@@ -65,22 +65,26 @@ export function CellDetails({ id, tracksKnown, anchor, cell, slotLabel, characte
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
       </div>
-      <div className="mt-2 flex items-start gap-2.5">
-        {eq?.iconUrl
-          ? <img src={eq.iconUrl} alt="" width={44} height={44} className="size-11 shrink-0 rounded-md border-2" style={{ borderColor: q!.ring }} />
-          : <span aria-hidden="true" className="size-11 shrink-0 rounded-md border-2 border-dashed border-line-strong" />}
-        <div className="flex min-w-0 flex-col gap-0.5">
-          {eq ? (
-            <a href={`https://www.wowhead.com/item=${eq.itemId}`} data-wowhead={wowheadData(eq.itemId, eq.bonusIds, eq.itemLevel)} target="_blank" rel="noreferrer"
-              className="font-semibold wrap-anywhere no-underline" style={{ color: q!.text }}>{eq.name}</a>
-          ) : <span className="text-muted">Nothing equipped</span>}
-          {eq && (
-            <span className="font-mono text-[13px] text-muted" title={track.hint}>
+      {eq ? (
+        <a href={`https://www.wowhead.com/item=${eq.itemId}`} data-wowhead={wowheadData(eq.itemId, eq.bonusIds, eq.itemLevel)} target="_blank" rel="noreferrer"
+          className="mt-2 flex items-start gap-2.5 no-underline">
+          {eq.iconUrl
+            ? <img src={eq.iconUrl} alt="" width={44} height={44} className="size-11 shrink-0 rounded-md border-2" style={{ borderColor: q!.ring }} />
+            : <span aria-hidden="true" className="size-11 shrink-0 rounded-md border-2 border-dashed border-line-strong" />}
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="font-semibold wrap-anywhere" style={{ color: q!.text }}>{eq.name}</span>
+            <span className="font-mono text-[13px] text-muted">
               <span className={track.className}>{track.text}</span>{eq.itemLevel ? ` · ${eq.itemLevel}` : ''}{stats ? ` · ${stats}` : ''}
             </span>
-          )}
+          </span>
+        </a>
+      ) : (
+        <div className="mt-2 flex items-start gap-2.5">
+          <span aria-hidden="true" className="size-11 shrink-0 rounded-md border-2 border-dashed border-line-strong" />
+          <span className="text-muted">Nothing equipped</span>
         </div>
-      </div>
+      )}
+      {eq && track.hint && <p className="mt-1 text-[13px] text-muted">{track.hint}</p>}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <StateBadge state={cell.state} />
         {cell.upgrade && <UpgradeBadge upgrade={cell.upgrade} />}

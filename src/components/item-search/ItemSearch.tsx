@@ -1,35 +1,15 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import type { ItemChoice, RowRef } from '@/core/bis/edits';
 import { pickQuality } from '@/core/bis/pick-quality';
 import { useApiAction } from '@/components/hooks/use-api-action';
-import { QUALITY_STYLES } from '@/components/item-card/quality-styles';
-import { wowheadData } from '@/components/item-card/wowhead';
 import { SearchingStatus } from '@/components/searching-status/SearchingStatus';
-import { RarityBox } from './RarityBox';
+import { ItemLink } from './ItemLink';
 import { resultDetail } from './result-detail';
 import { useItemSearch } from './use-item-search';
 
 const BUTTON = 'h-9 shrink-0 rounded-lg border border-line-strong bg-raised px-3.5 text-sm font-semibold text-ink disabled:opacity-60 md:h-9';
-
-/** Icon, name and anything else passed in, as one Wowhead link: its tooltip only scans links, so the whole span hovers. */
-function ItemLink({ item, className, children }: { item: ItemChoice; className: string; children: ReactNode }) {
-  return (
-    <a href={`https://www.wowhead.com/item=${item.itemId}`} data-wowhead={wowheadData(item.itemId, [], null)} target="_blank" rel="noreferrer"
-      className={`group no-underline ${className}`}>
-      {children}
-    </a>
-  );
-}
-
-function ItemName({ item }: { item: ItemChoice }) {
-  return (
-    <span className="text-[15px] font-semibold group-hover:underline" style={{ color: QUALITY_STYLES[pickQuality(item.quality)].text }}>
-      {item.name}
-    </span>
-  );
-}
 
 const WarnIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0"><path d="M12 3l10 18H2zM12 10v5M12 18v.5" /></svg>
@@ -81,7 +61,7 @@ export function ItemSearch({ row, label, slotLabel, onDone }: { row: RowRef; lab
 
       {chosen ? (
         <div className="flex flex-col gap-3 rounded-xl border border-line-strong bg-surface-2 p-3.5">
-          <ItemLink item={chosen} className="flex items-center gap-3 self-start"><RarityBox item={chosen} /><ItemName item={chosen} /></ItemLink>
+          <ItemLink item={chosen} quality={pickQuality(chosen.quality)} />
           <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px] font-semibold">
             <input type="checkbox" role="switch" checked={catalyst} onChange={(e) => setCatalyst(e.target.checked)} className="size-5 accent-[var(--color-gold)]" />
             Catalyst into tier
@@ -99,21 +79,16 @@ export function ItemSearch({ row, label, slotLabel, onDone }: { row: RowRef; lab
         <ul aria-label="Matching items" className="flex flex-col gap-0.5">
           {results.map((item) => (
             <li key={item.itemId} className="flex min-h-[52px] items-center gap-3 rounded-lg px-2 hover:bg-surface">
-              <ItemLink item={item} className="flex min-w-0 grow items-center gap-3 self-stretch">
-                <RarityBox item={item} />
-                <span className="flex min-w-0 flex-col gap-px"><ItemName item={item} /><span className="text-[13px] text-muted">{resultDetail(item)}</span></span>
-              </ItemLink>
-              <button type="button" disabled={save.busy} onClick={() => choose(item)} className={BUTTON}>Choose</button>
+              <ItemLink item={item} quality={pickQuality(item.quality)}><span className="text-[13px] text-muted">{resultDetail(item)}</span></ItemLink>
+              <button type="button" disabled={save.busy} onClick={() => choose(item)} className={`${BUTTON} ml-auto`}>Choose</button>
             </li>
           ))}
           {unusable && (
             <li className="flex min-h-[52px] items-center gap-3 rounded-lg bg-surface px-2">
-              <span aria-hidden="true" className="size-[34px] shrink-0 rounded-md border-2 border-line-strong bg-surface" />
-              <span className="flex min-w-0 grow flex-col gap-px">
-                <span className="text-[15px] font-semibold text-dim">{unusable.name}</span>
+              <ItemLink item={unusable} quality={unusable.quality ?? 'COMMON'}>
                 <span className="text-[13px] text-legacy">{unusable.canUse.ok ? '' : unusable.canUse.reason}</span>
-              </span>
-              <span className="text-[13px] text-dim">Can&apos;t choose</span>
+              </ItemLink>
+              <span className="ml-auto text-[13px] text-dim">Can&apos;t choose</span>
             </li>
           )}
         </ul>

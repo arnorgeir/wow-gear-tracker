@@ -3,7 +3,7 @@ import { CHARACTERS_LOADING } from '@/components/shared/loading-copy';
 import { Skeleton } from '@/components/skeleton/Skeleton';
 import { StateLegend } from '@/components/state-legend/StateLegend';
 
-// Scoped to `/` by the (home) route group: a loading boundary above /group or a character page makes their
+// Scoped to `/` by the (home) route group: a loading boundary above /group makes its
 // search-param navigations reload the whole document (see the skeleton loaders spec).
 export default function Loading() {
   return (

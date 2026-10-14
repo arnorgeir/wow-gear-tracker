@@ -34,6 +34,10 @@ const view: SettingsSpecView = {
 const html = renderToStaticMarkup(createElement(BisEditor, { view, now: 3 * 3_600_000 }));
 
 describe('BisEditor', () => {
+  it('puts the pending cue inside each Used by chip link', () => {
+    expect(html).toMatch(/<a [^>]*href="\/characters\/eu\/argent-dawn\/birkibj%C3%B6rn"[^>]*>(?:(?!<\/a>).)*Birkibjörn<span aria-hidden="true" class="[^"]*animate-spin/);
+  });
+
   it('opens with the spec, who uses it and when Method’s list was fetched', () => {
     expect(html).toContain('Guardian Druid');
     expect(html).toContain('Used by');

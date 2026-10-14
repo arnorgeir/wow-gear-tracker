@@ -6,6 +6,7 @@ import { classTextColor } from '@/components/shared/class-colors';
 import { LIST_NAMES } from '@/components/shared/list-names';
 import { RemoveCharacterButton } from '@/components/remove-character-button/RemoveCharacterButton';
 import { CrestChip } from '@/components/crest-chip/CrestChip';
+import { LinkPending } from '@/components/link-pending/LinkPending';
 import { BIS_LOADING, TRACKS_LOADING } from '@/components/shared/loading-copy';
 import { Skeleton } from '@/components/skeleton/Skeleton';
 import { barSegments, bisSummary } from './bis-summary';
@@ -26,9 +27,11 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
       <div className="flex items-center gap-3.5">
-        <CharacterAvatar name={card.name} className={card.className} avatarUrl={card.avatarUrl} classIconUrl={card.classIconUrl} size={52} />
+        <CharacterAvatar name={card.name} className={card.className} avatarUrl={card.avatarUrl} classIconUrl={card.classIconUrl} size={52} classBadge="surface" />
         <div className="flex min-w-0 flex-col">
-          <Link href={card.href} className="truncate text-xl font-bold no-underline hover:underline" style={{ color }}>{card.name}</Link>
+          <Link href={card.href} className="inline-flex min-w-0 items-center gap-1.5 text-xl font-bold no-underline hover:underline" style={{ color }}>
+            <span className="min-w-0 truncate">{card.name}</span><LinkPending />
+          </Link>
           <span className="truncate text-[15px] font-semibold" style={{ color }}>{card.identity}</span>
           <span className="truncate text-[15px] text-muted">
             {card.realmName}{card.itemLevel !== null && <> · <span className="font-mono">{card.itemLevel.toFixed(1)}</span> ilvl</>}

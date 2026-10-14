@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { CrestChip } from '@/components/crest-chip/CrestChip';
+import { LinkPending } from '@/components/link-pending/LinkPending';
 import { classTextColor } from '@/components/shared/class-colors';
 import { sourceSubject } from '@/components/shared/fallback-text';
 import { LIST_NAMES } from '@/components/shared/list-names';
@@ -15,13 +16,14 @@ export function MemberHeader({ member }: { member: GroupMemberView }) {
       <Link href={c.href} title={c.name} className="flex min-w-0 max-w-full items-center gap-1.5 font-semibold no-underline" style={{ color: classTextColor(c.className) }}>
         <CharacterAvatar name={c.name} className={c.className} avatarUrl={c.avatarUrl} classIconUrl={c.classIconUrl} size={26} />
         <span className="sr-only truncate sm:not-sr-only">{c.name}</span>
+        <LinkPending />
       </Link>
       {c.itemLevel !== null && <span className="font-mono text-xs text-muted" title="Equipped item level">{`${c.itemLevel.toFixed(1)} ilvl`}</span>}
       {member.crests ? (
         member.crests.balances.length > 0
           ? <div className="flex min-w-0 max-w-full flex-col items-center gap-1 sm:flex-row sm:flex-wrap">{member.crests.balances.map((b) => <CrestChip key={b.currencyId} balance={b} />)}</div>
           : <span className="text-xs text-muted">No crests</span>
-      ) : <Link href={c.href} className="text-xs">Import SimC</Link>}
+      ) : <Link href={c.href} className="inline-flex items-center gap-1 text-xs">Import SimC<LinkPending /></Link>}
       {member.listType !== 'mythicPlus' && (
         <span className="text-xs text-muted" title={member.fellBack ? `${sourceSubject(member.source)} has no list of that kind for this spec` : undefined}>{LIST_NAMES[member.listType]} list</span>
       )}

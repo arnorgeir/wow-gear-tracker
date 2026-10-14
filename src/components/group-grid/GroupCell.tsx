@@ -15,19 +15,23 @@ interface Props { cell: GearRowView | null; tracksKnown: boolean; slotLabel: str
 
 /**
  * One compact cell: icon, item level, track and a state word, plus the item name when the cell is at least 180 px wide. A button covers the cell and opens the
- * details card. Wowhead's script only scans links, so the icon is a link on top of the button; a click
- * on it opens the card too, and Wowhead is one tap further in the card.
+ * details card. Wowhead's script only scans links, so an empty link covers the cell on top of the button and hovering anywhere shows the tooltip.
+ * A click on it opens the card, or closes an open one (its light dismiss already closed it on pointerdown, so wasOpen stops the click reopening it).
+ * The button stays the only tab stop. Its title shows only on an empty cell, since the link covers it otherwise; the card holds the need,
+ * "Stats unverified" and the no-track hint.
  */
 export function GroupCell({ cell, tracksKnown, slotLabel, memberName, character }: Props) {
   const id = useId();
   const button = useRef<HTMLButtonElement>(null);
+  // Whether the details card was open when the pointer went down: its light dismiss closes it before the click lands.
+  const wasOpen = useRef(false);
   if (!cell) return <div className="p-1 text-center text-muted">&mdash;</div>;
   const tone = rowTone(cell.state, tracksKnown);
   const word = stateWord(cell.state, cell.bis.kind === 'item' && cell.bis.isTier, cell.statsUnverified);
   const eq = cell.equipped;
   const track = trackDisplay(eq ? eq.trackLabel : null, tracksKnown);
-  // Hovering shows what the cell still needs; an item on no track also says what that means.
-  const hover = [needText(cell), cell.statsUnverified ? 'Tier stats unverified' : null, eq && eq.trackLabel === null ? track.hint ?? null : null].filter(Boolean).join('. ') || undefined;
+  // An empty cell says on hover what it still needs; with an item equipped the link covers the button, and the card says it.
+  const hover = eq ? undefined : needText(cell) ?? undefined;
   const q = eq ? QUALITY_STYLES[eq.quality] ?? QUALITY_STYLES.COMMON : null;
   const icon = eq?.iconUrl
     ? <img src={eq.iconUrl} alt="" width={36} height={36} className="size-[34px] rounded-md border-2 sm:size-9" style={{ borderColor: q!.ring }} />
@@ -38,11 +42,7 @@ export function GroupCell({ cell, tracksKnown, slotLabel, memberName, character 
         style={tone ? ROW_TONE_STYLES[tone] : undefined}>
         <button ref={button} type="button" popoverTarget={id} title={hover} aria-label={cellLabel(memberName, slotLabel, cell)}
           className="absolute inset-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold" />
-        {eq ? (
-          <a href={`https://www.wowhead.com/item=${eq.itemId}`} data-wowhead={wowheadData(eq.itemId, eq.bonusIds, eq.itemLevel)}
-            target="_blank" rel="noreferrer" tabIndex={-1} aria-hidden="true" className="relative z-10 shrink-0"
-            onClick={(e) => { e.preventDefault(); button.current?.click(); }}>{icon}</a>
-        ) : <span className="shrink-0">{icon}</span>}
+        <span className="shrink-0">{icon}</span>
         {/* The cell is a size container: from 180 px wide it shows the item name and joins item level and track,
             so a wide cell keeps three lines and the row keeps its height. */}
         <span aria-hidden="true" className="pointer-events-none flex min-w-0 max-w-full flex-col items-center gap-px leading-snug sm:items-start">
@@ -61,6 +61,12 @@ export function GroupCell({ cell, tracksKnown, slotLabel, memberName, character 
           <span aria-hidden="true" className="pointer-events-none absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full border border-[#3e8a4d] bg-[#173020] text-upgrade">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
           </span>
+        )}
+        {eq && (
+          <a href={`https://www.wowhead.com/item=${eq.itemId}`} data-wowhead={wowheadData(eq.itemId, eq.bonusIds, eq.itemLevel)}
+            target="_blank" rel="noreferrer" tabIndex={-1} aria-hidden="true" className="absolute inset-0 z-10 rounded-lg"
+            onPointerDown={() => { wasOpen.current = document.getElementById(id)?.matches(':popover-open') ?? false; }}
+            onClick={(e) => { e.preventDefault(); if (!wasOpen.current) button.current?.click(); wasOpen.current = false; }} />
         )}
       </div>
       <CellDetails id={id} anchor={button} tracksKnown={tracksKnown} cell={cell} slotLabel={slotLabel} character={character} memberName={memberName} />

@@ -13,7 +13,7 @@ export function CharacterHeader({ view, now }: { view: CharacterPageView; now: n
   return (
     <div className="flex flex-wrap items-center justify-between gap-6">
       <div className="flex items-center gap-4">
-        <CharacterAvatar name={view.name} className={view.className} avatarUrl={view.avatarUrl} classIconUrl={view.classIconUrl} size={76} />
+        <CharacterAvatar name={view.name} className={view.className} avatarUrl={view.avatarUrl} classIconUrl={view.classIconUrl} size={76} classBadge="bg" />
         <div className="flex flex-col">
           <h1 className="font-display text-4xl font-bold tracking-wide" style={{ color: classTextColor(view.className) }}>{view.name}</h1>
           <span className="text-muted">{view.realmName} ({view.region.toUpperCase()})</span>
