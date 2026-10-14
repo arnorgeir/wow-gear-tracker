@@ -17,6 +17,11 @@ describe('cellLabel', () => {
     expect(cellLabel('Skjaldbaka', 'Ring 1', cell({ equipped: null, state: 'missing' }))).toBe('Skjaldbaka, Ring 1: nothing equipped, missing');
   });
 
+  it('says when the player marked the stats by hand', () => {
+    expect(cellLabel('Birkibjörn', 'Head', cell({ statsMark: 'right' }))).toMatch(/upgrade with crests, stats confirmed by hand$/);
+    expect(cellLabel('Birkibjörn', 'Head', cell({ statsMark: 'wrong', state: 'wrongStats' }))).toMatch(/, stats marked wrong by hand$/);
+  });
+
   it('says when the tier stats could not be checked', () => {
     expect(cellLabel('Birkibjörn', 'Head', cell({ statsUnverified: true }))).toMatch(/upgrade with crests, stats unverified$/);
   });

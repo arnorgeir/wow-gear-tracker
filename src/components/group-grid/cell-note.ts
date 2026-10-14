@@ -16,7 +16,9 @@ export function cellNote(state: GroupMemberState, hasRows: boolean, bisLoading =
 /** The line under a cell: what to hunt for a missing BiS item, or which stats a tier piece lacks. */
 export function needText(cell: GearRowView): string | null {
   if (cell.state === 'wrongStats' && cell.bis.kind === 'item') {
-    return `Tier, ${statPairLabel(cell.equippedStats ?? [])}; BiS wants ${statPairLabel(cell.bis.targetStats ?? [])}`;
+    const have = cell.equippedStats ? statPairLabel(cell.equippedStats) : 'stats marked wrong';
+    const want = cell.bis.targetStats ? statPairLabel(cell.bis.targetStats) : `${cell.bis.name}'s stats`;
+    return `Tier, ${have}; BiS wants ${want}`;
   }
   if (cell.state !== 'missing' && cell.state !== 'inBags') return null;
   if (cell.bis.kind === 'any') return `Need: any item, level ${cell.bis.minItemLevel}+`;

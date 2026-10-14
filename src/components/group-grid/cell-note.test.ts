@@ -36,6 +36,11 @@ describe('needText for tier rows', () => {
     expect(needText(row(tier))).toBe('Need: tier, Haste/Mastery (catalyst Primordial Robe of Rites)');
   });
 
+  it('says marked wrong when the equipped pair is unknown, and names the item when the target pair is', () => {
+    expect(needText(row(tier, 'wrongStats'))).toBe('Tier, stats marked wrong; BiS wants Haste/Mastery');
+    expect(needText({ ...row({ ...tier, targetStats: null }, 'wrongStats'), equippedStats: HM })).toBe("Tier, Haste/Mastery; BiS wants Primordial Robe of Rites's stats");
+  });
+
   it('names both pairs for a tier piece with the wrong stats', () => {
     expect(needText({ ...row(tier, 'wrongStats'), equippedStats: ['CRIT_RATING', 'MASTERY_RATING'] })).toBe('Tier, Crit/Mastery; BiS wants Haste/Mastery');
   });

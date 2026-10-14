@@ -8,7 +8,14 @@ const tierBis: BisView = { kind: 'item', ...item, isTier: true, isCatalyst: true
 const plainBis: BisView = { ...tierBis, isTier: false, isCatalyst: false };
 const anyBis: BisView = { kind: 'any', minItemLevel: 330, source: '' };
 const CRIT_HASTE = ['CRIT_RATING', 'HASTE_RATING'];
-const row = (state: ItemState, equippedStats: string[] | null, bis: BisView = tierBis, statsUnverified = false) => ({ bis, state, equippedStats, statsUnverified });
+const row = (state: ItemState, equippedStats: string[] | null, bis: BisView = tierBis, statsUnverified = false, statsMark: 'right' | 'wrong' | null = null) => ({ bis, state, equippedStats, statsUnverified, statsMark });
+
+describe('equippedStatText marks', () => {
+  it('says a mark was made by hand', () => {
+    expect(equippedStatText(row('done', null, tierBis, false, 'right'))).toBe('Stats confirmed by hand');
+    expect(equippedStatText(row('wrongStats', null, tierBis, false, 'wrong'))).toBe('Stats marked wrong by hand');
+  });
+});
 
 describe('equippedStatText', () => {
   it('words the pair of a tier piece that fills the slot', () => {

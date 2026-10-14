@@ -6,10 +6,12 @@ import { statPairLabel } from './stat-pair';
  * catalyst keeps the input item's stats, and Wowhead shows the base item's. Null unless a tier piece fills a
  * tier row and its stats are known ("Stats unverified" when they could not be checked); Missing and BiS in bags rows show some other item, or none.
  */
-export function equippedStatText(row: Pick<GearRowView, 'bis' | 'state' | 'equippedStats' | 'statsUnverified'>): string | null {
+export function equippedStatText(row: Pick<GearRowView, 'bis' | 'state' | 'equippedStats' | 'statsUnverified' | 'statsMark'>): string | null {
   if (row.bis.kind !== 'item' || !row.bis.isTier) return null;
   if (row.state === 'missing' || row.state === 'inBags') return null;
   if (row.statsUnverified) return 'Stats unverified';
+  if (row.statsMark === 'right') return 'Stats confirmed by hand';
+  if (row.statsMark === 'wrong') return 'Stats marked wrong by hand';
   if (row.equippedStats === null) return null;
   return statPairLabel(row.equippedStats);
 }
