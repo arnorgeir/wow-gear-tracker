@@ -26,11 +26,14 @@ test('Escape closes the result list', async ({ page }) => {
   await expect(list).toBeHidden();
 });
 
-test('Escape keeps the typed name', async ({ page }) => {
+test('Escape keeps the typed name, a second Escape clears it', async ({ page }) => {
   const { field, list } = await searchFor(page, 'Birki');
   await expect(list).toBeVisible();
   await field.press('Escape');
   await expect(field).toHaveValue('Birki');
+  // With the list closed, Escape keeps its native job of clearing the field.
+  await field.press('Escape');
+  await expect(field).toHaveValue('');
 });
 
 test('a search outage falls back to picking the realm by hand', async ({ page }) => {
