@@ -51,7 +51,7 @@ Dropped from the row: the crest chips and the crest text. They are upgrade detai
 
 - Below `lg`, the identity, progress and footer blocks stack (`flex-col gap-3`), so phones and tablets get a short card. The footer is the source text and the remove button, `justify-between`, as on the card.
 - From `lg`, one line (`lg:flex-row lg:items-center lg:gap-6`): identity block `lg:w-64 shrink-0`, the progress block `grow min-w-0`, then the footer `shrink-0` with the source text right-aligned in `lg:w-40`, so the remove buttons line up. Budget at 1024 px with the page's `sm:px-16`: 896 px row, about 862 px inside; 256 + 160 + 44 + three 24 px gaps leave about 330 px for progress. The source text sits in the footer with the button, so the row has three flex children, not four.
-- Every text line in the identity block is one `truncate` line: the name, and the identity · realm · ilvl line. Long names and realms end in an ellipsis, never wrap or overflow. The progress block's label/count line keeps the card's `justify-between`; the summary wraps.
+- Every text line in the identity block is one `truncate` line: the name, the identity line, and the realm · ilvl line. Long names and realms end in an ellipsis, never wrap or overflow. The progress block's label/count line keeps the card's `justify-between`; the summary wraps.
 - Errors (`tracksError`, `lastSyncError`) render under the bar inside the progress block, so they don't add a column.
 
 `CharacterRowSkeleton` sits in the same directory with an optional `name`, matching `CharacterCardSkeleton`'s behavior: no `role="status"` of its own, and "Adding <name>…" in the source slot when named.
@@ -75,7 +75,7 @@ Markup tests with `renderToStaticMarkup`, as the card's tests do:
 
 - `characters-view.test.ts`: `list` reads as `list`; `grid`, `undefined` and junk read as `grid`.
 - `source-text.test.ts`: the three source strings.
-- `CharacterRow.test.ts`: name link to `card.href`, identity, realm and ilvl on one line, list label and count, bar segments, summary text, no crest chips; `notFound`, `bisError` and loading states as on the card; errors shown; the remove button present. The skeleton: shapes and no status without a name; the name and "Adding Birkibjörn…" with one.
+- `CharacterRow.test.ts`: name link to `card.href`, identity on its own line, realm and ilvl on the next, list label and count, bar segments, summary text, no crest chips; `notFound`, `bisError` and loading states as on the card; errors shown; the remove button present. The skeleton: shapes and no status without a name; the name and "Adding Birkibjörn…" with one.
 - `CharacterGrid.test.ts`: `view="list"` uses the list classes and, while adding, the row skeleton; `view="grid"` keeps today's output.
 - `ViewToggle.test.ts`: two radios named "Grid" and "List", the given view checked, an `sr-only` legend. Static markup can't run the transition; the optimistic and reconcile behavior is a hand check.
 - Existing `CharacterCard` tests stay green after the bar and source move out.
