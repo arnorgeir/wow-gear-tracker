@@ -91,6 +91,15 @@ describe('GroupGrid', () => {
     expect(render([member({ character: summary(3, 'Birkibjörn') })], [])).not.toContain(' list<');
   });
 
+  it('puts the pending cue in the name link and in the Import SimC link', () => {
+    const crests = { balances: [], pastedAt: 0 };
+    const withCrests = render([member({ crests, character: summary(3, 'Birkibjörn') })], []);
+    expect(withCrests.match(/animate-spin/g)).toHaveLength(1);
+    const without = render([member({ character: summary(3, 'Birkibjörn') })], []);
+    expect(without.match(/animate-spin/g)).toHaveLength(2);
+    expect(without).toMatch(/Import SimC<span aria-hidden="true" class="[^"]*animate-spin/);
+  });
+
   it('asks for a paste when a member has no crests yet', () => {
     const html = render([member({ character: summary(3, 'Birkibjörn') })], []);
     expect(html).toContain('Import SimC');

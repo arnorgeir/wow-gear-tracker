@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LinkPending } from '@/components/link-pending/LinkPending';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { classTextColor } from '@/components/shared/class-colors';
 import { SpecIcon } from '@/components/spec-icon/SpecIcon';
@@ -31,7 +32,7 @@ export function EditorHeader({ view, now }: { view: SettingsSpecView; now: numbe
             {view.characters.map((c) => (
               <Link key={c.href} href={c.href} className="inline-flex h-9 items-center gap-2 rounded-full border border-line bg-surface-2 py-0 pl-1 pr-3 font-semibold text-ink no-underline md:h-8">
                 <CharacterAvatar name={c.name} className={c.className} avatarUrl={c.avatarUrl} classIconUrl={c.classIconUrl} size={24} />
-                {c.name}
+                {c.name}<LinkPending />
               </Link>
             ))}
           </div>

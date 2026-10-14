@@ -65,6 +65,13 @@ describe('CharacterCardSkeleton', () => {
   });
 });
 
+describe('CharacterCard pending cue', () => {
+  it('puts the cue inside the name link, with the name in its own truncating span', () => {
+    const html = render(card({}));
+    expect(html).toMatch(/<a [^>]*href="\/characters\/eu\/argent-dawn\/birkibj%C3%B6rn"[^>]*><span class="[^"]*truncate[^"]*">Birkibjörn<\/span><span aria-hidden="true" class="[^"]*animate-spin/);
+  });
+});
+
 describe('CharacterCard item level', () => {
   it('puts realm and item level, one decimal, on one line', () => {
     expect(render(card({ itemLevel: 642.34 }))).toContain('Argent Dawn · <span class="font-mono">642.3</span> ilvl</span>');
