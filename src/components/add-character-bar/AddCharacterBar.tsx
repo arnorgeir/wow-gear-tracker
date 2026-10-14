@@ -13,6 +13,7 @@ import { LISTBOX_ID, SearchResults, optionId } from './SearchResults';
 import { buildTrackedLookup, isTracked, type TrackedCharacter } from './tracked';
 import { useCharacterSearch, type SearchResult } from './use-character-search';
 
+const ADD_FAILED = 'Couldn’t add that character.';
 const inputClass = 'h-12 rounded-xl border border-line-strong bg-surface-2 px-4 text-[17px] text-ink focus:border-gold focus:outline-none';
 // Narrow: the region select only ever shows two letters. Extra right padding keeps the chevron off the border.
 const regionClass = `${inputClass.replace('px-4', 'pl-3 pr-5')} w-20`;
@@ -34,7 +35,7 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
   const [addingName, setAddingName] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<Highlight>({ list: [], index: -1 });
   const active = activeIndex(highlight, results);
-  const { busy, error, run } = useApiAction();
+  const { busy, error, setError, run } = useApiAction();
   // router.refresh() alone leaves `busy` clearing before the list has actually
   // re-rendered; wrapping it in a transition keeps a pending state until that render lands too.
   const [navigating, startTransition] = useTransition();
@@ -68,9 +69,10 @@ export function AddCharacterBar({ trackedCharacters, lockedRegion = null, onAdde
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ region, ...body }),
-    }, { fallbackError: 'Couldn’t add that character.', after: 'none' });
+    }, { fallbackError: ADD_FAILED, after: 'none' });
     const id = result.ok ? result.data?.id : undefined;
-    if (!id) { setAddingName(null); return; }
+    // A 2xx without an id, such as a proxy page, still failed to add.
+    if (!id) { setAddingName(null); if (result.ok) setError(ADD_FAILED); return; }
     clear();
     const key = result.data?.key;
     startTransition(() => (onAdded && key ? onAdded({ id, key }) : router.refresh()));
