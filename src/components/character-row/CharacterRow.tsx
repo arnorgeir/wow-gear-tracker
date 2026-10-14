@@ -27,8 +27,9 @@ export function CharacterRow({ card, now }: { card: CharacterCardView; now: numb
           <Link href={card.href} className="inline-flex min-w-0 items-center gap-1.5 text-lg font-bold no-underline hover:underline" style={{ color }}>
             <span className="min-w-0 truncate">{card.name}</span><LinkPending />
           </Link>
+          <span className="truncate text-sm font-semibold" style={{ color }}>{card.identity}</span>
           <span className="truncate text-sm text-muted">
-            <span className="font-semibold" style={{ color }}>{card.identity}</span> · {card.realmName}{card.itemLevel !== null && <> · <span className="font-mono">{card.itemLevel.toFixed(1)}</span> ilvl</>}
+            {card.realmName}{card.itemLevel !== null && <> · <span className="font-mono">{card.itemLevel.toFixed(1)}</span> ilvl</>}
           </span>
         </div>
       </div>

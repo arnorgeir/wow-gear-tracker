@@ -22,10 +22,10 @@ describe('CharacterRow', () => {
     expect(render(card({}))).toMatch(/<a [^>]*href="\/characters\/eu\/argent-dawn\/birkibj%C3%B6rn"[^>]*><span class="[^"]*truncate[^"]*">Birkibjörn<\/span><span aria-hidden="true" class="[^"]*animate-spin/);
   });
 
-  it('puts identity, realm and item level in the identity block', () => {
+  it('puts identity, then realm and item level, on lines of their own', () => {
     const html = render(card({ itemLevel: 642.34 }));
-    expect(html).toContain('Guardian Druid');
-    expect(html).toContain('Argent Dawn · <span class="font-mono">642.3</span> ilvl</span>');
+    expect(html).toMatch(/<span class="[^"]*truncate[^"]*" style="color:[^"]*">Guardian Druid<\/span>/);
+    expect(html).toMatch(/<span class="[^"]*truncate[^"]*">Argent Dawn · <span class="font-mono">642.3<\/span> ilvl<\/span>/);
   });
 
   it('shows list label, count, bar and summary, and no crest chips', () => {

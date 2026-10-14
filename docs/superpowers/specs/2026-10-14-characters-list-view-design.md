@@ -25,7 +25,7 @@ Out of scope:
 
 - Avatar at 40 px, without the class badge (smaller avatars are too small for one, as the item card polish spec decided).
 - Name as the link to the character page, with `LinkPending`, in class color.
-- One line under it: identity in class color, then realm and item level in muted text (`Guardian Druid · Argent Dawn · 642.3 ilvl`).
+- Two lines under it, as on the card: identity in class color (`Guardian Druid`), then realm and item level in muted text (`Argent Dawn · 642.3 ilvl`). One shared line cut the realm and item level off at the 256 px identity width for most real names.
 - The progress block: list label (`Mythic+ BiS`), the count (`5 / 16`), the segmented bar, and the summary text. Same loading, `bisError` and `notFound` states as the card.
 - Sync and track errors, same text as the card.
 - The source line (`SimC, pasted 2h ago`) and the remove button.
