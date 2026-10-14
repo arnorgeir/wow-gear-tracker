@@ -17,4 +17,8 @@ describe('itemKind', () => {
   it('gives null when the slot is unknown', () => {
     expect(itemKind({ armorType: 'plate', inventoryType: null })).toBeNull();
   });
+
+  it('gives null for an item nobody wears, such as a recipe', () => {
+    expect(itemKind({ armorType: null, inventoryType: 'NON_EQUIP' })).toBeNull();
+  });
 });
