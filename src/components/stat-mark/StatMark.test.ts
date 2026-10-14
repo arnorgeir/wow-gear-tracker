@@ -29,6 +29,13 @@ describe('StatMark', () => {
     expect(html).toMatch(/class="[^"]*text-stats[^"]*">Wrong stats/);
   });
 
+  it('fills each button with its tone on hover, unless busy', () => {
+    const html = render(unverified);
+    expect(html).toContain('enabled:hover:bg-gold enabled:hover:text-bg');
+    expect(html).toContain('enabled:hover:bg-stats enabled:hover:text-bg');
+    expect(render({ ...unverified, statsUnverified: false, statsMark: 'wrong' })).toContain('enabled:hover:bg-raised');
+  });
+
   it('stays compact for a mouse and 44 px tall for touch', () => {
     const html = render(unverified);
     expect(html).toContain('min-h-8');

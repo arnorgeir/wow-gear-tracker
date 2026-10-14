@@ -4,9 +4,13 @@ import { useApiAction } from '@/components/hooks/use-api-action';
 import type { GearRowView } from '@/server/views/types';
 
 // Compact beside the state badge for a mouse; 44 px tall where the pointer is a finger.
-const BUTTON = 'min-h-8 shrink-0 whitespace-nowrap rounded-lg border px-2.5 text-[13px] font-semibold pointer-coarse:min-h-11 disabled:opacity-60';
-// Each verdict takes the tone of the state it leads to: Done's gold, Wrong stats' pink. The words carry the meaning too.
-const TONE = { right: 'border-gold-line text-gold', wrong: 'border-stats/50 text-stats', clear: 'border-line text-ink' } as const;
+const BUTTON = 'min-h-8 shrink-0 whitespace-nowrap rounded-lg border px-2.5 transition-colors text-[13px] font-semibold pointer-coarse:min-h-11 disabled:opacity-60';
+// Each verdict takes the tone of the state it leads to: Done's gold, Wrong stats' pink, filled on hover. The words carry the meaning too.
+const TONE = {
+  right: 'border-gold-line text-gold enabled:hover:bg-gold enabled:hover:text-bg',
+  wrong: 'border-stats/50 text-stats enabled:hover:bg-stats enabled:hover:text-bg',
+  clear: 'border-line text-ink enabled:hover:bg-raised',
+} as const;
 
 /** Lets a player say whether an unverified tier piece has the right stats, or take that back. */
 export function StatMark({ characterId, row }: { characterId: number; row: GearRowView }) {
