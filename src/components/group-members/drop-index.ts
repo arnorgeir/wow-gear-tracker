@@ -11,3 +11,9 @@ export interface Rect { left: number; right: number; top: number; bottom: number
 export function dropIndex(rects: readonly Rect[], dragged: number, { x, y }: { x: number; y: number }): number {
   return rects.filter((r, i) => i !== dragged && (r.bottom < y || (y >= r.top && y <= r.bottom && x > (r.left + r.right) / 2))).length;
 }
+
+/** `dropIndex` over keys: a key with no chip (not rendered yet) is left out of the count. */
+export function dropIndexByKey(keys: readonly string[], dragged: string, rectOf: (key: string) => Rect | undefined, point: { x: number; y: number }): number {
+  const chips = keys.flatMap((k) => { const r = rectOf(k); return r ? [{ k, r }] : []; });
+  return dropIndex(chips.map((c) => c.r), chips.findIndex((c) => c.k === dragged), point);
+}

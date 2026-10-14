@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
-import { dropIndex } from './drop-index';
+import { dropIndexByKey } from './drop-index';
 import { IDLE, reduce, type DragAction, type DragState } from './drag-state';
 
 export interface HandleEvents {
@@ -52,8 +52,8 @@ export function useMemberDrag(order: string[], onMove: (key: string, index: numb
     const onMovePointer = (e: globalThis.PointerEvent) => {
       const s = stateRef.current;
       if (s.kind !== 'drag' || s.pointerId !== e.pointerId) return;
-      const rects = s.preview.map((k) => chips.current.get(k)?.getBoundingClientRect() ?? { left: 0, right: 0, top: 0, bottom: 0 });
-      dispatch({ type: 'over', pointerId: e.pointerId, index: dropIndex(rects, s.preview.indexOf(s.key), { x: e.clientX, y: e.clientY }) });
+      const rectOf = (k: string) => chips.current.get(k)?.getBoundingClientRect();
+      dispatch({ type: 'over', pointerId: e.pointerId, index: dropIndexByKey(s.preview, s.key, rectOf, { x: e.clientX, y: e.clientY }) });
     };
     const onUp = (e: globalThis.PointerEvent) => dispatch({ type: 'end', pointerId: e.pointerId, order: latest.current.order });
     const onCancel = (e: globalThis.PointerEvent) => {

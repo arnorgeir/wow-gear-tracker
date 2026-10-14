@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dropIndex, type Rect } from './drop-index';
+import { dropIndex, dropIndexByKey, type Rect } from './drop-index';
 
 // Three chips, 100 wide, 10 apart, on one row.
 const row: Rect[] = [0, 110, 220].map((left) => ({ left, right: left + 100, top: 0, bottom: 40 }));
@@ -63,5 +63,13 @@ describe('dropIndex', () => {
         expect(dropIndex(layout(next), to, pt)).toBe(to);
       }
     }
+  });
+});
+
+describe('dropIndexByKey', () => {
+  it('ignores a key with no chip, such as a member whose add is still loading', () => {
+    const rects = new Map([['A', { left: 0, right: 100, top: 0, bottom: 40 }], ['B', { left: 110, right: 210, top: 0, bottom: 40 }]]);
+    // C is in the shared keys but has no chip: it must not count as passed.
+    expect(dropIndexByKey(['A', 'B', 'C'], 'A', (k) => rects.get(k), { x: 5, y: 20 })).toBe(0);
   });
 });
