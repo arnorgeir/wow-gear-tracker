@@ -6,7 +6,7 @@ import { UserError } from '../errors';
 import { qualityFromBonuses } from '../raidbots/tracks';
 import { ensureItemDetails, ensureItemStats } from '../sync/reference-sync';
 import type { ItemLocation, Quality } from '../types';
-import { parseSimc, SimcParseError, type SimcProfile } from './parse';
+import { isSimcParseError, parseSimc, type SimcProfile } from './parse';
 
 export interface ImportResult {
   changed: boolean;
@@ -33,7 +33,7 @@ export async function importSimc({ db, blizzard, qualities, now }: Deps, charact
   try {
     profile = parseSimc(text);
   } catch (err) {
-    if (err instanceof SimcParseError) throw new UserError(`Couldn’t read that SimC text. ${err.message}`);
+    if (isSimcParseError(err)) throw new UserError(`Couldn’t read that SimC text. ${err.message}`);
     throw err;
   }
 

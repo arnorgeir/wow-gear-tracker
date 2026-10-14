@@ -1,3 +1,4 @@
+import { brand, hasBrand } from '../errors';
 import type { ItemLocation, SlotType } from '../types';
 
 export interface SimcItem {
@@ -27,12 +28,17 @@ export interface SimcProfile {
   currencies: SimcCurrency[];
 }
 
+const SIMC_PARSE_ERROR = Symbol.for('wow-gear-tracker.SimcParseError');
+
 export class SimcParseError extends Error {
   constructor(message: string, public readonly line: number | null) {
     super(message);
     this.name = 'SimcParseError';
+    brand(this, SIMC_PARSE_ERROR);
   }
 }
+
+export const isSimcParseError = (err: unknown): err is SimcParseError => hasBrand(err, SIMC_PARSE_ERROR);
 
 // SimC slot names. Shirt, tabard and ammo are left out on purpose.
 const SLOTS: Record<string, SlotType> = {
