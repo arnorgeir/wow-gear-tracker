@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { setMeta } from '../db/queries/meta';
-import { BIS_RETRY_MS, DAY_MS, ensureItemIcons, ensureTracks, ensureItemDetails, ensureClassIcons, readBisLists, syncBisLists, readTracks, syncTracks, readTierTargets, syncTierTargets, syncSpecs } from './reference-sync';
+import { BIS_RETRY_MS, DAY_MS, ensureItemIcons, ensureTracks, ensureItemDetails, ensureItemStats, ensureClassIcons, readBisLists, syncBisLists, readTracks, syncTracks, readTierTargets, syncTierTargets, syncSpecs } from './reference-sync';
 import { listSpecs } from '../db/queries/specs';
 import { HttpError } from '../http';
 import type { BisLists, BisRow, BisSource, SlotType, Track } from '../types';
@@ -442,5 +442,41 @@ describe('syncSpecs', () => {
     const failing = { getClasses: async () => { throw new Error('down'); } } as unknown as BlizzardClient;
     expect(await syncSpecs({ db, blizzard: failing, now: 1 + DAY_MS }, 'eu')).toBe(true);
     expect(await listSpecs(db)).toHaveLength(3);
+  });
+});
+
+describe('ensureItemStats', () => {
+  const HM = ['HASTE_RATING', 'MASTERY_RATING'];
+  const robe = { quality: 'EPIC', isTier: true, inventoryType: 'ROBE', armorType: 'cloth', secondaryStats: HM };
+  function blizzardWith(answer: (id: number) => unknown) {
+    const asked: number[] = [];
+    const blizzard = { getItemDetails: async (_r: string, id: number) => { asked.push(id); return answer(id); } } as unknown as BlizzardClient;
+    return { blizzard, asked };
+  }
+
+  it('requests an uncached item, stores it, and asks nothing for a cached one', async () => {
+    const db = await openTestDb();
+    const { blizzard, asked } = blizzardWith(() => robe);
+    expect(await ensureItemStats({ db, blizzard, now: 1 }, 'eu', [60, 60])).toEqual(new Map([[60, HM]]));
+    expect(await ensureItemStats({ db, blizzard, now: 2 }, 'eu', [60])).toEqual(new Map([[60, HM]]));
+    expect(asked).toEqual([60]);
+  });
+
+  it('returns null for a 404 and asks again only after a day', async () => {
+    const db = await openTestDb();
+    const { blizzard, asked } = blizzardWith(() => null);
+    expect(await ensureItemStats({ db, blizzard, now: 1 }, 'eu', [61])).toEqual(new Map([[61, null]]));
+    await ensureItemStats({ db, blizzard, now: 2 }, 'eu', [61]);
+    expect(asked).toEqual([61]);
+    await ensureItemStats({ db, blizzard, now: 1 + DAY_MS }, 'eu', [61]);
+    expect(asked).toEqual([61, 61]);
+  });
+
+  it('returns null for a thrown request, stores nothing, and asks again next time', async () => {
+    const db = await openTestDb();
+    const { blizzard, asked } = blizzardWith(() => { throw new Error('down'); });
+    expect(await ensureItemStats({ db, blizzard, now: 1 }, 'eu', [62])).toEqual(new Map([[62, null]]));
+    await ensureItemStats({ db, blizzard, now: 2 }, 'eu', [62]);
+    expect(asked).toEqual([62, 62]);
   });
 });
