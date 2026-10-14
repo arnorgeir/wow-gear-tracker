@@ -1,6 +1,6 @@
 # Splitting components and modules by job
 
-Status: awaiting approval
+Status: shipped in #32
 Date: 2026-09-28
 
 ## Why
@@ -58,9 +58,9 @@ Tests: `shared/api-action.test.ts` covers the success path, a route's own error 
 
 ## PR 2: the structural sweep
 
-Everything mechanical lands together, as three commits in this order. They stay separate commits so a reviewer can read the moves apart from the extractions, and so a later bisect lands on one of the three rather than on the whole sweep. The pull request squash-merges as usual, so the description carries the same three headings.
+Everything mechanical lands together, in the three stages below. As shipped in #32, each stage became several commits, one per plan task, and the pull request merged with a merge commit, so every commit landed on `main` as written. A reviewer can still read the moves apart from the extractions, and a bisect lands on one task rather than on the whole sweep.
 
-### Commit 1: every component into a directory
+### Stage 1: every component into a directory
 
 A pure move. Fifteen components, fifteen directories, no logic touched — which is what makes a diff this wide safe to review quickly.
 
@@ -86,7 +86,7 @@ Also: `class-colors.ts` and `row-tone.ts` move to `shared/` with their tests, an
 
 Use `git mv` so history follows each file. Tests: no new ones. `typecheck` catches every broken import and `build` catches a broken page, which is the whole safety argument for keeping this PR free of logic changes.
 
-### Commit 2: extractions inside the directories
+### Stage 2: extractions inside the directories
 
 Now that each component owns a directory, the parts move in beside it.
 
@@ -98,11 +98,11 @@ Now that each component owns a directory, the parts move in beside it.
 
 **`simc-paste/`** — `import-message.ts` takes the imported-counts and nothing-changed branches, with tests.
 
-**`character-page/`** — the sections lifted out of the 171-line page: `CharacterHeader.tsx`, `ListTabs.tsx`, `GearTable.tsx`, `BisTarget.tsx` and `VaultSection.tsx`, as files in one directory. Each is used only by the page, and `BisTarget` only by `GearTable`, so by decision 1 they are files rather than directories of their own. This directory is a grouping for one route's sections rather than a component directory, since the parent component is the route file itself — the only place in the tree where that is true, and worth naming so it does not read as a mistake. The page becomes composition, matching the thin-pages rule.
+**`character-page/`** — the sections lifted out of the 171-line page: `CharacterHeader.tsx`, `CharacterAlerts.tsx`, `ListTabs.tsx`, `GearTable.tsx`, `BisTarget.tsx` and `VaultSection.tsx`, as files in one directory. Each is used only by the page, and `BisTarget` only by `GearTable`, so by decision 1 they are files rather than directories of their own. This directory is a grouping for one route's sections rather than a component directory, since the parent component is the route file itself — the only place in the tree where that is true, and worth naming so it does not read as a mistake. The page becomes composition, matching the thin-pages rule.
 
-Tests: three new pure-function test files, written before the extraction and watched to fail, plus the hook's. The sub-component moves are covered by `typecheck` and `build`, as in the commit before.
+Tests: three new pure-function test files, written before the extraction and watched to fail, plus the hook's. The sub-component moves are covered by `typecheck` and `build`, as in the stage before.
 
-### Commit 3: backend modules
+### Stage 3: backend modules
 
 `src/core/db/queries.ts` (250 lines) becomes `src/core/db/queries/`:
 

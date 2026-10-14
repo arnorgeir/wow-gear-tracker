@@ -97,14 +97,8 @@ export function createBlizzardClient(options: Options): BlizzardClient {
       return mediaAsset(region, `/data/wow/media/playable-specialization/${specId}`, 'static', 'icon');
     },
 
-    async getItemIconUrl(region, itemId) {
-      try {
-        const media = await api<{ assets?: { key: string; value: string }[] }>(region, `/data/wow/media/item/${itemId}`, 'static');
-        return media.assets?.find((asset) => asset.key === 'icon')?.value ?? null;
-      } catch (err) {
-        if (isHttpError(err) && err.status === 404) return null;
-        throw err;
-      }
+    getItemIconUrl(region, itemId) {
+      return mediaAsset(region, `/data/wow/media/item/${itemId}`, 'static', 'icon');
     },
 
     async getItemDetails(region, itemId) {

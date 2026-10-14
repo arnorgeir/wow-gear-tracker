@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { runApiAction, type ApiActionResult } from '@/components/shared/api-action';
 
@@ -15,18 +15,26 @@ export interface RunOptions {
   after?: 'refresh' | 'refresh-always' | 'none' | { push: string };
 }
 
-/** Tracks one in-flight call to a route handler, with the busy flag and error message that go with it. */
+/**
+ * Tracks calls to a route handler, with the busy flag and error message that go with them.
+ * Overlapping calls are not serialized: the latest call owns `busy` and `error`, and an older
+ * call that finishes later leaves them alone.
+ */
 export function useApiAction() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const latest = useRef(0);
 
   async function run<T>(url: string, init?: RequestInit, options: RunOptions = {}): Promise<ApiActionResult<T>> {
+    const call = ++latest.current;
     setBusy(true);
     setError(null);
     const result = await runApiAction<T>(fetch, url, init, options.fallbackError);
-    setBusy(false);
-    if (!result.ok) setError(result.error);
+    if (call === latest.current) {
+      setBusy(false);
+      if (!result.ok) setError(result.error);
+    }
 
     const after = options.after ?? 'refresh';
     if (after === 'refresh-always' || (after === 'refresh' && result.ok)) router.refresh();
@@ -34,5 +42,5 @@ export function useApiAction() {
     return result;
   }
 
-  return { busy, error, run };
+  return { busy, error, setError, run };
 }
