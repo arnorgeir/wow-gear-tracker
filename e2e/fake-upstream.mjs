@@ -1,11 +1,28 @@
 // Preloaded into `next start` with --import. Answers every external request the server makes,
 // so a browser run needs no credentials and never touches Blizzard, Raider.IO, Method or Raidbots.
 // A request no route matches gets a 404 and is logged, and the shared fixture fails the test.
-import { appendFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 
 const realFetch = globalThis.fetch;
+
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
+const METHOD_WITHOUT_CLOAK_FLAG = '.cache/e2e/method-without-cloak';
 const UNMATCHED_LOG = '.cache/e2e/unmatched.log';
+const CLOCK_SKEW_FILE = '.cache/e2e/clock-skew-ms';
+
+// Lets a test age the server's caches: Date.now runs ahead by the milliseconds in this file, if any.
+// The file is looked at most every 50 ms, so the clock costs a comparison per call.
+const realNow = Date.now.bind(Date);
+let skew = 0;
+let skewCheckedAt = 0;
+Date.now = () => {
+  const t = realNow();
+  if (t - skewCheckedAt > 50) {
+    skewCheckedAt = t;
+    try { skew = Number(readFileSync(CLOCK_SKEW_FILE, 'utf8')) || 0; } catch { skew = 0; }
+  }
+  return t + skew;
+};
 
 // Trimmed pages and payloads the repo already keeps for its unit tests are reused, not copied.
 const METHOD_PAGE = readFileSync('src/core/method/__fixtures__/gearing.html', 'utf8');
@@ -43,13 +60,21 @@ const routes = [
   [/eu\.api\.blizzard\.com\/data\/wow\/playable-class\/index/, () => json({ classes: [{ id: 11, name: 'Druid' }] })],
   [/eu\.api\.blizzard\.com\/data\/wow\/playable-class\/11/, () => json({ specializations: [{ id: 104, name: 'Guardian' }] })],
   [/\/data\/wow\/media\/(playable-class|playable-specialization|item)\//, () => json({ assets: [{ key: 'icon', value: 'https://render.worldofwarcraft.com/icon.jpg' }] })],
-  [/\/data\/wow\/item\/\d+/, () => json({ name: 'Trimmed Item', quality: { type: 'EPIC' }, inventory_type: { type: 'HEAD' }, item_class: { id: 4 }, item_subclass: { id: 2 }, preview_item: {} })],
+  // Items 900100-900199 are cloaks, anything else a leather head piece. None is a tier piece.
+  [/\/data\/wow\/item\/(\d+)/, (url) => {
+    const cloak = /^9001\d\d$/.test(url.match(/\/item\/(\d+)/)[1]);
+    return json({ name: cloak ? 'Trimmed Cloak' : 'Trimmed Helm', quality: { type: 'EPIC' }, inventory_type: { type: cloak ? 'CLOAK' : 'HEAD' }, item_class: { id: 4 }, item_subclass: { id: cloak ? 0 : 2 }, preview_item: {} });
+  }],
   ['raidbots.com/static/data/live/bonuses.json', () => json({
     '12850': { upgrade: { group: 618, level: 2, max: 6, name: 'Myth', fullName: 'Myth 2/6', bonusId: 12850, costs: [{ amounts: [{ currencyId: 3446, amount: 20, name: 'Myth Mistcrest' }] }] } },
     '12805': { id: 12805, quality: 4 },
   })],
   ['nether.wowhead.com/tooltip/currency/', () => new Response(CURRENCY_TOOLTIP, { headers: { 'content-type': 'application/json' } })],
-  ['method.gg/guides/', () => new Response(METHOD_PAGE, { headers: { 'content-type': 'text/html' } })],
+  // A test that needs a row to vanish from Method's list writes the flag file; the Cloak row is then dropped.
+  ['method.gg/guides/', () => {
+    const page = existsSync(METHOD_WITHOUT_CLOAK_FLAG) ? METHOD_PAGE.replace(/<tr><td>Cloak<\/td>.*<\/tr>\n/, '') : METHOD_PAGE;
+    return new Response(page, { headers: { 'content-type': 'text/html' } });
+  }],
   // No started season: the dungeon ranking stays empty and the app logs a tolerated season failure.
   ['raider.io/api/v1/mythic-plus/static-data', () => json({ seasons: [] })],
   // Blizzard's answer for a character that does not exist.
