@@ -22,6 +22,19 @@ describe('StatMark', () => {
     expect(html).not.toContain('Clear mark');
   });
 
+  it('keeps the two buttons on one line, each in the tone of the state it leads to', () => {
+    const html = render(unverified);
+    expect(html).toContain('flex-nowrap');
+    expect(html).toMatch(/class="[^"]*text-gold[^"]*">Right stats/);
+    expect(html).toMatch(/class="[^"]*text-stats[^"]*">Wrong stats/);
+  });
+
+  it('stays compact for a mouse and 44 px tall for touch', () => {
+    const html = render(unverified);
+    expect(html).toContain('min-h-8');
+    expect(html).toContain('pointer-coarse:min-h-11');
+  });
+
   it('offers only Clear mark on a marked row', () => {
     const html = render({ ...unverified, statsUnverified: false, statsMark: 'right' });
     expect(html).toContain('Clear mark');
