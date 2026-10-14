@@ -25,6 +25,8 @@ describe('PickLine', () => {
     const html = render({ replaced: true });
     expect(html).toContain('opacity-80');
     expect(html).toContain('line-through');
+    // Hover must not swap the strikethrough for an underline.
+    expect(html).not.toContain('group-hover:underline');
     expect(html).not.toContain('opacity-60');
   });
 });

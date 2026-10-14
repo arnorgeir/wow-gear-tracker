@@ -26,7 +26,7 @@ export function PickLine({ itemId, name, quality, iconUrl, detail, badge, replac
         ? <img src={iconUrl} alt="" width={size} height={size} className="shrink-0 rounded-md border-2 bg-surface-2" style={box} />
         : <span aria-hidden="true" className="shrink-0 rounded-md border-2 bg-surface-2" style={box} />}
       <span className="flex min-w-0 flex-col gap-0.5">
-        <span className={`truncate text-[15px] font-semibold group-hover:underline ${replaced ? 'line-through' : ''}`} style={{ color: q?.text }}>{name}</span>
+        <span className={`truncate text-[15px] font-semibold ${replaced ? 'line-through' : 'group-hover:underline'}`} style={{ color: q?.text }}>{name}</span>
         <span className="flex items-center gap-2 text-[13px] text-muted">{badge}<span className="truncate">{detail}</span></span>
       </span>
     </>
