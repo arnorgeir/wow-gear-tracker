@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 // #33: in a built app each server bundle has its own copy of our error classes. A page builds the
 // shared services first, so a route's error check must not depend on `instanceof`.
