@@ -23,6 +23,8 @@ export const IDLE: DragState = { kind: 'idle' };
 
 /** A tap on a handle: pick it up, put it down, or drop the picked member there. */
 function tap(picked: Picked | null, key: string, order: string[]): DragResult {
+  // A displayed member that left the shared order (removal loading) is not a drop target.
+  if (!order.includes(key)) return { state: picked ? { kind: 'picked', ...picked } : IDLE };
   if (!picked) return { state: { kind: 'picked', key, members: order } };
   if (picked.key === key) return { state: IDLE };
   return { state: IDLE, commit: { key: picked.key, index: order.indexOf(key) } };

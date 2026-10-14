@@ -48,6 +48,17 @@ describe('drag-state', () => {
     expect(commit).toEqual({ key: 'a', index: 2 });
   });
 
+  it('ignores a tap on a member missing from the shared order, keeping the picked member', () => {
+    const picked = run([{ type: 'tap', key: 'a', order }]).state;
+    const byTap = run([{ type: 'tap', key: 'gone', order }], picked);
+    expect(byTap.state).toEqual(picked);
+    expect(byTap.commit).toBeUndefined();
+    const byPress = run([start('gone'), { type: 'end', pointerId: 1, order }], picked);
+    expect(byPress.state).toEqual(picked);
+    expect(byPress.commit).toBeUndefined();
+    expect(run([{ type: 'tap', key: 'gone', order }]).state).toEqual(IDLE);
+  });
+
   it('puts the picked member down on a tap on the same handle', () => {
     const picked = run([{ type: 'tap', key: 'a', order }]).state;
     expect(run([{ type: 'tap', key: 'a', order }], picked)).toEqual({ state: IDLE });

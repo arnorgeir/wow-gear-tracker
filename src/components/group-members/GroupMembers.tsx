@@ -32,7 +32,7 @@ export function GroupMembers({ members, region, available, tracked }: Props) {
     <div className="flex flex-col gap-3">
       <div className={`flex flex-wrap items-center gap-2 ${drag.draggingKey ? 'select-none' : ''}`}>
         {display.map((m, index) => (
-          <MemberChip key={m.key} member={m} index={index} count={display.length} reorderable={display.length >= 2}
+          <MemberChip key={m.key} member={m} index={index} count={display.length} reorderable={display.length >= 2 && keys.includes(m.key)}
             lift={drag.draggingKey === m.key ? 'dragging' : drag.pickedKey === m.key ? 'picked' : 'none'}
             pickedName={picked?.name ?? null} rowDragging={drag.draggingKey !== null}
             handle={drag.handleEvents(m.key)} chipRef={drag.chipRef(m.key)} onKeyMove={(to) => move(m.key, m.name, to)} />
