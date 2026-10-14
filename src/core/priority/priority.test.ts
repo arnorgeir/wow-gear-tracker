@@ -207,6 +207,36 @@ describe('tier credits by stat pair', () => {
     expect(scores(ranks)).toEqual([['Altar of Fangs', 1], ['Den of Nalorakk', 0], ['Temple of Sethraliss', 0]]);
   });
 
+  describe('with a hand mark on an unverified piece', () => {
+    const piece = { ...gear('CHEST', 271531, 1, true), secondaryStats: null };
+    const marked = (right: boolean, stats: string[] | null): PriorityCharacter => {
+      const targets = new Map([[273785, { secondaryStats: stats, isTier: false }]]);
+      const marks = [{ slot: 'CHEST' as const, itemId: 271531, bonusIds: [1], targetItemId: 273785, right }];
+      return { id: 1, name: 'Birkibjörn', className: 'Mage', rows: evaluateGear({ equipped: [piece], bisRows: [chestRow], tracks, targets, marks }), equipped: [piece], tracks, targets, statsMatter: true };
+    };
+
+    it('credits a wrong mark with a known target pair only from drops with that pair, at weight 1', () => {
+      const ranks = rankDungeons([marked(false, HM)], [
+        dungeon(501, 'Altar of Fangs', [loot(251139, 'ROBE', 'cloth', HM)]),
+        dungeon(502, 'Den of Nalorakk', [loot(251147, 'CHEST', 'cloth', MV)]),
+      ]);
+      expect(scores(ranks)).toEqual([['Altar of Fangs', 1], ['Den of Nalorakk', 0]]);
+    });
+
+    it('credits a wrong mark with an unknown target pair only from the exact target item', () => {
+      const ranks = rankDungeons([marked(false, null)], [
+        dungeon(501, 'Altar of Fangs', [loot(273785, 'ROBE', 'cloth', HM)]),
+        dungeon(502, 'Den of Nalorakk', [loot(251147, 'CHEST', 'cloth', MV)]),
+      ]);
+      expect(scores(ranks)).toEqual([['Altar of Fangs', 1], ['Den of Nalorakk', 0]]);
+    });
+
+    it('gives a right-marked Myth 6/6 piece no credit', () => {
+      const ranks = rankDungeons([marked(true, HM)], [dungeon(501, 'Altar of Fangs', [loot(273785, 'ROBE', 'cloth', HM)])]);
+      expect(ranks[0]!.score).toBe(0);
+    });
+  });
+
   it('keeps the split flag on a split dungeon’s tier credit', () => {
     const [half] = rankDungeons([mage()], [dungeon(507, 'Streets of Beta', [loot(251139, 'ROBE', 'cloth', HM)], true)]);
     expect(half).toMatchObject({ split: true, score: 5 });

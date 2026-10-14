@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { countStates, evaluateGear } from './evaluate';
-import type { BisRow, GearItem, SlotType, Track } from '../types';
+import type { BisRow, GearItem, SlotType, StatMark, Track } from '../types';
 
 const track = (bonusId: number, name: string, step: number, max = 6): Track =>
   ({ bonusId, name, step, max, group: null, currencyId: null, currencyName: null, costPerStep: null });
@@ -175,6 +175,45 @@ describe('statsUnverified', () => {
     expect(run(item('NECK', 1, [1]), HM).statsUnverified).toBe(false);
     expect(run(withStats(555, null), HM, { rows: [row(['NECK'], 10)] }).statsUnverified).toBe(false);
     expect(evaluateGear({ equipped: [], bisRows: [crown], tracks })[0]!.statsUnverified).toBe(false);
+  });
+});
+
+describe('statsMark', () => {
+  const HM = ['HASTE_RATING', 'MASTERY_RATING'];
+  const CM = ['CRIT_RATING', 'MASTERY_RATING'];
+  const crown = row(['HEAD'], 777, true);
+  const piece = (bonusIds: number[], secondaryStats: string[] | null = null, id = 555): GearItem => ({ ...item('HEAD', id, bonusIds, true), secondaryStats });
+  const mark = (right: boolean, over: Partial<StatMark> = {}): StatMark => ({ slot: 'HEAD', itemId: 555, bonusIds: [1], targetItemId: 777, right, ...over });
+  const run = (equipped: GearItem, marks?: StatMark[], over: { targetStats?: string[] | null; statsMatter?: boolean } = {}) =>
+    evaluateGear({ equipped: [equipped], bisRows: [crown], tracks, marks, statsMatter: over.statsMatter, targets: new Map([[777, { secondaryStats: over.targetStats === undefined ? HM : over.targetStats, isTier: true }]]) })[0]!;
+
+  it('turns an unverified row into the track state on a right mark', () => {
+    expect(run(piece([1]), [mark(true)])).toMatchObject({ statsUnverified: false, statsMark: 'right', stats: 'same', state: 'done' });
+    expect(run(piece([3]), [mark(true, { bonusIds: [3] })])).toMatchObject({ statsMark: 'right', state: 'belowMyth' });
+  });
+
+  it('turns an unverified row into wrongStats on a wrong mark', () => {
+    expect(run(piece([1]), [mark(false)])).toMatchObject({ statsUnverified: false, statsMark: 'wrong', stats: 'different', state: 'wrongStats' });
+  });
+
+  it('lapses when the piece, bonus IDs, target or slot differ', () => {
+    for (const over of [{ itemId: 556 }, { bonusIds: [2] }, { targetItemId: 778 }, { slot: 'NECK' as const }]) {
+      expect(run(piece([1]), [mark(false, over)])).toMatchObject({ statsUnverified: true, statsMark: null, state: 'done' });
+    }
+  });
+
+  it('matches bonus IDs in any order', () => {
+    expect(run(piece([2, 1]), [mark(true, { bonusIds: [1, 2] })]).statsMark).toBe('right');
+  });
+
+  it('is ignored when both pairs are known', () => {
+    expect(run(piece([1], CM), [mark(true)])).toMatchObject({ statsMark: null, state: 'wrongStats' });
+    expect(run(piece([1], HM), [mark(false)])).toMatchObject({ statsMark: null, state: 'done' });
+  });
+
+  it('is ignored when stats do not matter, and without marks', () => {
+    expect(run(piece([1]), [mark(false)], { statsMatter: false })).toMatchObject({ statsMark: null, state: 'done' });
+    expect(run(piece([1]))).toMatchObject({ statsMark: null, statsUnverified: true });
   });
 });
 

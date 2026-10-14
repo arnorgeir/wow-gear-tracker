@@ -1,6 +1,6 @@
 import { decodeTrack } from '../raidbots/tracks';
-import { ITEM_STATES, type BisRow, type GearItem, type ItemState, type SlotType, type StatMatch, type TierTarget, type Track } from '../types';
-import { compareStats } from './stat-pair';
+import { ITEM_STATES, type BisRow, type GearItem, type ItemState, type SlotType, type StatMark, type StatMatch, type TierTarget, type Track } from '../types';
+import { compareStats, itemKey } from './stat-pair';
 
 export interface GearRow {
   row: BisRow;
@@ -12,6 +12,8 @@ export interface GearRow {
   stats: StatMatch | null;
   /** A matched tier row whose stats were not compared because the piece's or the target's are unknown. Only worded, never a state. */
   statsUnverified: boolean;
+  /** The player's mark that was applied to this unverified row, if one matched. */
+  statsMark: 'right' | 'wrong' | null;
   state: ItemState;
 }
 
@@ -23,6 +25,8 @@ interface Input {
   targets?: ReadonlyMap<number, TierTarget>;
   /** False when the spec ignores tier stats: a tier piece with other stats is not Wrong stats. */
   statsMatter?: boolean;
+  /** The player's marks on unverified tier pieces. */
+  marks?: readonly StatMark[];
 }
 
 const isMatch = (row: BisRow, item: GearItem | undefined) => {
@@ -42,7 +46,7 @@ function stateFor(row: BisRow, matched: boolean, track: Track | null, bagItemIds
   return 'belowMyth';
 }
 
-export function evaluateGear({ equipped, bisRows, tracks, bagItemIds = new Set(), targets = new Map(), statsMatter = true }: Input): GearRow[] {
+export function evaluateGear({ equipped, bisRows, tracks, bagItemIds = new Set(), targets = new Map(), statsMatter = true, marks = [] }: Input): GearRow[] {
   const bySlot = new Map(equipped.map((item) => [item.slot, item]));
   const used = new Set<SlotType>();
   const rows = bisRows.filter((row) => row.slots.length > 0);
@@ -69,7 +73,16 @@ export function evaluateGear({ equipped, bisRows, tracks, bagItemIds = new Set()
       : null;
     const statsUnverified = statsMatter && matched && row.kind === 'item' && row.isTier && item !== null
       && (targets.get(row.itemId)?.secondaryStats == null || item.secondaryStats == null);
-    return { row, slot, equipped: item, track, matched, stats, statsUnverified, state: stateFor(row, matched, track, bagItemIds, stats, statsMatter) };
+    const mark = statsUnverified && row.kind === 'item'
+      ? marks.find((m) => m.slot === slot && m.targetItemId === row.itemId && itemKey(m) === itemKey(item!))
+      : undefined;
+    const finalStats = mark ? (mark.right ? 'same' : 'different') : stats;
+    return {
+      row, slot, equipped: item, track, matched, stats: finalStats,
+      statsUnverified: statsUnverified && !mark,
+      statsMark: mark ? (mark.right ? 'right' : 'wrong') : null,
+      state: stateFor(row, matched, track, bagItemIds, finalStats, statsMatter),
+    };
   });
 }
 

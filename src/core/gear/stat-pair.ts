@@ -20,7 +20,7 @@ export function compareStats(target: Side, item: Side): StatMatch {
 
 interface Statted { itemId: number; bonusIds: number[]; secondaryStats?: string[] | null }
 
-const itemKey = (i: Statted) => `${i.itemId}:${[...i.bonusIds].sort((a, b) => a - b).join(':')}`;
+export const itemKey = (i: Statted) => `${i.itemId}:${[...i.bonusIds].sort((a, b) => a - b).join(':')}`;
 
 /**
  * Fills unknown pairs from another snapshot's copy of the same item: same item ID and bonus IDs. SimC pastes
