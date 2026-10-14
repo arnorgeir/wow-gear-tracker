@@ -32,7 +32,7 @@ export function StatMark({ characterId, row }: { characterId: number; row: GearR
           </button>
         ))}
         {row.statsMark !== null && (
-          <button type="button" disabled={busy} className={`${BUTTON} ${TONE.clear}`} onClick={() => send('DELETE', { slot: row.slot })}>Clear mark</button>
+          <button type="button" disabled={busy} className={`${BUTTON} ${TONE.clear}`} onClick={() => send('DELETE', { slot: row.slot })}>Undo stats check</button>
         )}
       </div>
       {error && <span role="alert" className="text-sm text-missing">{error}</span>}

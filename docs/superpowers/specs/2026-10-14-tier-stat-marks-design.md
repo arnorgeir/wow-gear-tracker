@@ -17,7 +17,7 @@ A mark is only trusted for the piece and the target it was made against. Equippi
 - On a "Stats unverified" row, the character page and the group cell details offer **Right stats** and **Wrong stats**.
 - After **Right stats**, the row shows its track's state (Done, Upgrade or Below Myth) with no "?" and the item line says "Stats confirmed by hand". It counts as before.
 - After **Wrong stats**, the row is `wrongStats`: the "Stats" word and tone, "Needed" target in the details, Wrong stats count on the card, and the dungeon priority asks for drops with the list's stats only, at weight 1, exactly as a known mismatch does today. The item line says "Stats marked wrong by hand". While the target's pair is unknown, `tierCredit` falls back to item-ID equality, so a wrong mark then credits only a dungeon that drops the exact target item: often nothing for a non-catalyst tier target, which never drops, until the target's pair is fetched. That is accepted, not fixed here.
-- A marked row offers **Clear mark**, which returns it to unverified.
+- A marked row offers **Undo stats check**, which returns it to unverified.
 - Equipping a different piece in the slot, in a Blizzard sync or a SimC paste, or changing its bonus IDs (an upgrade), makes the row unverified again. Re-equipping the marked piece brings the mark back.
 - Changing the row's target item (an override, a manual list edit, a Method update, another compared list) makes the mark lapse.
 - When the next Blizzard sync gives the piece's stats and the target's are known, the row follows the real comparison, whatever the mark says.
@@ -108,7 +108,7 @@ Logic stays pure: marks are data passed in, like `targets`.
 `src/components/stat-mark/StatMark.tsx`, a client component: `StatMark({ characterId, row }: { characterId: number; row: GearRowView })`. Uses `useApiAction` with `after: 'refresh'`, shows its error in a `role="alert"` span like `StatsMatter`.
 
 - `row.statsUnverified`: two small buttons, **Right stats** and **Wrong stats**, each sending `PUT` with `slot: row.slot`, `itemId` and `bonusIds` from `row.equipped`, `targetItemId` from `row.bis.itemId`.
-- `row.statsMark !== null`: one **Clear mark** button sending `DELETE`.
+- `row.statsMark !== null`: one **Undo stats check** button sending `DELETE`.
 - Otherwise renders nothing. Buttons are disabled while `busy`, at least 44 px tall on touch, and their words carry the meaning, not color.
 
 Placed in `GearTable` under the state badge (beside `UpgradeBadge`) and in `CellDetails` under the badge row. The compact grid cell gets no control: "Done?" already says to open the details.
@@ -122,6 +122,6 @@ Wording, in `equippedStatText` (`src/components/shared/equipped-stats.ts`), chec
 - Queries: set, replace in the same slot, clear; marks of a second account and of another character are not listed; deleting the character removes its marks.
 - Route: `PUT` and `DELETE` happy paths; 404 for an unknown character; 400 for a bad slot, a non-integer item, a non-array `bonusIds`, a missing `right`, and a body that isn't JSON (both methods).
 - Views: `rowView` copies `statsMark`; card counts and the character page `doneCount` move a right-marked row into done and a wrong-marked row into Wrong stats; `rankDungeons` gives a wrong-marked row only same-stat credits at weight 1 (through `priorityCharacter`), and with an unknown target pair credits only a dungeon dropping the exact target item.
-- Components: `equippedStatText` for both marks; `needText` for a wrong mark with an unknown equipped pair, an unknown target pair, and both known (unchanged); `cellLabel` wording; `StatMark` markup (`renderToStaticMarkup`): two buttons for an unverified row, "Clear mark" for a marked row, nothing otherwise. `StatMark` calls `useRouter()` through `useApiAction`, which throws in a static render, so `StatMark.test.ts`, `CellDetails.test.ts` and `GearTable.test.ts` mock `next/navigation` as `GroupGrid.test.ts` does.
+- Components: `equippedStatText` for both marks; `needText` for a wrong mark with an unknown equipped pair, an unknown target pair, and both known (unchanged); `cellLabel` wording; `StatMark` markup (`renderToStaticMarkup`): two buttons for an unverified row, "Undo stats check" for a marked row, nothing otherwise. `StatMark` calls `useRouter()` through `useApiAction`, which throws in a static render, so `StatMark.test.ts`, `CellDetails.test.ts` and `GearTable.test.ts` mock `next/navigation` as `GroupGrid.test.ts` does.
 - By hand at 375 and 1440 px: paste a SimC export with a catalysed tier piece the Blizzard snapshot hasn't seen, in a slot whose target pair is known. The group cell shows "Done?"; mark it right in the details and it shows "Done" with "Stats confirmed by hand"; clear it; mark it wrong and it shows "Stats" with the needed target, and the priority list changes. On the character page, the same controls work under the state badge. Paste again with another piece in the slot: the row is unverified again.
 - Not covered: there are no browser-level tests yet (#35); button focus and the refresh after a mark are checked by hand.

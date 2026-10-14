@@ -19,7 +19,7 @@ describe('StatMark', () => {
     const html = render(unverified);
     expect(html).toContain('Right stats');
     expect(html).toContain('Wrong stats');
-    expect(html).not.toContain('Clear mark');
+    expect(html).not.toContain('Undo stats check');
   });
 
   it('keeps the two buttons on one line, each in the tone of the state it leads to', () => {
@@ -42,9 +42,9 @@ describe('StatMark', () => {
     expect(html).toContain('pointer-coarse:min-h-11');
   });
 
-  it('offers only Clear mark on a marked row', () => {
+  it('offers only Undo stats check on a marked row', () => {
     const html = render({ ...unverified, statsUnverified: false, statsMark: 'right' });
-    expect(html).toContain('Clear mark');
+    expect(html).toContain('Undo stats check');
     expect(html).not.toContain('Right stats');
   });
 
