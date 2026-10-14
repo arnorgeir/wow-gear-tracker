@@ -34,7 +34,7 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
   const loaded: Loaded[] = [];
   for (const key of selected) {
     const character = findByMemberKey(all, key) ?? null;
-    const data = character ? await loadMember({ db, tracks, bisFor }, character, classIcons) : null;
+    const data = character ? await loadMember({ db, tracks, accountId: services.currentAccountId(), bisFor }, character, classIcons) : null;
     const state = memberState(character, data?.gear.current != null);
     const hasRows = (data?.priorityRows.length ?? 0) > 0;
     const bisLoading = data?.bis.status === 'loading';

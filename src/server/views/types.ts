@@ -25,6 +25,8 @@ export interface GearRowView {
   equippedStats: string[] | null;
   /** A tier piece whose stats could not be checked against the target's. */
   statsUnverified: boolean;
+  /** A player's mark on an unverified tier piece, when it applies. */
+  statsMark: 'right' | 'wrong' | null;
   bis: BisView;
   upgrade: UpgradeOption | null;
 }

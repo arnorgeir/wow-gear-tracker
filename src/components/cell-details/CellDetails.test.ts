@@ -6,7 +6,7 @@ import { CellDetails } from './CellDetails';
 
 const equipped = { itemId: 271526, name: 'Enigmatic Dreamwatcher’s Plumage', itemLevel: 334, quality: 'EPIC' as const, bonusIds: [12], iconUrl: null, trackLabel: 'Myth 6/6' };
 const tier: GearRowView = {
-  slotLabel: 'Shoulders', slot: 'SHOULDER', state: 'done', equipped, equippedStats: ['CRIT_RATING', 'HASTE_RATING'], statsUnverified: false, upgrade: null,
+  slotLabel: 'Shoulders', slot: 'SHOULDER', state: 'done', equipped, equippedStats: ['CRIT_RATING', 'HASTE_RATING'], statsUnverified: false, statsMark: null, upgrade: null,
   bis: { kind: 'item', ...equipped, isTier: true, isCatalyst: true, source: '', targetStats: ['CRIT_RATING', 'HASTE_RATING'], targetIsTierPiece: false },
 };
 const render = (cell: GearRowView) =>

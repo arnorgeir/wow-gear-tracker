@@ -26,7 +26,7 @@ export async function getCharacterPage(services: Services, key: MemberKey): Prom
   const tracksRead = await readTracks(db, time);
   const { tracks } = tracksRead;
   const tracksKnown = tracks.size > 0;
-  const member = await loadMember({ db, tracks, bisFor: createBisLookup(db, time, services.currentAccountId()) }, character);
+  const member = await loadMember({ db, tracks, accountId: services.currentAccountId(), bisFor: createBisLookup(db, time, services.currentAccountId()) }, character);
   const { summary, gear, bis, choice } = member;
   const specs = await specsPromise;
   const classIcons = await ensureClassIcons({ db, blizzard, now: time }, character.region);

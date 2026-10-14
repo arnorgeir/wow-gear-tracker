@@ -20,13 +20,13 @@ export async function getCharacterCards(services: Services): Promise<{ cards: Ch
   const bisFor = createBisLookup(db, time, services.currentAccountId());
   const specs: SpecBis[] = [];
   const cards = await Promise.all(characters.map(async (c) => {
-    const gear = await loadGear(db, c.id);
+    const gear = await loadGear(db, c.id, services.currentAccountId());
     const summary = summarize(c, gear.current, classIcons);
     const bis = await bisFor(summary.specSlug, c.region);
     specs.push(bis);
     const { listType } = choosePriorityList(bis.lists, bis.listType);
     const bisRows = bis.lists?.[listType] ?? [];
-    const rows = evaluateGear({ equipped: gear.equipped, bisRows, tracks, bagItemIds: gear.bagItemIds, targets: bis.targets, statsMatter: bis.statsMatter });
+    const rows = evaluateGear({ equipped: gear.equipped, bisRows, tracks, bagItemIds: gear.bagItemIds, targets: bis.targets, statsMatter: bis.statsMatter, marks: gear.marks });
     return {
       ...summary,
       listType,

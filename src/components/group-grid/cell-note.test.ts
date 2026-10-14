@@ -3,7 +3,7 @@ import type { GearRowView } from '@/server/views/types';
 import { cellNote, needText } from './cell-note';
 
 const row = (bis: GearRowView['bis'], state: GearRowView['state'] = 'missing'): GearRowView =>
-  ({ slotLabel: 'Head', slot: 'HEAD', state, equipped: null, equippedStats: null, statsUnverified: false, upgrade: null, bis });
+  ({ slotLabel: 'Head', slot: 'HEAD', state, equipped: null, equippedStats: null, statsUnverified: false, statsMark: null, upgrade: null, bis });
 const named = { kind: 'item' as const, itemId: 1, name: 'Greathelm', itemLevel: null, quality: 'EPIC' as const, bonusIds: [], iconUrl: null, trackLabel: null, isTier: false, isCatalyst: false, source: '', targetStats: null, targetIsTierPiece: false };
 
 describe('cellNote', () => {

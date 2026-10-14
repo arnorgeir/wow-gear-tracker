@@ -15,6 +15,7 @@ import type { BisView, CharacterSummary, GearRowView, PriorityCreditView, VaultC
 export interface MemberContext {
   db: Db;
   tracks: ReadonlyMap<number, Track>;
+  accountId: number;
   /** BiS lists for a spec; the group page shares one lookup per spec across members. */
   bisFor: (specSlug: string, region: Region) => Promise<SpecBis>;
 }
@@ -33,10 +34,10 @@ export interface MemberData {
 
 /** One character's gear, BiS lists and priority rows: what the character page and the group page both start from. */
 export async function loadMember(ctx: MemberContext, character: CharacterRow, classIcons: ReadonlyMap<string, string | null> = new Map()): Promise<MemberData> {
-  const gear = await loadGear(ctx.db, character.id);
+  const gear = await loadGear(ctx.db, character.id, ctx.accountId);
   const summary = summarize(character, gear.current, classIcons);
   const bis = await ctx.bisFor(summary.specSlug, character.region);
-  const evaluate = (list: ListType) => evaluateGear({ equipped: gear.equipped, bisRows: bis.lists?.[list] ?? [], tracks: ctx.tracks, bagItemIds: gear.bagItemIds, targets: bis.targets, statsMatter: bis.statsMatter });
+  const evaluate = (list: ListType) => evaluateGear({ equipped: gear.equipped, bisRows: bis.lists?.[list] ?? [], tracks: ctx.tracks, bagItemIds: gear.bagItemIds, targets: bis.targets, statsMatter: bis.statsMatter, marks: gear.marks });
   const choice = choosePriorityList(bis.lists, bis.listType);
   return {
     character, summary, gear, bis, choice, evaluate,
@@ -71,6 +72,7 @@ export function rowView(
     equipped: r.equipped && itemView(r.equipped, icons, r.track),
     equippedStats: r.equipped?.secondaryStats ?? null,
     statsUnverified: r.statsUnverified,
+    statsMark: r.statsMark,
     bis: bisView(r.row, icons, targets),
     upgrade: upgradeFor(r, costs, balances),
   };

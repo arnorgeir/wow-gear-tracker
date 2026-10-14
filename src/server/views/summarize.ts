@@ -1,5 +1,6 @@
 import type { Db } from '@/core/db/client';
 import { equippedGear, getLatestSnapshot, type Snapshot } from '@/core/db/queries/snapshots';
+import { listStatMarks } from '@/core/db/queries/stat-marks';
 import { type CharacterRow } from '@/core/db/queries/characters';
 import { affordableUpgrade, summarizeCrests, type CrestCost } from '@/core/gear/crests';
 import { type GearRow } from '@/core/gear/evaluate';
@@ -8,7 +9,7 @@ import { borrowStats } from '@/core/gear/stat-pair';
 import { methodSpecSlug } from '@/core/method/method';
 import { identityLine } from '@/core/characters/identity';
 import { characterHref } from '@/core/characters/member-key';
-import { type GearItem } from '@/core/types';
+import { type GearItem, type StatMark } from '@/core/types';
 import type { CrestView, CharacterSummary } from './types';
 
 export interface GearContext {
@@ -17,16 +18,19 @@ export interface GearContext {
   equipped: GearItem[];
   bagItemIds: Set<number>;
   balances: Map<number, number>;
+  /** The account's marks on this character's unverified tier pieces. */
+  marks: StatMark[];
 }
 
-export async function loadGear(db: Db, characterId: number): Promise<GearContext> {
+export async function loadGear(db: Db, characterId: number, accountId: number): Promise<GearContext> {
   const current = await getLatestSnapshot(db, characterId);
   const simc = current?.source === 'simc' ? current : await getLatestSnapshot(db, characterId, 'simc');
   // Pastes carry no stats; the Blizzard snapshot knows them for pieces that haven't changed since.
   const blizzard = current?.source === 'simc' ? await getLatestSnapshot(db, characterId, 'blizzard') : null;
   const equipped = current ? equippedGear(current) : [];
+  const marks = await listStatMarks(db, accountId, characterId);
   return {
-    current,
+    current, marks,
     simc,
     equipped: blizzard ? borrowStats(equipped, blizzard.items) : equipped,
     // Bag contents are only known while the current gear comes from a paste.

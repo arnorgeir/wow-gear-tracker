@@ -10,6 +10,7 @@ import { creditView, rowView } from './member';
 import type { GearRow } from '@/core/gear/evaluate';
 import { gearToSnapshotItems, saveSnapshotIfChanged } from '@/core/db/queries/snapshots';
 import { insertCharacter, updateCharacter } from '@/core/db/queries/characters';
+import { setStatMark } from '@/core/db/queries/stat-marks';
 import { updateSpecSettings, upsertOverride } from '@/core/db/queries/bis-settings';
 import { upsertCatalogItem } from '@/core/db/queries/item-catalog';
 import { replaceSpecs } from '@/core/db/queries/specs';
@@ -19,7 +20,7 @@ import { SEASON_META_KEY } from '@/core/sync/season-sync';
 import { syncReference } from '@/core/sync/reference-run';
 import { chooseManual } from '@/core/bis/spec-base';
 import { DAY_MS, syncBisLists, syncTracks } from '@/core/sync/reference-sync';
-import type { BisLists, GearItem, Track } from '@/core/types';
+import type { BisLists, GearItem, StatMark, Track } from '@/core/types';
 import type { BlizzardClient } from '@/core/blizzard/client';
 
 const lists: BisLists = {
@@ -384,6 +385,45 @@ describe('identity', () => {
     await prime(s);
     const { cards: [card] } = await getCharacterCards(s);
     expect(card).toMatchObject({ identity: 'Troll Feral Druid', avatarUrl: 'https://render/a.jpg', classIconUrl: 'https://i/class-11.jpg' });
+  });
+});
+
+describe('stat marks', () => {
+  const headMark = (right: boolean, over: Partial<StatMark> = {}): StatMark => ({ slot: 'HEAD', itemId: 11, bonusIds: [], targetItemId: 10, right, ...over });
+
+  it('leaves the tier row unverified without a mark', async () => {
+    const s = await services();
+    await seed(s);
+    await prime(s);
+    expect((await birkiPage(s)).rows[0]).toMatchObject({ statsUnverified: true, statsMark: null });
+  });
+
+  it('counts a right mark as done and a wrong mark as Wrong stats', async () => {
+    const s = await services();
+    const id = await seed(s);
+    await prime(s);
+    await setStatMark(s.db, 1, id, headMark(true));
+    expect((await birkiPage(s)).rows[0]).toMatchObject({ statsUnverified: false, statsMark: 'right', state: 'done' });
+    expect((await getCharacterCards(s)).cards[0]!.counts).toMatchObject({ done: 1, wrongStats: 0 });
+
+    await setStatMark(s.db, 1, id, headMark(false));
+    const page = await birkiPage(s);
+    expect(page.rows[0]).toMatchObject({ statsMark: 'wrong', state: 'wrongStats' });
+    expect(page.doneCount).toBe(0);
+    expect((await getCharacterCards(s)).cards[0]!.counts).toMatchObject({ done: 0, wrongStats: 1 });
+  });
+
+  it('applies to the same piece in a paste, and lapses for another tier piece', async () => {
+    const s = await services();
+    const id = await seed(s);
+    await prime(s);
+    await setStatMark(s.db, 1, id, headMark(true));
+    await saveSnapshotIfChanged(s.db, id, 'simc', gearToSnapshotItems(gear), 900);
+    expect((await birkiPage(s)).rows[0]).toMatchObject({ statsMark: 'right', state: 'done' });
+
+    const otherHead = gear.map((g) => (g.slot === 'HEAD' ? { ...g, itemId: 12 } : g));
+    await saveSnapshotIfChanged(s.db, id, 'simc', gearToSnapshotItems(otherHead), 950);
+    expect((await birkiPage(s)).rows[0]).toMatchObject({ statsMark: null, statsUnverified: true });
   });
 });
 
