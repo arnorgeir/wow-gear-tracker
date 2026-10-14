@@ -1,4 +1,4 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { dungeonLoot, seasonDungeons } from '../schema';
 import type { ArmorType, Quality, SeasonLoot } from '../../types';
@@ -44,6 +44,18 @@ export async function getSeasonLoot(db: Db): Promise<SeasonLoot[]> {
     loot: loot.filter((l) => l.challengeModeId === d.challengeModeId)
       .map((l) => ({ itemId: l.itemId, name: l.itemName, inventoryType: l.inventoryType, armorType: l.armorType, secondaryStats: decodeStats(l.secondaryStats) })),
   }));
+}
+
+/** One stored season dungeon with its loot rows in boss order, or null when the season doesn't list it. */
+export async function getSeasonDungeon(db: Db, challengeModeId: number):
+  Promise<{ dungeon: SeasonDungeonRow; split: boolean; loot: DungeonLootRow[] } | null> {
+  const [dungeon] = await db.select().from(seasonDungeons).where(eq(seasonDungeons.challengeModeId, challengeModeId));
+  if (!dungeon) return null;
+  const sharing = await db.select({ id: seasonDungeons.challengeModeId }).from(seasonDungeons)
+    .where(eq(seasonDungeons.journalInstanceId, dungeon.journalInstanceId));
+  // rowid is insertion order, which is the journal's boss order (encounter IDs are not).
+  const loot = await db.select().from(dungeonLoot).where(eq(dungeonLoot.challengeModeId, challengeModeId)).orderBy(sql`rowid`);
+  return { dungeon, split: sharing.some((x) => x.id !== challengeModeId), loot };
 }
 
 /**

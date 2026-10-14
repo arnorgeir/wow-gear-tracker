@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { openTestDb } from '@/test/db';
-import { getSeasonLoot, replaceSeason, updateSeasonArtwork, type SeasonData } from './season';
+import { getSeasonDungeon, getSeasonLoot, replaceSeason, updateSeasonArtwork, type SeasonData } from './season';
 
 const AH = 'https://cdn.raiderio.net/images/dungeons/alpha-hollow.jpg';
 const STRT = 'https://cdn.raiderio.net/images/dungeons/streets.jpg';
@@ -75,5 +75,24 @@ describe('updateSeasonArtwork', () => {
     await replaceSeason(db, data);
     await updateSeasonArtwork(db, 'season-test-3', [{ challengeModeId: 501, imageUrl: null }]);
     expect((await getSeasonLoot(db))[0]!.imageUrl).toBe(AH);
+  });
+
+  it('reads one dungeon with its loot in insertion order, whatever the encounter IDs', async () => {
+    const db = await openTestDb();
+    await replaceSeason(db, { ...data, loot: [
+      { challengeModeId: 501, encounterId: 9, encounterName: 'First Boss', itemId: 100, itemName: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather' },
+      { challengeModeId: 501, encounterId: 3, encounterName: 'Second Boss', itemId: 101, itemName: 'Vanished Band', inventoryType: null, armorType: null },
+    ] });
+    const found = await getSeasonDungeon(db, 501);
+    expect(found!.dungeon.name).toBe('Alpha Hollow');
+    expect(found!.split).toBe(false);
+    expect(found!.loot.map((l) => l.encounterName)).toEqual(['First Boss', 'Second Boss']);
+  });
+
+  it('marks a dungeon sharing its journal instance as split, and gives null for an unknown ID', async () => {
+    const db = await openTestDb();
+    await replaceSeason(db, data);
+    expect((await getSeasonDungeon(db, 502))!.split).toBe(true);
+    expect(await getSeasonDungeon(db, 999)).toBeNull();
   });
 });
