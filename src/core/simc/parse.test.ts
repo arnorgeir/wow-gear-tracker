@@ -13,11 +13,11 @@ describe('parseSimc', () => {
 
   it('reads equipped items with name and item level, and skips the shirt', () => {
     expect(profile.items.filter((i) => i.location === 'equipped')).toEqual([
-      { location: 'equipped', slot: 'HEAD', itemId: 271528, name: 'Enigmatic Dreamwatcher\'s Somnolent Stare', itemLevel: 321, bonusIds: [13692, 13440, 6652, 13696, 13698, 12850] },
-      { location: 'equipped', slot: 'NECK', itemId: 251173, name: 'Yoke of the Charging Bear', itemLevel: 318, bonusIds: [13440, 6652, 13668, 12699, 12845] },
-      { location: 'equipped', slot: 'FINGER_1', itemId: 273792, name: 'Band of the Amani Warlord', itemLevel: 334, bonusIds: [13440, 6652, 13668, 12699, 12854] },
-      { location: 'equipped', slot: 'TRINKET_1', itemId: 250256, name: 'Heart of Wind', itemLevel: 298, bonusIds: [13440, 40, 12699, 13654] },
-      { location: 'equipped', slot: 'MAIN_HAND', itemId: 273783, name: 'Toxin-Coated Warstaff', itemLevel: 321, bonusIds: [13440, 6652, 12701, 12846] },
+      { location: 'equipped', slot: 'HEAD', itemId: 271528, name: 'Enigmatic Dreamwatcher\'s Somnolent Stare', itemLevel: 321, bonusIds: [13692, 13440, 6652, 13696, 13698, 12850], statsItemId: 251223 },
+      { location: 'equipped', slot: 'NECK', itemId: 251173, name: 'Yoke of the Charging Bear', itemLevel: 318, bonusIds: [13440, 6652, 13668, 12699, 12845], statsItemId: null },
+      { location: 'equipped', slot: 'FINGER_1', itemId: 273792, name: 'Band of the Amani Warlord', itemLevel: 334, bonusIds: [13440, 6652, 13668, 12699, 12854], statsItemId: null },
+      { location: 'equipped', slot: 'TRINKET_1', itemId: 250256, name: 'Heart of Wind', itemLevel: 298, bonusIds: [13440, 40, 12699, 13654], statsItemId: null },
+      { location: 'equipped', slot: 'MAIN_HAND', itemId: 273783, name: 'Toxin-Coated Warstaff', itemLevel: 321, bonusIds: [13440, 6652, 12701, 12846], statsItemId: null },
     ]);
   });
 
@@ -27,6 +27,16 @@ describe('parseSimc', () => {
       ['FINGER_1', 159459, 'Ritual Binder\'s Ring', 311],
     ]);
     expect(profile.items.filter((i) => i.location === 'vault').map((i) => [i.slot, i.itemId, i.itemLevel])).toEqual([['TRINKET_1', 250245, 324]]);
+  });
+
+  it('reads redirected_base_stats as statsItemId, null when absent, empty or zero', () => {
+    const head = (line: string) => parseSimc(text.replace(/^head=.*$/m, line)).items.find((i) => i.slot === 'HEAD')!.statsItemId;
+    expect(profile.items.find((i) => i.slot === 'HEAD')!.statsItemId).toBe(251223);
+    expect(profile.items.find((i) => i.slot === 'NECK')!.statsItemId).toBeNull();
+    expect(head('head=,id=271528,redirected_base_stats=0')).toBeNull();
+    expect(head('head=,id=271528,redirected_base_stats=')).toBeNull();
+    const bag = parseSimc(text.replace('# waist=,id=159301,', '# waist=,id=159301,redirected_base_stats=251224,')).items.find((i) => i.slot === 'WAIST')!;
+    expect(bag.statsItemId).toBe(251224);
   });
 
   it('reads crests and catalyst charges, skipping item currencies', () => {
