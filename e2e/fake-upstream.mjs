@@ -28,6 +28,9 @@ Date.now = () => {
 const METHOD_PAGE = readFileSync('src/core/method/__fixtures__/gearing.html', 'utf8');
 const CURRENCY_TOOLTIP = readFileSync('src/core/wowhead/__fixtures__/currency-3446.json', 'utf8');
 
+// Per character name: how many profile requests the fake has answered.
+const profileCalls = new Map();
+
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
@@ -51,6 +54,11 @@ const routes = [
   [/\/profile\/wow\/character\/([^/]+)\/(birki[^/?]*)(\?|$)/, (url) => {
     const [, slug, name] = url.match(/\/character\/([^/]+)\/([^/?]+)/);
     const decoded = decodeURIComponent(name);
+    // "birkiflaky" answers the two profile requests that adding makes, and fails every later one, so a re-sync records an error.
+    if (decoded.startsWith('birkiflaky')) {
+      profileCalls.set(decoded, (profileCalls.get(decoded) ?? 0) + 1);
+      if (profileCalls.get(decoded) > 2) return json({}, 500);
+    }
     return json({
       name: decoded[0].toUpperCase() + decoded.slice(1),
       realm: { id: slug === 'kazzak' ? 1305 : 1096, name: slug === 'kazzak' ? 'Kazzak' : 'Argent Dawn', slug },

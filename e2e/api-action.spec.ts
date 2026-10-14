@@ -30,13 +30,14 @@ test('removing a character deletes its card', async ({ page }) => {
 });
 
 test('refreshing a character re-renders its page', async ({ page }) => {
-  const { id } = await trackCharacter(page, 'Birkiýr');
-  await page.goto('/characters/eu/kazzak/birki%C3%BDr');
+  // The fake fails this character's profile requests after the two that adding makes, so only a fresh server render can show the error.
+  const { id } = await trackCharacter(page, 'Birkiflaky');
+  await page.goto('/characters/eu/kazzak/birkiflaky');
+  const alert = page.getByRole('alert').filter({ hasText: 'Blizzard returned 500' });
+  await page.waitForLoadState('networkidle');
+  await expect(alert).toHaveCount(0);
   const synced = page.waitForResponse((r) => r.url().includes(`/api/characters/${id}/sync?force=1`));
   await page.getByRole('button', { name: 'Refresh' }).click();
   expect((await synced).ok()).toBe(true);
-  await expect(page.getByRole('button', { name: 'Refresh' })).toBeEnabled();
-  await expect(page.getByRole('heading', { name: 'Birkiýr' })).toBeVisible();
-  // The season alert is the fake's deliberate empty season; a failed sync would name Blizzard.
-  await expect(page.getByText(/Blizzard (returned|couldn’t be reached|can.t find)/)).toHaveCount(0);
+  await expect(alert).toHaveText('Blizzard returned 500. Showing the last saved gear.');
 });
