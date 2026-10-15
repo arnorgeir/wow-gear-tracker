@@ -208,26 +208,28 @@ Local sessions can read ignored review files in the same checkout. Cloud session
 - **Pick the cheapest model that can do the step** (see the table above). Use Opus to resolve design decisions and write the plan; use Sonnet for routine implementation.
 - **Keep hand checks focused.** Claude prepares a short checklist tied to the changed behavior and assigns any owner-run checks explicitly. Record who checked what and any remaining gaps.
 
-## Caveman usage by step
+## Skills by step
 
-The Caveman skills keep chat, handoffs and simple findings short. Load only the skills the current step needs. Repository rules, clarity and complete evidence come first: a skill shapes how a step runs, and never removes what this page or `AGENTS.md` requires.
+Superpowers is the primary skill set: it drives how each step runs. Caveman is used only where it does a job better, which is short wording: chat, handoffs, review findings and commit messages. Where both offer a skill for the same job, use the Superpowers one. Load only the skills the current step needs. Repository rules, clarity and complete evidence come first: a skill shapes how a step runs, and never removes what this page or `AGENTS.md` requires.
 
-| Step | Caveman use | Still required |
-|---|---|---|
-| `spec` and `plan` | Concise discussion and handoffs; no skill for the documents themselves | Full rationale, alternatives, acceptance criteria and edge cases in the spec and plan |
-| `implement` | `caveman:lean-build` to keep scope tight | The approved plan, the architecture rules, and a failing test first |
-| `fix` | `caveman:investigate-first` when the cause is unclear; `caveman:surgical-patch` for the repair | Evidence of the cause, and a test that covers the regression |
-| `spec-review`, `pr-review` and `re-review` | `caveman:caveman-review` to word simple findings | Severity, location, trigger, impact and enough evidence to justify each finding; complex findings get a full explanation |
-| `validate` and the gate before any handoff | `caveman:verify-and-stop` | Every required automated and manual check; a focused test run never replaces the full gate |
-| Commits and pull requests | The repo's `commit` skill, which wraps `caveman:caveman-commit`; pull requests follow the terse rules in `AGENTS.md` | Required sections, exact identifiers, negations, testing gaps, and no AI attribution |
-| Filing issues and merging | None | The `file-issue` skill and the merge rules, as written |
+| Step | Superpowers (primary) | Caveman (only for) | Still required |
+|---|---|---|---|
+| `spec` | `superpowers:brainstorming` | Concise chat and handoffs; never the document itself | Full rationale, alternatives, acceptance criteria and edge cases in the spec |
+| `plan` | `superpowers:writing-plans` | Concise chat and handoffs; never the document itself | Every step, file and test the implementation needs, in the plan |
+| `implement` | `superpowers:executing-plans` and `superpowers:test-driven-development` | None | The approved plan, the architecture rules, and a failing test first |
+| `fix` | `superpowers:receiving-code-review`, `superpowers:systematic-debugging` when the cause is unclear, and `superpowers:test-driven-development` | None | Evidence of the cause, and a test that covers the regression |
+| `spec-review`, `pr-review` and `re-review` | `superpowers:requesting-code-review` when Claude starts the reviewer | `caveman:caveman-review` to word simple findings | Severity, location, trigger, impact and enough evidence to justify each finding; complex findings get a full explanation |
+| `validate` and the gate before any handoff | `superpowers:verification-before-completion` | None | Every required automated and manual check; a focused test run never replaces the full gate |
+| Commits and pull requests | None | The repo's `commit` skill, which wraps `caveman:caveman-commit`; pull requests follow the terse rules in `AGENTS.md` | Required sections, exact identifiers, negations, testing gaps, and no AI attribution |
+| Filing issues and merging | None | None | The `file-issue` skill and the merge rules, as written |
 
+- **Caveman never replaces a Superpowers skill.** Its overlapping skills (`caveman:lean-build`, `caveman:investigate-first`, `caveman:surgical-patch`, `caveman:verify-and-stop`) stay unused while Superpowers covers the same job.
 - **Specs and plans stay readable.** Never run `caveman:caveman-compress` on a spec, plan or other authoritative document.
 - **Implementation stays inline.** `caveman:cavecrew` is only for delegation the owner authorized separately, and never replaces an independent review.
 - **Verification stops only when every required check and acceptance condition is met.** Name any check that couldn't run or isn't finished.
 - **Existing commit and pull request rules win.** A skill's default never overrides a required format or required evidence.
 - **This covers the skills only.** It doesn't configure the Caveman proxy, enable its cloud measurement, or claim measured savings. Those get evaluated separately.
-- **Trial it over a few issues** and judge it by how clear the handoffs were and how much review rework followed, before using it more widely.
+- **Trial the Caveman layer over a few issues** and judge it by how clear the handoffs were and how much review rework followed, before using it more widely.
 
 ## Cloud sessions
 
