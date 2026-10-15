@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createLimiter, fetchJson, HttpError, isHttpError } from './http';
+import { createLimiter, fetchJson, HttpError, isHttpError, MAX_RETRY_AFTER_MS } from './http';
 import { fakeFetch, json, on } from '@/test/fake-fetch';
 
 describe('isHttpError', () => {
@@ -41,6 +41,16 @@ describe('fetchJson', () => {
     expect(result).toEqual({ ok: true });
     expect(waits).toEqual([2000]);
     expect(calls).toHaveLength(2);
+  });
+
+  it('caps a long Retry-After so one request cannot stall a page', async () => {
+    let n = 0;
+    const waits: number[] = [];
+    const { fn } = fakeFetch([
+      on('/limited', () => (n++ === 0 ? new Response('', { status: 429, headers: { 'retry-after': '3600' } }) : json({ ok: true }))),
+    ]);
+    await fetchJson(fn, 'https://x/limited', undefined, async (ms) => { waits.push(ms); });
+    expect(waits).toEqual([MAX_RETRY_AFTER_MS]);
   });
 
   it('gives up after one retry', async () => {

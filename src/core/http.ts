@@ -24,14 +24,17 @@ export const isHttpError = (err: unknown): err is HttpError => hasBrand(err, HTT
 const withTimeout = (init: RequestInit | undefined, timeoutMs: number): RequestInit =>
   ({ ...init, signal: init?.signal ?? AbortSignal.timeout(timeoutMs) });
 
-/** Fetches once; on 429 waits for Retry-After (default 1 s) and tries one more time. Each attempt times out. */
+/** Longest Retry-After we honor before the one retry; a longer ask fails sooner instead of hanging a page. */
+export const MAX_RETRY_AFTER_MS = 10_000;
+
+/** Fetches once; on 429 waits for Retry-After (default 1 s, at most 10 s) and tries one more time. Each attempt times out. */
 export async function fetchWithRetry(
   fetchFn: FetchFn, url: string, init?: RequestInit, sleep: SleepFn = defaultSleep, timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<Response> {
   const res = await fetchFn(url, withTimeout(init, timeoutMs));
   if (res.status !== 429) return res;
   const seconds = Number(res.headers.get('retry-after'));
-  await sleep((Number.isFinite(seconds) && seconds > 0 ? seconds : 1) * 1000);
+  await sleep(Math.min((Number.isFinite(seconds) && seconds > 0 ? seconds : 1) * 1000, MAX_RETRY_AFTER_MS));
   return fetchFn(url, withTimeout(init, timeoutMs));
 }
 
