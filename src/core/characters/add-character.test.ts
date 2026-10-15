@@ -34,6 +34,13 @@ describe('addCharacter', () => {
     expect(d.synced).toEqual([result.id]);
   });
 
+  it('asks Blizzard for the composed name when the input is decomposed', async () => {
+    const db = await openTestDb();
+    const d = deps();
+    await addCharacter({ db, blizzard: d.blizzard, syncer: d.syncer, now: () => 5 }, { region: 'eu', name: 'birkibjörn', realmId: 503 });
+    expect(d.asked[0]!.name).toBe('birkibjörn');
+  });
+
   it('returns the existing character without syncing again', async () => {
     const db = await openTestDb();
     const d = deps();
