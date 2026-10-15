@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createMethodSource, methodSpecSlug, parseGearingHtml } from './method';
 import { fakeFetch, on } from '@/test/fake-fetch';
 
@@ -92,5 +92,36 @@ describe('catalyst sources', () => {
   it('keeps a Tier Set row with a plain source as tier but not catalyst', () => {
     const [row] = parseGearingHtml(table('Primordial Robe of Rites (Tier Set)', 'Altar of Fangs')).mythicPlus;
     expect(row).toMatchObject({ isTier: true, isCatalyst: false, source: 'Altar of Fangs' });
+  });
+});
+
+describe('page structure changes', () => {
+  const row = (slot: string) => `<tr><td>${slot}</td><td><a href="https://www.wowhead.com/item=249277">Blade</a></td><td>Murder Row</td></tr>`;
+  const panel = (id: string, rows: string) => `<div role="tabpanel" id="${id}"><table>${rows}</table></div>`;
+
+  it('throws when a table Method renamed would leave its list empty', () => {
+    const page = panel('overall_table', row('Head')) + panel('dungeon_bis_table', row('Head'));
+    expect(() => parseGearingHtml(page)).toThrow('dungeon_bis_table');
+  });
+
+  it('throws when a known table has no rows it can read', () => {
+    const page = panel('overall_table', row('Head')) + panel('raid_table', '<tr><td>Head</td><td>Something new</td><td>-</td></tr>');
+    expect(() => parseGearingHtml(page)).toThrow('raid_table');
+  });
+});
+
+describe('slot labels', () => {
+  const table = (slot: string) =>
+    `<table id="overall_table"><tr><td>${slot}</td><td><a href="https://www.wowhead.com/item=249277">Blade</a></td><td>Murder Row</td></tr></table>`;
+
+  it('keeps "Weapon" on the main hand, where Arms puts its two-hander', () => {
+    expect(parseGearingHtml(table('Weapon')).overall[0]!.slots).toEqual(['MAIN_HAND']);
+  });
+
+  it('keeps and logs a row whose slot label it does not know', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(parseGearingHtml(table('Alt. Main Hand')).overall[0]).toMatchObject({ slotLabel: 'Alt. Main Hand', slots: [] });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"Alt. Main Hand"'));
+    warn.mockRestore();
   });
 });

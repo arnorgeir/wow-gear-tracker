@@ -9,7 +9,10 @@ const SLOT_MAP: Record<string, SlotType[]> = {
   Chest: ['CHEST'], Wrist: ['WRIST'], Wrists: ['WRIST'], Gloves: ['HANDS'], Hands: ['HANDS'], Belt: ['WAIST'], Waist: ['WAIST'],
   Legs: ['LEGS'], Boots: ['FEET'], Feet: ['FEET'],
   Ring: ['FINGER_1', 'FINGER_2'], Trinket: ['TRINKET_1', 'TRINKET_2'],
-  Weapon: ['MAIN_HAND'], 'Main Hand': ['MAIN_HAND'], 'Main-Hand': ['MAIN_HAND'], 'Off Hand': ['OFF_HAND'], 'Off-Hand': ['OFF_HAND'],
+  // Arms labels its two-hander "Weapon"; no dual-wield spec uses the label. Adding OFF_HAND would make
+  // dungeon ranking weigh a two-hander's empty off hand as a missing item.
+  Weapon: ['MAIN_HAND'],
+  'Main Hand': ['MAIN_HAND'], 'Main-Hand': ['MAIN_HAND'], 'Off Hand': ['OFF_HAND'], 'Off-Hand': ['OFF_HAND'],
 };
 
 function parseTable(html: string, tableId: string): BisRow[] {
@@ -28,15 +31,16 @@ function parseTable(html: string, tableId: string): BisRow[] {
     if (!link && !anyLevel) continue;
     const slotLabel = decodeHtml(cells[0]!);
     const sourceText = decodeHtml(cells[2]!);
-    const slots = SLOT_MAP[slotLabel] ?? [];
+    const slots = SLOT_MAP[slotLabel];
+    if (!slots) console.warn(`Method slot label "${slotLabel}" is unknown; its row matches no slot`);
     if (anyLevel) {
-      rows.push({ kind: 'any', slotLabel, slots, minItemLevel: Number(anyLevel[1]), source: sourceText === '-' ? '' : sourceText });
+      rows.push({ kind: 'any', slotLabel, slots: slots ?? [], minItemLevel: Number(anyLevel[1]), source: sourceText === '-' ? '' : sourceText });
       continue;
     }
     rows.push({
       kind: 'item',
       slotLabel,
-      slots,
+      slots: slots ?? [],
       itemId: Number(link![1]),
       name: itemText.replace(/\s*\(Tier Set\)\s*$/i, ''),
       bonusIds: link![2] ? link![2].split(':').map(Number) : [],
@@ -45,10 +49,15 @@ function parseTable(html: string, tableId: string): BisRow[] {
       source: sourceText.replace(/\s*(?:\(Catalyst\)|\/\s*Catalyst)\s*$/i, ''),
     });
   }
+  if (rows.length === 0) throw new Error(`Method table "${tableId}" has no rows it can read`);
   return rows;
 }
 
+/** Some specs only have the overall table, so a missing table is fine; one Method renamed or reshaped is not. */
 export function parseGearingHtml(html: string): BisLists {
+  const known = new Set(Object.values(TABLE_IDS));
+  const unknown = [...html.matchAll(/id="(\w+_table)"/g)].map((m) => m[1]!).find((id) => !known.has(id));
+  if (unknown) throw new Error(`Method table "${unknown}" is unknown; a renamed table would leave its list empty`);
   return {
     overall: parseTable(html, TABLE_IDS.overall),
     raid: parseTable(html, TABLE_IDS.raid),
