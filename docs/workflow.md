@@ -193,6 +193,30 @@ Next: implement, Claude (Sonnet), new session in C:\workspace\wgt-reorder-member
 > Run workflow step implement for #64 and #66. Worktree: C:\workspace\wgt-reorder-members, branch feat/reorder-members. Rebase onto origin/main first and recheck the plan against what merged since. Plan: docs/superpowers/plans/2026-10-05-reorder-members.md
 ```
 
+## Screenshots in pull requests
+
+`AGENTS.md` says when a pull request needs screenshots. They come from the e2e harness: a production build on port 3100 with fake Blizzard, Method and Raider.IO answers behind it and a fresh database of made-up characters. Real players' names never reach a screenshot that way. The repo is public, and so are the images.
+
+1. **Write a capture spec** at `e2e/pr-shots.spec.ts`. Git ignores that path, so it never lands in a commit or runs in CI. Add characters through the app's own API, open the page, and screenshot the part that changed rather than the whole page:
+
+   ```ts
+   import { test } from '@playwright/test';
+
+   test('dungeon priority', async ({ page }) => {
+     await page.setViewportSize({ width: 1280, height: 900 });
+     await page.request.post('/api/characters', { data: { region: 'eu', name: 'Birkibjörn', realmSlug: 'kazzak' } });
+     await page.goto(`/characters/eu/kazzak/${encodeURIComponent('Birkibjörn')}`);
+     await page.waitForLoadState('networkidle');
+     await page.getByRole('region', { name: 'Dungeon priority' }).screenshot({ path: '.cache/pr-shots/after-dungeon-priority.png' });
+   });
+   ```
+
+   It imports `@playwright/test` directly, not `e2e/fixtures`, so a request the fake doesn't know never fails the capture. Item icons and character renders don't load: the fake's data points at images that don't exist. For a narrow-screen shot, set the viewport to 390 wide.
+2. **Capture after:** `npx playwright test pr-shots`. Playwright builds to `.next-e2e`, so it's safe beside a running `npm run dev`. It takes about a minute.
+3. **Capture before** for changed UI: `git switch --detach origin/main`, rename the outputs to `before-*.png` in the spec, run it again, then `git switch -` back to the branch.
+4. **Upload:** `scripts/pr-shots/upload.sh <pr-number>` from Git Bash. It commits `.cache/pr-shots/*.png` to the `chore/pr-assets` branch under `pr-<N>/` and prints a URL for each image. That branch never merges, so `main` carries no images, and each URL names its commit, so it keeps working after later uploads. `gh` can't attach images to a pull request; this works from the command line.
+5. **Put them in the description** as a Before | After table, one row per view, with a short caption when the change isn't obvious.
+
 ## Review files
 
 Review notes go in `docs/reviews/`. Git ignores that folder: a review matters only until its findings are fixed, and the fix commits and pull request description are the lasting record. Name review files after what they review: `pr-43.md`, or the spec's file name.
