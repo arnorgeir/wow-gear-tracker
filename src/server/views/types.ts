@@ -1,3 +1,4 @@
+import type { JournalBlock } from '@/core/journal/markup';
 import type { TierFit } from '@/core/priority/rank';
 import { type CrestBalance, type UpgradeOption } from '@/core/gear/crests';
 import { type BisSourceId, type FetchedSourceId, type Faction, type ArmorType, type ItemState, type ListType, type Quality, type Region, type SlotType, type SnapshotSource } from '@/core/types';
@@ -249,7 +250,15 @@ export interface DungeonLootItemView {
   /** Secondary stat types; null when unknown or the item has none. */
   stats: string[] | null;
 }
-export interface DungeonBossView { encounterId: number; name: string; items: DungeonLootItemView[] }
+export interface AbilityView { name: string; spellId: number | null; blocks: JournalBlock[]; abilities: AbilityView[] }
+export interface BossTacticsView {
+  description: string | null;
+  overview: JournalBlock[];
+  /** Journal order and titles. */
+  roles: { title: string; blocks: JournalBlock[] }[];
+  abilities: AbilityView[];
+}
+export interface DungeonBossView { encounterId: number; name: string; items: DungeonLootItemView[]; tactics: BossTacticsView | null }
 export interface DungeonPageView {
   challengeModeId: number;
   name: string;
