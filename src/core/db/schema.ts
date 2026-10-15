@@ -148,6 +148,15 @@ export const dungeonLoot = sqliteTable('dungeon_loot', {
   isTier: integer('is_tier', { mode: 'boolean' }).notNull().default(false),
 }, (t) => [primaryKey({ columns: [t.challengeModeId, t.encounterId, t.itemId] })]);
 
+/** Each season boss's journal text. Split dungeon halves share their encounters, so it keys on encounter alone. */
+export const dungeonEncounters = sqliteTable('dungeon_encounters', {
+  encounterId: integer('encounter_id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  /** JSON `JournalSection[]`: the cleaned section tree, markup left as text. */
+  sections: text('sections').notNull(),
+});
+
 export const accounts = sqliteTable('accounts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),

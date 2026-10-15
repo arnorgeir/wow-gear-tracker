@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { openTestDb } from '@/test/db';
-import { dungeonLoot } from '../db/schema';
+import { dungeonEncounters, dungeonLoot } from '../db/schema';
 import { getItemIcons } from '../db/queries/media';
 import { fakeFetch, json, on } from '@/test/fake-fetch';
 import type { BlizzardClient } from '../blizzard/client';
+import type { JournalSection } from '../types';
 import { DAY_MS } from './reference-sync';
 import { getMeta, setMeta } from '../db/queries/meta';
 import { replaceSeason } from '../db/queries/season';
@@ -39,10 +40,10 @@ const INSTANCES: Record<number, { id: number; name: string; mapId: number; encou
   901: { id: 901, name: 'Alpha Hollow', mapId: 11, encounterIds: [1] },
   902: { id: 902, name: 'Beta Market', mapId: 22, encounterIds: [2, 3] },
 };
-const ENCOUNTERS: Record<number, { id: number; name: string; items: { itemId: number; name: string }[] }> = {
-  1: { id: 1, name: 'Hollow King', items: [{ itemId: 100, name: 'Hollow Robe' }, { itemId: 101, name: 'Vanished Band' }] },
-  2: { id: 2, name: 'Market Warden', items: [{ itemId: 200, name: 'Warden Helm' }] },
-  3: { id: 3, name: 'Gambit Queen', items: [{ itemId: 300, name: 'Queen’s Charm' }] },
+const ENCOUNTERS: Record<number, { id: number; name: string; description: string | null; sections: JournalSection[]; items: { itemId: number; name: string }[] }> = {
+  1: { id: 1, name: 'Hollow King', description: 'A king of hollow things.', sections: [{ title: 'Overview', spellId: null, bodyText: 'Avoid the pits.', sections: [] }], items: [{ itemId: 100, name: 'Hollow Robe' }, { itemId: 101, name: 'Vanished Band' }] },
+  2: { id: 2, name: 'Market Warden', description: null, sections: [], items: [{ itemId: 200, name: 'Warden Helm' }] },
+  3: { id: 3, name: 'Gambit Queen', description: null, sections: [], items: [{ itemId: 300, name: 'Queen’s Charm' }] },
 };
 const ITEMS: Record<number, { inventoryType: string; armorType: 'leather' | 'plate' | null; secondaryStats?: string[] | null; isTier?: boolean } | null> = {
   100: { inventoryType: 'ROBE', armorType: 'leather', secondaryStats: ['CRIT_RATING', 'VERSATILITY'] },
@@ -72,8 +73,8 @@ function fakeBlizzard(overrides: Partial<Record<string, unknown>> = {}) {
 const deps = async (blizzard: BlizzardClient, fetchFn = raiderIo().fn) => ({ db: await openTestDb(), blizzard, fetchFn, now: T, region: 'eu' as const });
 
 describe('syncSeason', () => {
-  it('stores the season under season.v5', () => {
-    expect(SEASON_META_KEY).toBe('season.v5');
+  it('stores the season under season.v6', () => {
+    expect(SEASON_META_KEY).toBe('season.v6');
   });
 
   it('joins each dungeon to its journal instance by map ID and stores the loot with slots', async () => {
@@ -98,6 +99,20 @@ describe('syncSeason', () => {
     // Both Beta halves share instance 902: its encounters and items are fetched once.
     expect([...calls.encounters].sort()).toEqual([1, 2, 3]);
     expect([...calls.items].sort()).toEqual([100, 101, 200, 300]);
+  });
+
+  it('stores one encounter row per distinct encounter, shared by split halves, and replaces them on a reload', async () => {
+    const d = await deps(fakeBlizzard().blizzard);
+    expect(await syncSeason(d)).toBe('loaded');
+    const rows = await d.db.select().from(dungeonEncounters);
+    expect(rows.map((r) => r.encounterId).sort()).toEqual([1, 2, 3]);
+    expect(rows.find((r) => r.encounterId === 1)).toMatchObject({ name: 'Hollow King', description: 'A king of hollow things.' });
+    expect(JSON.parse(rows.find((r) => r.encounterId === 1)!.sections)).toEqual(ENCOUNTERS[1]!.sections);
+    await replaceSeason(d.db, { slug: 'old', dungeons: [], loot: [], encounters: [{ encounterId: 99, name: 'Old', description: null, sections: [] }] });
+    expect((await d.db.select().from(dungeonEncounters)).map((r) => r.encounterId)).toEqual([99]);
+    await setMeta(d.db, SEASON_META_KEY, 'old', T);
+    expect(await syncSeason({ ...d, now: T + DAY_MS + 1 })).toBe('loaded');
+    expect((await d.db.select().from(dungeonEncounters)).map((r) => r.encounterId).sort()).toEqual([1, 2, 3]);
   });
 
   describe('loot icons', () => {
