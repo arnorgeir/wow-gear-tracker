@@ -307,6 +307,14 @@ describe('ensureClassIcons', () => {
     expect(calls.classes).toBe(2);
   });
 
+  it('shares one refresh between calls that arrive while it runs', async () => {
+    const db = await openTestDb();
+    const { blizzard, calls } = blizzardWith();
+    const [a, b] = await Promise.all([ensureClassIcons({ db, blizzard, now: 1 }, 'eu'), ensureClassIcons({ db, blizzard, now: 1 }, 'eu')]);
+    expect(calls.classes).toBe(1);
+    expect(b).toEqual(a);
+  });
+
   it('keeps the cache when Blizzard fails', async () => {
     const db = await openTestDb();
     await ensureClassIcons({ db, blizzard: blizzardWith().blizzard, now: 1 }, 'eu');
