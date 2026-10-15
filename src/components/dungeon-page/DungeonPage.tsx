@@ -1,3 +1,4 @@
+import { BossTactics } from './BossTactics';
 import { DungeonThumbnail } from '@/components/dungeon-thumbnail/DungeonThumbnail';
 import { ItemCard } from '@/components/item-card/ItemCard';
 import { itemKind } from '@/components/shared/item-kind';
@@ -26,6 +27,7 @@ export function DungeonPage({ view }: { view: DungeonPageView }) {
                 stats={item.stats && item.stats.length > 0 ? statPairLabel(item.stats) : undefined} />
             ))}
           </div>
+          {boss.tactics && <BossTactics tactics={boss.tactics} />}
         </section>
       ))}
     </>
