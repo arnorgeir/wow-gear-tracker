@@ -73,4 +73,28 @@ describe('createLimiter', () => {
     await Promise.all([task(), task(), task(), task(), task()]);
     expect(peak).toBe(2);
   });
+
+  it('does not let a new task slip in while a finished task hands its slot to a waiter', async () => {
+    const ticks = (n: number) => Array.from({ length: n }).reduce<Promise<unknown>>((p) => p.then(() => {}), Promise.resolve());
+    // A caller arriving a few microtasks after the first task ends can land between the
+    // slot being freed and the woken waiter resuming. Try each gap.
+    for (let gap = 0; gap < 6; gap++) {
+      const limit = createLimiter(1);
+      let active = 0;
+      let peak = 0;
+      const late: Promise<void>[] = [];
+      const task = (onEnd?: () => void) => limit(async () => {
+        active++;
+        peak = Math.max(peak, active);
+        await Promise.resolve();
+        active--;
+        onEnd?.();
+      });
+      const first = task(() => { late.push(ticks(gap).then(() => task())); });
+      const second = task();
+      await Promise.all([first, second]);
+      await Promise.all(late);
+      expect(peak, `gap ${gap}`).toBe(1);
+    }
+  });
 });

@@ -46,13 +46,16 @@ export function createLimiter(max: number) {
   let active = 0;
   const waiting: (() => void)[] = [];
   return async function limit<T>(task: () => Promise<T>): Promise<T> {
+    // A finished task hands its slot straight to the next waiter, so `active` never drops
+    // while the waiter resumes and a newcomer can't take the slot in between.
     if (active >= max) await new Promise<void>((resolve) => waiting.push(resolve));
-    active++;
+    else active++;
     try {
       return await task();
     } finally {
-      active--;
-      waiting.shift()?.();
+      const next = waiting.shift();
+      if (next) next();
+      else active--;
     }
   };
 }
