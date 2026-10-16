@@ -12,3 +12,6 @@ docs/reviews/
 .next-e2e/
 test-results/
 playwright-report/
+
+# Screenshot capture for pull request descriptions: local only
+e2e/pr-shots.spec.ts
