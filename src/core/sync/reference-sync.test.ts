@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { setMeta } from '../db/queries/meta';
 import { BIS_RETRY_MS, DAY_MS, ensureItemIcons, ensureTracks, ensureItemDetails, ensureItemStats, ensureClassIcons, readBisLists, syncBisLists, readTracks, syncTracks, readTierTargets, syncTierTargets, syncSpecs } from './reference-sync';
@@ -51,6 +51,15 @@ describe('readBisLists and syncBisLists', () => {
     expect(await syncBisLists({ db, source: down.s, sourceId: 'method', blizzard: noBlizzard, region: 'eu', now: expired + BIS_RETRY_MS - 1 }, slug)).toBe(false);
     expect(down.calls()).toBe(1);
     expect((await readBisLists(db, 'method', slug, expired + BIS_RETRY_MS)).due).toBe(true);
+  });
+
+  it('logs why a refresh failed, so a Method rename reads differently from an outage', async () => {
+    const db = await openTestDb();
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const renamed = new Error('Method table "dungeon_bis_table" is unknown');
+    await syncBisLists({ db, source: source(async () => { throw renamed; }).s, sourceId: 'method', blizzard: noBlizzard, region: 'eu', now: 1000 }, slug);
+    expect(log).toHaveBeenCalledWith(expect.stringContaining(slug), renamed);
+    log.mockRestore();
   });
 
   it('keeps the previous list when the page has no BiS tables', async () => {
