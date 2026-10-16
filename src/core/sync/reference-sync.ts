@@ -301,7 +301,10 @@ export function ensureClassIcons(
   return run;
 }
 
-const classIconRuns = new WeakMap<Db, Promise<Map<string, string | null>>>();
+// Next bundles this module once per server chunk while getServices() shares one Db across them,
+// so the registry lives on globalThis under a Symbol.for key, as the write locks do.
+const holder = globalThis as unknown as Record<symbol, WeakMap<Db, Promise<Map<string, string | null>>> | undefined>;
+const classIconRuns = (holder[Symbol.for('wow-gear-tracker.classIconRuns')] ??= new WeakMap());
 
 async function loadClassIcons(
   deps: { db: Db; blizzard: BlizzardClient; now: number }, region: Region,
