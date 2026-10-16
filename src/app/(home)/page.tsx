@@ -1,11 +1,15 @@
+import { cookies } from 'next/headers';
 import { BackgroundSync } from '@/components/background-sync/BackgroundSync';
 import { AddCharacterBar } from '@/components/add-character-bar/AddCharacterBar';
 import { CharacterCard } from '@/components/character-card/CharacterCard';
+import { CharacterRow } from '@/components/character-row/CharacterRow';
 import { CharacterGrid } from '@/components/character-grid/CharacterGrid';
 import { PendingCharacterProvider } from '@/components/pending-character/PendingCharacterProvider';
 import { SetupNotice } from '@/components/setup-notice/SetupNotice';
 import { StaleSync } from '@/components/stale-sync/StaleSync';
 import { StateLegend } from '@/components/state-legend/StateLegend';
+import { CHARACTERS_VIEW_COOKIE, parseCharactersView } from '@/components/view-toggle/characters-view';
+import { ViewToggle } from '@/components/view-toggle/ViewToggle';
 import { isMissingConfigError } from '@/core/config';
 import { isStale } from '@/core/sync/character-sync';
 import { getServices, type Services } from '@/server/services';
@@ -23,6 +27,7 @@ export default async function CharactersPage() {
   }
   const { cards, referenceDue } = await getCharacterCards(services);
   const now = services.now();
+  const view = parseCharactersView((await cookies()).get(CHARACTERS_VIEW_COOKIE)?.value);
   const staleIds = cards.filter((c) => c.status === 'ok' && isStale(c.lastSyncedAt, now)).map((c) => c.id);
 
   return (
@@ -33,9 +38,14 @@ export default async function CharactersPage() {
       </div>
       <PendingCharacterProvider>
         <AddCharacterBar trackedCharacters={cards.map((c) => ({ region: c.region, realmId: c.realmId, name: c.name }))} />
-        <StateLegend />
-        <CharacterGrid count={cards.length} empty={<p className="text-muted">No characters yet. Search for one above.</p>}>
-          {cards.map((card) => <CharacterCard key={card.id} card={card} now={now} />)}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <StateLegend />
+          {cards.length > 0 && <ViewToggle view={view} />}
+        </div>
+        <CharacterGrid count={cards.length} view={view} empty={<p className="text-muted">No characters yet. Search for one above.</p>}>
+          {cards.map((card) => view === 'list'
+            ? <CharacterRow key={card.id} card={card} now={now} />
+            : <CharacterCard key={card.id} card={card} now={now} />)}
         </CharacterGrid>
       </PendingCharacterProvider>
       <StaleSync ids={staleIds} />
