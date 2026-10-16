@@ -18,8 +18,10 @@ const SLOT_MAP: Record<string, SlotType[]> = {
 function parseTable(html: string, tableId: string): BisRow[] {
   const start = html.indexOf(`id="${tableId}"`);
   if (start === -1) return [];
-  const end = html.indexOf('</table>', start);
-  const table = html.slice(start, end === -1 ? undefined : end);
+  // The table ends at its </table>, or at the next table's id when this one lost its <table>, so it never reads a neighbor's rows.
+  const close = html.indexOf('</table>', start);
+  const next = html.slice(start + 1).search(/id="\w+_table"/);
+  const table = html.slice(start, Math.min(close === -1 ? html.length : close, next === -1 ? html.length : start + 1 + next));
   const rows: BisRow[] = [];
   for (const [, rowHtml] of table.matchAll(/<tr>([\s\S]*?)<\/tr>/g)) {
     const cells = [...rowHtml!.matchAll(/<td>([\s\S]*?)<\/td>/g)].map((m) => m[1]!);

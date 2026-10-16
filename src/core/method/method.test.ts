@@ -108,6 +108,11 @@ describe('page structure changes', () => {
     const page = panel('overall_table', row('Head')) + panel('raid_table', '<tr><td>Head</td><td>Something new</td><td>-</td></tr>');
     expect(() => parseGearingHtml(page)).toThrow('raid_table');
   });
+
+  it('throws instead of reading the next table when a table loses its <table> element', () => {
+    const page = panel('overall_table', row('Head')) + '<div role="tabpanel" id="raid_table"><ul></ul></div>' + panel('dungeon_table', row('Head'));
+    expect(() => parseGearingHtml(page)).toThrow('raid_table');
+  });
 });
 
 describe('slot labels', () => {
