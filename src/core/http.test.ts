@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createLimiter, fetchJson, HttpError, isHttpError } from './http';
+import { createLimiter, fetchJson, HttpError, isHttpError, MAX_RETRY_AFTER_MS } from './http';
 import { fakeFetch, json, on } from '@/test/fake-fetch';
 
 describe('isHttpError', () => {
@@ -43,6 +43,16 @@ describe('fetchJson', () => {
     expect(calls).toHaveLength(2);
   });
 
+  it('caps a long Retry-After so one request cannot stall a page', async () => {
+    let n = 0;
+    const waits: number[] = [];
+    const { fn } = fakeFetch([
+      on('/limited', () => (n++ === 0 ? new Response('', { status: 429, headers: { 'retry-after': '3600' } }) : json({ ok: true }))),
+    ]);
+    await fetchJson(fn, 'https://x/limited', undefined, async (ms) => { waits.push(ms); });
+    expect(waits).toEqual([MAX_RETRY_AFTER_MS]);
+  });
+
   it('gives up after one retry', async () => {
     const { fn, calls } = fakeFetch([on('/limited', () => new Response('', { status: 429 }))]);
     await expect(fetchJson(fn, 'https://x/limited', undefined, async () => {})).rejects.toMatchObject({ status: 429 });
@@ -72,5 +82,29 @@ describe('createLimiter', () => {
     });
     await Promise.all([task(), task(), task(), task(), task()]);
     expect(peak).toBe(2);
+  });
+
+  it('does not let a new task slip in while a finished task hands its slot to a waiter', async () => {
+    const ticks = (n: number) => Array.from({ length: n }).reduce<Promise<unknown>>((p) => p.then(() => {}), Promise.resolve());
+    // A caller arriving a few microtasks after the first task ends can land between the
+    // slot being freed and the woken waiter resuming. Try each gap.
+    for (let gap = 0; gap < 6; gap++) {
+      const limit = createLimiter(1);
+      let active = 0;
+      let peak = 0;
+      const late: Promise<void>[] = [];
+      const task = (onEnd?: () => void) => limit(async () => {
+        active++;
+        peak = Math.max(peak, active);
+        await Promise.resolve();
+        active--;
+        onEnd?.();
+      });
+      const first = task(() => { late.push(ticks(gap).then(() => task())); });
+      const second = task();
+      await Promise.all([first, second]);
+      await Promise.all(late);
+      expect(peak, `gap ${gap}`).toBe(1);
+    }
   });
 });
