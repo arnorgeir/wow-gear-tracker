@@ -9,7 +9,7 @@
 #   $a = New-ScheduledTaskAction -Execute cmd.exe -WorkingDirectory $d `
 #     -Argument "/c `"`"$env:USERPROFILE\.dotnet\tools\pwsh.exe`" -NoProfile -File `"$d\run.ps1`" >> `"$d\task.out`" 2>&1`""
 #   Register-ScheduledTask 'WGT nightly scan' -Action $a -Trigger (New-ScheduledTaskTrigger -Daily -At 3am) `
-#     -Settings (New-ScheduledTaskSettingsSet -WakeToRun -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 2))
+#     -Settings (New-ScheduledTaskSettingsSet -WakeToRun -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 4))
 param(
   [switch]$DryRun,
   [string]$Ref = 'origin/main',
@@ -48,8 +48,15 @@ try {
 
   Push-Location $Worktree
   try {
-    $prompt | claude -p --model opus --permission-mode dontAsk `
-      --allowedTools @allowed --disallowedTools @denied
+    # Usage limits reset on a rolling window: wait it out once, then retry.
+    # ponytail: one fixed 90-minute wait, parse the reset time if this misses.
+    foreach ($attempt in 1, 2) {
+      $out = $prompt | claude -p --model opus --permission-mode dontAsk `
+        --allowedTools @allowed --disallowedTools @denied
+      $out
+      if ($attempt -eq 2 -or "$out" -notmatch 'hit your .*limit') { break }
+      Start-Sleep -Seconds 5400
+    }
   } finally { Pop-Location }
 } finally {
   Stop-Transcript | Out-Null
