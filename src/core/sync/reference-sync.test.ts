@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { openTestDb } from '@/test/db';
 import { setMeta } from '../db/queries/meta';
 import { BIS_RETRY_MS, DAY_MS, ensureItemIcons, ensureTracks, ensureItemDetails, ensureItemStats, ensureClassIcons, readBisLists, syncBisLists, readTracks, syncTracks, readTierTargets, syncTierTargets, syncSpecs } from './reference-sync';
@@ -305,6 +305,24 @@ describe('ensureClassIcons', () => {
     expect(calls.classes).toBe(1);
     await ensureClassIcons({ db, blizzard, now: 1000 + 61 * 60_000 }, 'eu');
     expect(calls.classes).toBe(2);
+  });
+
+  it('shares one refresh between calls that arrive while it runs', async () => {
+    const db = await openTestDb();
+    const { blizzard, calls } = blizzardWith();
+    const [a, b] = await Promise.all([ensureClassIcons({ db, blizzard, now: 1 }, 'eu'), ensureClassIcons({ db, blizzard, now: 1 }, 'eu')]);
+    expect(calls.classes).toBe(1);
+    expect(b).toEqual(a);
+  });
+
+  it('shares the refresh with another copy of this module, as Next bundles one per server chunk', async () => {
+    const db = await openTestDb();
+    const { blizzard, calls } = blizzardWith();
+    vi.resetModules();
+    const other = await import('./reference-sync');
+    expect(other.ensureClassIcons).not.toBe(ensureClassIcons);
+    await Promise.all([ensureClassIcons({ db, blizzard, now: 1 }, 'eu'), other.ensureClassIcons({ db, blizzard, now: 1 }, 'eu')]);
+    expect(calls.classes).toBe(1);
   });
 
   it('keeps the cache when Blizzard fails', async () => {

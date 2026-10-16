@@ -22,7 +22,7 @@ interface Deps {
 }
 
 export async function addCharacter({ db, blizzard, syncer, now }: Deps, input: AddCharacterInput): Promise<{ id: number; created: boolean; key: string }> {
-  const name = input.name.trim();
+  const name = input.name.trim().normalize('NFC');
   if (!name) throw new UserError('Enter a character name.');
 
   let realmSlug = input.realmSlug?.trim();
