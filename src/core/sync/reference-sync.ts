@@ -92,6 +92,7 @@ export async function syncBisLists(deps: BisSyncDeps, specSlug: string): Promise
     if (sourceId === 'icyVeins') lists = await withTierFlags({ db, blizzard, now }, region, lists);
     await replaceBisLists(db, sourceId, specSlug, lists, now);
   } catch (err) {
+    console.error(`${source.name} BiS lists for ${specSlug} couldn’t be updated`, err);
     const error = isHttpError(err) && err.status === 404 && !cached
       ? `${source.name} has no gearing page for "${specSlug}"`
       : 'BiS list couldn’t be updated';

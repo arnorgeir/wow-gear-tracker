@@ -53,6 +53,15 @@ describe('readBisLists and syncBisLists', () => {
     expect((await readBisLists(db, 'method', slug, expired + BIS_RETRY_MS)).due).toBe(true);
   });
 
+  it('logs why a refresh failed, so a Method rename reads differently from an outage', async () => {
+    const db = await openTestDb();
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const renamed = new Error('Method table "dungeon_bis_table" is unknown');
+    await syncBisLists({ db, source: source(async () => { throw renamed; }).s, sourceId: 'method', blizzard: noBlizzard, region: 'eu', now: 1000 }, slug);
+    expect(log).toHaveBeenCalledWith(expect.stringContaining(slug), renamed);
+    log.mockRestore();
+  });
+
   it('keeps the previous list when the page has no BiS tables', async () => {
     const db = await openTestDb();
     await syncBisLists({ db, source: source(async () => lists).s, sourceId: 'method', blizzard: noBlizzard, region: 'eu', now: 1000 }, slug);
