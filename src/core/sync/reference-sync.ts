@@ -289,8 +289,24 @@ const CLASS_ICONS_RETRY_MS = 60 * 60 * 1000;
 /**
  * Class icons change rarely: refresh every 30 days. A failed call never overwrites a cached icon,
  * and after any failure the next attempt waits an hour, so a Blizzard outage can't slow every page.
+ * Calls that arrive while one runs share it, so a cold cache fetches the icons once.
  */
-export async function ensureClassIcons(
+export function ensureClassIcons(
+  deps: { db: Db; blizzard: BlizzardClient; now: number }, region: Region,
+): Promise<Map<string, string | null>> {
+  const running = classIconRuns.get(deps.db);
+  if (running) return running;
+  const run = loadClassIcons(deps, region).finally(() => classIconRuns.delete(deps.db));
+  classIconRuns.set(deps.db, run);
+  return run;
+}
+
+// Next bundles this module once per server chunk while getServices() shares one Db across them,
+// so the registry lives on globalThis under a Symbol.for key, as the write locks do.
+const holder = globalThis as unknown as Record<symbol, WeakMap<Db, Promise<Map<string, string | null>>> | undefined>;
+const classIconRuns = (holder[Symbol.for('wow-gear-tracker.classIconRuns')] ??= new WeakMap());
+
+async function loadClassIcons(
   deps: { db: Db; blizzard: BlizzardClient; now: number }, region: Region,
 ): Promise<Map<string, string | null>> {
   const { db, blizzard, now } = deps;

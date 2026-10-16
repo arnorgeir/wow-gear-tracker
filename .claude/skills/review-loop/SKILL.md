@@ -27,7 +27,7 @@ Runs steps 5 to 8 of `docs/workflow.md` without the owner relaying prompts. The 
    - Changes requested, round under 3: fix, push, and go back to step 2 for the new head.
    - Changes requested in round 3: fix what is clear, then stop reviewing. List what remains in the pull request.
    - Passed: go to step 5.
-5. **Validate.** Run the open checks you can run, as the `validate` step describes. Record results, the tested commit and remaining gaps in the pull request's Testing section, in the format `AGENTS.md` sets.
+5. **Validate.** Run the open checks you can run, as the `validate` step describes. Record results, the tested commit and remaining gaps in the pull request's Testing section, in the format `AGENTS.md` sets. Then bring the rest of the description up to date with the final head, section by section from `.github/pull_request_template.md`: How to test with setup commands that work for this branch's worktree, and Screenshots retaken when a fix changed what they show.
 6. **Report** to the owner in one message: the pull request link, each round's reviewer and outcome, what each fix changed, findings left open or rejected, and checks only the owner can run. End with the Next block: merge by the owner, or the step that is blocked.
 
 ## Review prompt

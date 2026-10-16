@@ -1,10 +1,13 @@
 # Nightly repo scan: refreshes a detached worktree at origin/main and runs
 # Claude Code headless on prompt.md. Files at most 5 issues; never pushes.
-# -DryRun prints what it would file. Logs: %LOCALAPPDATA%\wgt-nightly-scan.
+# -DryRun prints what it would file. Logs land beside the running copy.
 # Registered as task "WGT nightly scan", daily 03:00, from a copy of this
-# file at %LOCALAPPDATA%\wgt-nightly-scan\run.ps1 so main checkout state
-# never matters:
-#   $a = New-ScheduledTaskAction -Execute pwsh -Argument '-NoProfile -File "%LOCALAPPDATA%\wgt-nightly-scan\run.ps1"'
+# file at C:\workspace\wgt-nightly-runner\run.ps1 so main checkout state
+# never matters. Not under AppData: the desktop app's shell sees a private
+# copy of AppData\Local that Task Scheduler can't.
+#   $d = 'C:\workspace\wgt-nightly-runner'
+#   $a = New-ScheduledTaskAction -Execute cmd.exe -WorkingDirectory $d `
+#     -Argument "/c `"`"$env:USERPROFILE\.dotnet\tools\pwsh.exe`" -NoProfile -File `"$d\run.ps1`" >> `"$d\task.out`" 2>&1`""
 #   Register-ScheduledTask 'WGT nightly scan' -Action $a -Trigger (New-ScheduledTaskTrigger -Daily -At 3am) `
 #     -Settings (New-ScheduledTaskSettingsSet -WakeToRun -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 2))
 param(
@@ -16,7 +19,7 @@ param(
 $ErrorActionPreference = 'Stop'
 # Task Scheduler's PATH can miss the per-user claude install.
 $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
-$logDir = Join-Path $env:LOCALAPPDATA 'wgt-nightly-scan'
+$logDir = $PSScriptRoot
 New-Item -ItemType Directory -Force $logDir | Out-Null
 $log = Join-Path $logDir ((Get-Date -Format 'yyyy-MM-dd_HHmm') + $(if ($DryRun) { '-dry' } else { '' }) + '.log')
 Start-Transcript -Path $log | Out-Null

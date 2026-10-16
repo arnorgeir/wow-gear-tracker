@@ -63,7 +63,7 @@ Next: spec-review, Codex (GPT-6 Astra, Medium), new session
 ```
 
 - **Name the step, who runs it, and the model,** and say whether it needs a new session. Between phases it always does (see "Keeping usage down").
-- **Put everything the next step can't find on its own into the prompt:** the spec path before the plan links it, the branch, or review findings for a cloud session.
+- **Put everything the next step can't find on its own into the prompt:** the spec path before the plan links it, the branch, the worktree path when the step runs outside the main checkout, or review findings for a cloud session.
 - **Say first when the owner has to act before the next step,** such as approving the spec, running hand checks or merging.
 - **Choose the next step from the review outcome below.** Use `fix` for code findings and `validate` for unfinished checks or missing evidence. When both are clear, hand off to the owner to merge. Skip steps that have no work.
 
@@ -131,6 +131,92 @@ These are project starting points, not measured results for this repository. [Op
 
 Codex can take small, independent issues on branches of its own while Claude works on a feature. Good candidates are XS and S issues that touch different files, for example UI polish or deferred review findings. Each one gets its own branch and pull request. Feature work that builds on code Claude just wrote stays with Claude.
 
+To spec several features at once, give each its own worktree, as the next section describes.
+
+## When using worktrees to spec multiple issues at once
+
+Specs for independent issues can run side by side while implementation continues elsewhere. Each one gets its own git worktree: a second checkout of the repository with its own branch, files and `.next` folder. Work in one worktree never touches another's files, and the main checkout stays free for the owner's `npm run dev`.
+
+### Lifecycle
+
+1. **One worktree per independent feature,** or per group of related issues that share one spec. Not one long-lived worktree per app section: a worktree that outlives its feature only carries stale context into the next one.
+2. **Claim first, then branch from fresh `origin/main`.** Claim the issues as `AGENTS.md` ("Issue board") describes, then create the worktree. The branch follows the usual naming rules; name the folder after the work.
+
+   ```sh
+   git fetch origin
+   git worktree add -b feat/reorder-members ../wgt-reorder-members origin/main
+   ```
+
+3. **Keep the worktree and branch from spec to merge.** `spec`, `spec-review`, `plan`, `implement` and the review loop all run in the same folder on the same branch. Each phase still starts a fresh session (see "Keeping usage down"), and reviews stay independent: the reviewing session didn't write what it reviews.
+4. **Every Next block names the worktree:** its path, the branch, the issue numbers, and the spec and plan paths once they exist. A fresh session can't guess which checkout to work in.
+5. **A worktree claims nothing.** Issue ownership and board status follow "Issue board" unchanged, and two worktrees never work on the same issue. Issues whose specs would change the same files or decide the same question go in one worktree, or wait for each other.
+6. **Review files stay in their checkout.** Git ignores `docs/reviews/` (see "Review files"), so a review written in one worktree doesn't exist in another or in a cloud session. Write the review in the worktree that owns the branch. When a step runs anywhere else, put the findings in the Next prompt or copy the file across.
+7. **Rebase and recheck before `implement`.** A spec can wait days for approval while `main` moves. Before implementing, run `git fetch origin` and `git rebase origin/main`, then reread the spec and plan against what merged since: schema, `src/core` modules, shared components and anything else the plan touches. Update the spec when something changed; a change to scope or intended behavior goes back to the owner, as in "The flow for a feature".
+8. **Concurrent specs settle shared decisions once.** When two specs touch the same schema table, architecture rule or UI pattern, the first one to reach `plan` decides and the other references that decision instead of inventing its own. Say so in both specs.
+9. **Spec work needs no running app.** `spec`, `spec-review` and `plan` read code and docs, so the worktree needs no `npm install`, dev server or database. Setup starts at `implement`:
+   - Run `npm install` in the worktree before the gate.
+   - Building in a worktree is safe: it has its own `.next`. To run `npm run dev` there while the main checkout serves port 3000, pick another port: `npm run dev -- -p 3001`.
+   - `.env` and `data/` are ignored, so a new worktree has neither. Live tests and hand checks need `.env` copied in, and a copy of `data/app.db`. Never point the worktree at the main checkout's database: the branch's migrations would run against it.
+10. **Clean up when the pull request merges or closes.** From the main checkout:
+
+    ```sh
+    git fetch origin
+    git worktree remove ../wgt-reorder-members
+    git branch -d feat/reorder-members
+    git worktree prune
+    ```
+
+    `git branch -d` refuses a branch it can't see merged. Check that the pull request merged on GitHub before forcing it with `-D`. `git worktree list` shows what is left.
+
+### Example
+
+Two independent specs run while a feature is in its review loop:
+
+```
+C:\workspace\wow-gear-tracker     main checkout, owner's npm run dev on :3000
+C:\workspace\wgt-tier-stats       feat/tier-stats        implement and review loop, #120
+C:\workspace\wgt-reorder-members  feat/reorder-members   spec, #64 and #66
+C:\workspace\wgt-crest-cap        feat/crest-cap         spec-review, #88
+```
+
+Nobody builds or switches branches in the main checkout. When the reorder spec is approved and committed, its Next block names the worktree:
+
+```
+Next: spec-review, Codex (GPT-6 Astra, Medium), new session in C:\workspace\wgt-reorder-members
+> Run workflow step spec-review for #64 and #66. Worktree: C:\workspace\wgt-reorder-members, branch feat/reorder-members. Spec: docs/superpowers/specs/2026-10-04-reorder-members-design.md
+```
+
+And when its plan is committed, the handoff to `implement` carries the rebase:
+
+```
+Next: implement, Claude (Sonnet), new session in C:\workspace\wgt-reorder-members
+> Run workflow step implement for #64 and #66. Worktree: C:\workspace\wgt-reorder-members, branch feat/reorder-members. Rebase onto origin/main first and recheck the plan against what merged since. Plan: docs/superpowers/plans/2026-10-05-reorder-members.md
+```
+
+## Screenshots in pull requests
+
+`AGENTS.md` says when a pull request needs screenshots. They come from the e2e harness: a production build on port 3100 with fake Blizzard, Method and Raider.IO answers behind it and a fresh database of made-up characters. Real players' names never reach a screenshot that way. The repo is public, and so are the images.
+
+1. **Write a capture spec** at `e2e/pr-shots.spec.ts`. Git ignores that path, so it never lands in a commit or runs in CI. Add characters through the app's own API, open the page, and screenshot the part that changed rather than the whole page:
+
+   ```ts
+   import { test } from '@playwright/test';
+
+   test('dungeon priority', async ({ page }) => {
+     await page.setViewportSize({ width: 1280, height: 900 });
+     await page.request.post('/api/characters', { data: { region: 'eu', name: 'Birkibjörn', realmSlug: 'kazzak' } });
+     await page.goto(`/characters/eu/kazzak/${encodeURIComponent('Birkibjörn')}`);
+     await page.waitForLoadState('networkidle');
+     await page.getByRole('region', { name: 'Dungeon priority' }).screenshot({ path: '.cache/pr-shots/after-dungeon-priority.png' });
+   });
+   ```
+
+   It imports `@playwright/test` directly, not `e2e/fixtures`, so a request the fake doesn't know never fails the capture. Item icons and character renders don't load: the fake's data points at images that don't exist. For a narrow-screen shot, set the viewport to 390 wide.
+2. **Capture after:** `npx playwright test pr-shots`. Playwright builds to `.next-e2e`, so it's safe beside a running `npm run dev`. It takes about a minute.
+3. **Capture before** for changed UI: `git switch --detach origin/main`, rename the outputs to `before-*.png` in the spec, run it again, then `git switch -` back to the branch.
+4. **Upload:** `scripts/pr-shots/upload.sh <pr-number>` from Git Bash. It commits `.cache/pr-shots/*.png` to the `chore/pr-assets` branch under `pr-<N>/` and prints a URL for each image. That branch never merges, so `main` carries no images, and each URL names its commit, so it keeps working after later uploads. `gh` can't attach images to a pull request; this works from the command line.
+5. **Put them in the description** as a Before | After table, one row per view, with a short caption when the change isn't obvious.
+
 ## Review files
 
 Review notes go in `docs/reviews/`. Git ignores that folder: a review matters only until its findings are fixed, and the fix commits and pull request description are the lasting record. Name review files after what they review: `pr-43.md`, or the spec's file name.
@@ -145,6 +231,29 @@ Local sessions can read ignored review files in the same checkout. Cloud session
 - **Commit specs and plans as soon as they are written,** so a new session reads them instead of reconstructing them.
 - **Pick the cheapest model that can do the step** (see the table above). Use Opus to resolve design decisions and write the plan; use Sonnet for routine implementation.
 - **Keep hand checks focused.** Claude prepares a short checklist tied to the changed behavior and assigns any owner-run checks explicitly. Record who checked what and any remaining gaps.
+
+## Skills by step
+
+Superpowers is the primary skill set: it drives how each step runs. Caveman is used only where it does a job better, which is short wording: chat, handoffs, review findings and commit messages. Where both offer a skill for the same job, use the Superpowers one. Load only the skills the current step needs. Repository rules, clarity and complete evidence come first: a skill shapes how a step runs, and never removes what this page or `AGENTS.md` requires.
+
+| Step | Superpowers (primary) | Caveman (only for) | Still required |
+|---|---|---|---|
+| `spec` | `superpowers:brainstorming` | Concise chat and handoffs; never the document itself | Full rationale, alternatives, acceptance criteria and edge cases in the spec |
+| `plan` | `superpowers:writing-plans` | Concise chat and handoffs; never the document itself | Every step, file and test the implementation needs, in the plan |
+| `implement` | `superpowers:executing-plans` and `superpowers:test-driven-development` | None | The approved plan, the architecture rules, and a failing test first |
+| `fix` | `superpowers:receiving-code-review`, `superpowers:systematic-debugging` when the cause is unclear, and `superpowers:test-driven-development` | None | Evidence of the cause, and a test that covers the regression |
+| `spec-review`, `pr-review` and `re-review` | `superpowers:requesting-code-review` when Claude starts the reviewer | `caveman:caveman-review` to word simple findings | Severity, location, trigger, impact and enough evidence to justify each finding; complex findings get a full explanation |
+| `validate` and the gate before any handoff | `superpowers:verification-before-completion` | None | Every required automated and manual check; a focused test run never replaces the full gate |
+| Commits and pull requests | None | The repo's `commit` skill, which wraps `caveman:caveman-commit`; pull requests follow the terse rules in `AGENTS.md` | Required sections, exact identifiers, negations, testing gaps, and no AI attribution |
+| Filing issues and merging | None | None | The `file-issue` skill and the merge rules, as written |
+
+- **Caveman never replaces a Superpowers skill.** Its overlapping skills (`caveman:lean-build`, `caveman:investigate-first`, `caveman:surgical-patch`, `caveman:verify-and-stop`) stay unused while Superpowers covers the same job.
+- **Specs and plans stay readable.** Never run `caveman:caveman-compress` on a spec, plan or other authoritative document.
+- **Implementation stays inline.** `caveman:cavecrew` is only for delegation the owner authorized separately, and never replaces an independent review.
+- **Verification stops only when every required check and acceptance condition is met.** Name any check that couldn't run or isn't finished.
+- **Existing commit and pull request rules win.** A skill's default never overrides a required format or required evidence.
+- **This covers the skills only.** It doesn't configure the Caveman proxy, enable its cloud measurement, or claim measured savings. Those get evaluated separately.
+- **Trial the Caveman layer over a few issues** and judge it by how clear the handoffs were and how much review rework followed, before using it more widely.
 
 ## Cloud sessions
 

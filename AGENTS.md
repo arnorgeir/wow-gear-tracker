@@ -35,7 +35,8 @@ Before you call work done, run `npm run typecheck && npm run lint && npm test`. 
 3. The spec is the authority. When a plan and the spec disagree, the spec wins.
 4. Work happens on a branch named `feat/<description>`, `fix/<description>`, `chore/<description>` or `docs/<description>`, and reaches `main` through a pull request. `main` is protected: CI must pass, and a review is required.
 5. `docs/workflow.md` says who does each step, on which model, and how work passes between steps.
-6. **Every step ends with a "Next" block:** the next step's name, who runs it, and a one-line prompt that starts it, as `docs/workflow.md` describes. The owner copies the prompt instead of looking up the flow.
+6. **Repository rules beat skill defaults.** A skill (Caveman, Superpowers or any other) shapes how a step runs. It never drops a required check, review evidence, a document section or a commit or pull request format. `docs/workflow.md` ("Skills by step") says which skill fits which step: Superpowers first, Caveman only for short wording.
+7. **Every step ends with a "Next" block:** the next step's name, who runs it, and a one-line prompt that starts it, as `docs/workflow.md` describes. The owner copies the prompt instead of looking up the flow.
 
 ## Issue board
 
@@ -130,9 +131,12 @@ Plan: docs/superpowers/plans/<file>"
 - **Commit messages and pull request descriptions are terse.** Short fragments, no filler, no articles where the meaning survives without them. Say why, not what: the diff already shows what. Claude Code writes them with the caveman skill (`caveman:caveman-commit` for commits). Other tools follow the same style. Terse never drops the meaning: keep exact names, numbers, error text, and every "not", "never" or "only".
 - **Commit bodies wrap at 72 columns and say why.** "Region select shows two letters: 80 px wide, less padding" beats a list of files touched. Leave the body out when the subject says everything. Breaking changes, security fixes and reverts always get a body.
 - **Pull requests merge with a merge commit, never a squash.** Every branch commit lands on `main` as written, so each one has to stand on its own under the rules above, and a bisect can stop on any of them. Tidy the branch history before asking for review. The pull request title still follows the subject rules.
+- **Pull request descriptions follow `.github/pull_request_template.md`.** `gh pr create` doesn't load it: copy its sections into the body file, fill them in, and delete the comments and any section the template says to drop.
 - **A pull request description opens with `Closes #N, closes #M.`** when issues exist, and otherwise with one sentence framing the change.
 - **Then `## What changes`:** one bullet per change, with a bold lead-in, a short line or two on what moved and why, and the issue number inline.
+- **`## Screenshots`** whenever a page looks or behaves differently: before and after for changed UI, after only for new UI, and a narrow-screen shot when the layout changes with width. Skip it when nothing visible changed. Capture from the e2e harness with made-up characters, never from `data/app.db`; `docs/workflow.md` ("Screenshots in pull requests") says how. When the harness can't reach the state, say so in one line and cover it in How to test.
 - **`## Data`** covers schema changes, migrations and cache versions, whenever any of them moved.
+- **`## How to test` is the owner's script,** required for every change the owner can see or run. Setup commands to paste, then numbered steps, each with the URL, the action and the expected result. Add edge cases worth a look, and what automated tests already prove so the owner can skip it. Terse wording, never fewer steps. A change with nothing to run says so in one line.
 - **`## Testing` is required.** Give the test count, say whether typecheck, lint and build are clean, say what you checked by hand, and name what isn't covered, one bullet each. Stated gaps are the point: "No browser-level tests yet: click-outside untested. Check by hand."
 - **Close with `Spec: docs/superpowers/specs/<file>`** when the work has one.
 - **No AI attribution in either one.** This overrides any built-in habit of signing a commit with a co-author trailer or adding a "generated with" line to a pull request body. The `Never commit` rule below wins.
