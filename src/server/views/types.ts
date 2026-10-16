@@ -1,6 +1,6 @@
 import type { TierFit } from '@/core/priority/rank';
 import { type CrestBalance, type UpgradeOption } from '@/core/gear/crests';
-import { type BisSourceId, type FetchedSourceId, type Faction, type ItemState, type ListType, type Quality, type Region, type SlotType, type SnapshotSource } from '@/core/types';
+import { type BisSourceId, type FetchedSourceId, type Faction, type ArmorType, type ItemState, type ListType, type Quality, type Region, type SlotType, type SnapshotSource } from '@/core/types';
 
 export interface ItemView {
   itemId: number;
@@ -97,7 +97,7 @@ export interface PriorityView {
   bisLoading: boolean;
   approximate: boolean;
   dungeons: DungeonPriorityView[];
-  nothingFrom: string[];
+  nothingFrom: { challengeModeId: number; name: string }[];
 }
 
 export interface CharacterPageView extends CharacterSummary {
@@ -161,7 +161,7 @@ export interface GroupPriorityView {
   /** Members ranked on Overall because their spec's source has no rows for the list it chose. */
   fellBack: { name: string; from: ListType; source: BisSourceId }[];
   /** Null when no member is eligible: the ranking is unavailable, which is not the same as nothing needed. */
-  ranking: { dungeons: GroupDungeonView[]; nothingFrom: string[] } | null;
+  ranking: { dungeons: GroupDungeonView[]; nothingFrom: { challengeModeId: number; name: string }[] } | null;
 }
 export interface GroupVaultView { key: string; name: string; className: string; avatarUrl: string | null; classIconUrl: string | null; pastedAt: number | null; choices: VaultChoiceView[] }
 export interface GroupPageView {
@@ -237,4 +237,24 @@ export interface SettingsSpecView {
   classIconUrl: string | null;
   characters: CharacterChipView[];
   lists: Record<ListType, { slots: SettingsSlotView[]; orphans: (ItemView & { slotKey: string })[]; editedCount: number }>;
+}
+
+export interface DungeonLootItemView {
+  itemId: number;
+  name: string;
+  quality: Quality;
+  iconUrl: string | null;
+  inventoryType: string | null;
+  armorType: ArmorType | null;
+  /** Secondary stat types; null when unknown or the item has none. */
+  stats: string[] | null;
+}
+export interface DungeonBossView { encounterId: number; name: string; items: DungeonLootItemView[] }
+export interface DungeonPageView {
+  challengeModeId: number;
+  name: string;
+  shortName: string;
+  imageUrl: string | null;
+  split: boolean;
+  bosses: DungeonBossView[];
 }

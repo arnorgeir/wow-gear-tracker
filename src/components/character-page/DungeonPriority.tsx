@@ -1,5 +1,6 @@
 import { BrandIcon } from '@/components/brand-icon/BrandIcon';
 import { DungeonDisclosure } from '@/components/dungeon-disclosure/DungeonDisclosure';
+import { DungeonLinks } from '@/components/dungeon-links/DungeonLinks';
 import { ItemCard } from '@/components/item-card/ItemCard';
 import { fallbackText } from '@/components/shared/fallback-text';
 import { LIST_NAMES } from '@/components/shared/list-names';
@@ -38,14 +39,14 @@ function Ranking({ priority }: { priority: PriorityView }) {
       <ol className="flex flex-col gap-1.5">
         {priority.dungeons.map((d, i) => (
           <li key={d.challengeModeId} className="min-w-0">
-            <DungeonDisclosure rank={i + 1} name={d.name} score={d.score} imageUrl={d.imageUrl} shortName={d.shortName}>
+            <DungeonDisclosure rank={i + 1} name={d.name} score={d.score} imageUrl={d.imageUrl} shortName={d.shortName} challengeModeId={d.challengeModeId}>
               {d.split && <p className="text-xs text-muted">{SPLIT_DUNGEON}</p>}
               {d.credits.map((credit, j) => <Credit key={j} credit={credit} />)}
             </DungeonDisclosure>
           </li>
         ))}
       </ol>
-      {priority.nothingFrom.length > 0 && <p className="text-sm text-muted">Nothing you need from: {priority.nothingFrom.join(', ')}.</p>}
+      {priority.nothingFrom.length > 0 && <p className="text-sm text-muted">Nothing you need from: <DungeonLinks dungeons={priority.nothingFrom} />.</p>}
     </>
   );
 }

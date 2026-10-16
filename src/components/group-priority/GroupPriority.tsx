@@ -1,3 +1,4 @@
+import { DungeonLinks } from '@/components/dungeon-links/DungeonLinks';
 import { fallbackText } from '@/components/shared/fallback-text';
 import { APPROXIMATE, SEASON_FAILED, SEASON_LOADING, SEASON_STALE } from '@/components/shared/priority-copy';
 import type { GroupPriorityView } from '@/server/views/types';
@@ -25,7 +26,7 @@ function Ranking({ priority }: { priority: GroupPriorityView }) {
       <ol className="flex flex-col gap-1.5">
         {dungeons.map((d, i) => <li key={d.challengeModeId} className="min-w-0"><DungeonRow dungeon={d} rank={i + 1} /></li>)}
       </ol>
-      {nothingFrom.length > 0 && <p className="text-sm text-muted">Nothing anyone needs from: {nothingFrom.join(', ')}.</p>}
+      {nothingFrom.length > 0 && <p className="text-sm text-muted">Nothing anyone needs from: <DungeonLinks dungeons={nothingFrom} />.</p>}
     </>
   );
 }

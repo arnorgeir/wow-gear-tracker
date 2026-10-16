@@ -105,7 +105,7 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
             };
           }),
         })),
-        nothingFrom: ranks.filter((d) => d.score === 0).map((d) => d.name),
+        nothingFrom: ranks.filter((d) => d.score === 0).map((d) => ({ challengeModeId: d.challengeModeId, name: d.name })),
       },
     },
     needsSeasonSync: region !== null && season.needsSync,

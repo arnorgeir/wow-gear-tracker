@@ -80,7 +80,7 @@ export async function getCharacterPage(services: Services, key: MemberKey): Prom
         split: d.split,
         credits: d.characters.flatMap((c) => c.credits).map((cr) => creditView(cr, icons)),
       })),
-      nothingFrom: ranks.filter((d) => d.score === 0).map((d) => d.name),
+      nothingFrom: ranks.filter((d) => d.score === 0).map((d) => ({ challengeModeId: d.challengeModeId, name: d.name })),
     },
   };
 }

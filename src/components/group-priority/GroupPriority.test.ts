@@ -21,7 +21,7 @@ const plumage = { itemId: 271526, name: 'Enigmatic Dreamwatcher’s Plumage', it
 
 describe('GroupPriority', () => {
   it('ranks dungeons with each member’s needs, and marks only split ones', () => {
-    const html = render({ ...base, ranking: { nothingFrom: ['Delta Deep'], dungeons: [
+    const html = render({ ...base, ranking: { nothingFrom: [{ challengeModeId: 504, name: 'Delta Deep' }], dungeons: [
       { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: null, score: 5, split: false, members: [{ ...credits, credits: [{ kind: 'tier', slotLabel: 'Chest', weight: 5, fit: 'unverified', dropStats: null, targetName: 'BiS', targetStats: null, item: { itemId: 80, name: 'Tier Robe', itemLevel: null, quality: 'EPIC', bonusIds: [], iconUrl: null, trackLabel: null } }] }] },
       { challengeModeId: 502, name: 'Streets of Beta', shortName: 'STRT', imageUrl: null, score: 3, split: true, members: [{ ...credits, credits: [{ kind: 'any', slotLabel: 'Boots', weight: 3, minItemLevel: 334 }] }] },
     ] } });
@@ -29,7 +29,7 @@ describe('GroupPriority', () => {
     expect(html).toContain('Tier Robe (Chest), catalyst into tier, stats unverified');
     expect(html).toContain('Any boots, level 334+');
     expect(html.match(/Split dungeon/g)).toHaveLength(1);
-    expect(html).toContain('Nothing anyone needs from: Delta Deep.');
+    expect(html).toContain('Nothing anyone needs from: <a href="/dungeons/504">Delta Deep</a>.');
   });
 
   it('says the ranking is unavailable when nobody is eligible, without claiming nothing is needed', () => {

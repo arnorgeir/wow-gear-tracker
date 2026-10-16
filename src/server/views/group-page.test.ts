@@ -144,7 +144,7 @@ describe('getGroupPage', () => {
       ['Hrafnhildur', [70]],
     ]);
     expect(rest.map((d) => [d.name, d.split])).toEqual([['Gambit of Beta', true], ['Streets of Beta', true]]);
-    expect(priority.ranking!.nothingFrom).toEqual(['Delta Deep']);
+    expect(priority.ranking!.nothingFrom).toEqual([{ challengeModeId: 504, name: 'Delta Deep' }]);
     // Artwork follows the challenge mode, not the season's name order or the ranking order.
     const art: Record<number, [string, string | null]> = {
       501: ['AH', 'https://cdn.raiderio.net/images/dungeons/alpha-hollow.jpg'],
@@ -185,7 +185,7 @@ describe('getGroupPage', () => {
     await season(s);
     await prime(s);
     const { priority } = await getGroupPage(s, keys('hrafnhildur'));
-    expect(priority.ranking).toEqual({ dungeons: [], nothingFrom: ['Alpha Hollow', 'Delta Deep', 'Gambit of Beta', 'Streets of Beta'] });
+    expect(priority.ranking).toEqual({ dungeons: [], nothingFrom: [{ challengeModeId: 501, name: 'Alpha Hollow' }, { challengeModeId: 504, name: 'Delta Deep' }, { challengeModeId: 503, name: 'Gambit of Beta' }, { challengeModeId: 502, name: 'Streets of Beta' }] });
   });
 
   it('drops other regions, lists available characters, and skips not-found members when syncing', async () => {
