@@ -8,7 +8,7 @@ export function StatsMatter({ specSlug, statsMatter }: { specSlug: string; stats
   const { error, run } = useApiAction();
   const tipId = useId();
   return (
-    <div className="flex flex-col gap-1 md:gap-2.5">
+    <div className="flex flex-col gap-3 md:gap-2.5">
       <span className="inline-flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-[0.08em] text-muted">Tier pieces<InfoTip id={tipId} title="Tier pieces">Uncheck if the set bonus is all that matters for this spec.</InfoTip></span>
       <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px] font-semibold md:min-h-12 md:text-base">
         <input type="checkbox" aria-describedby={tipId} checked={statsMatter}
