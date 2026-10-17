@@ -1,0 +1,22 @@
+export type GuideTab = 'overview' | 'abilities' | 'loot';
+export type GuideState = { boss: number | null; tab: GuideTab };
+
+const TABS: readonly GuideTab[] = ['overview', 'abilities', 'loot'];
+
+/** Reads the guide's choice from search params. Anything repeated, empty or unknown counts as missing. */
+export function parseGuideState(raw: Record<string, string | string[] | undefined>, bossIds: number[]): GuideState {
+  const bossRaw = raw.boss;
+  const id = typeof bossRaw === 'string' && /^[1-9]\d*$/.test(bossRaw) ? Number(bossRaw) : null;
+  const boss = id !== null && bossIds.includes(id) ? id : null;
+  const tab = TABS.find((t) => t === raw.tab) ?? 'overview';
+  return { boss, tab: tab === 'abilities' && boss === null ? 'overview' : tab };
+}
+
+/** The URL for a choice; defaults are left out. */
+export function guideHref(dungeonId: number, state: GuideState): string {
+  const params = new URLSearchParams();
+  if (state.boss !== null) params.set('boss', String(state.boss));
+  if (state.tab !== 'overview' && !(state.tab === 'abilities' && state.boss === null)) params.set('tab', state.tab);
+  const query = params.toString();
+  return `/dungeons/${dungeonId}${query ? `?${query}` : ''}`;
+}
