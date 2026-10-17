@@ -109,6 +109,22 @@ describe('any rows', () => {
     expect(noLevel!.state).toBe('missing');
     expect(empty).toMatchObject({ state: 'missing', equipped: null });
   });
+
+  it('lets a named ring keep its slot when an Any row comes first in the list', () => {
+    const named = { ...item('FINGER_1', 7), itemLevel: 340 };
+    const other = { ...item('FINGER_2', 8), itemLevel: 320 };
+    const [anyRing, ringX] = evaluateGear({ equipped: [named, other], bisRows: [anyRow(['FINGER_1', 'FINGER_2'], 334), row(['FINGER_1', 'FINGER_2'], 7)], tracks });
+    expect(ringX).toMatchObject({ slot: 'FINGER_1', matched: true, state: 'done' });
+    expect(anyRing).toMatchObject({ slot: 'FINGER_2', matched: false, state: 'missing' });
+  });
+
+  it('lets a named trinket keep its slot, and an Any row still takes the other slot when it qualifies', () => {
+    const named = { ...item('TRINKET_2', 9), itemLevel: 340 };
+    const other = { ...item('TRINKET_1', 10), itemLevel: 336 };
+    const [anyTrinket, trinketX] = evaluateGear({ equipped: [named, other], bisRows: [anyRow(['TRINKET_1', 'TRINKET_2'], 334), row(['TRINKET_1', 'TRINKET_2'], 9)], tracks });
+    expect(trinketX).toMatchObject({ slot: 'TRINKET_2', state: 'done' });
+    expect(anyTrinket).toMatchObject({ slot: 'TRINKET_1', state: 'done' });
+  });
 });
 
 describe('tier stat pairs', () => {
