@@ -1,2 +1,2 @@
-/** How many slots an account changed on a list: "no edits" or "3 edited". */
-export const editedText = (count: number) => (count === 0 ? 'no edits' : `${count} edited`);
+/** How many slots an account changed on a list: "3 edited", or null when there are none. */
+export const editedText = (count: number): string | null => (count === 0 ? null : `${count} edited`);
