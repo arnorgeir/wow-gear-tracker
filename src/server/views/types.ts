@@ -34,6 +34,14 @@ export interface VaultChoiceView extends ItemView {
   isBis: boolean;
 }
 
+/** One past week of Great Vault choices, as the character page's history shows it. */
+export interface VaultWeekView {
+  start: number;
+  label: string;
+  pastedAt: number;
+  choices: VaultChoiceView[];
+}
+
 export interface CrestView {
   balances: CrestBalance[];
   pastedAt: number;
