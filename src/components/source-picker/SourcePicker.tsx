@@ -6,7 +6,7 @@ import { useApiAction } from '@/components/hooks/use-api-action';
 import type { BisSourceId } from '@/core/types';
 import { sourceOptions } from './source-picker';
 
-const HEADING = 'mb-2.5 p-0 text-[13px] font-bold uppercase tracking-[0.08em] text-muted';
+const HEADING = 'mb-3 p-0 text-[13px] font-bold uppercase tracking-[0.08em] text-muted';
 
 /** Where the spec's list comes from. Saved as you choose; choosing Manual copies the current list. */
 export function SourcePicker({ specSlug, source }: { specSlug: string; source: BisSourceId }) {

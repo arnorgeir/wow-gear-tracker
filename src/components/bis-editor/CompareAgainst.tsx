@@ -6,7 +6,7 @@ import { useApiAction } from '@/components/hooks/use-api-action';
 import { LIST_NAMES } from '@/components/shared/list-names';
 import { LIST_TYPES, type ListType } from '@/core/types';
 
-const HEADING = 'mb-2.5 p-0 text-[13px] font-bold uppercase tracking-[0.08em] text-muted';
+const HEADING = 'mb-3 p-0 text-[13px] font-bold uppercase tracking-[0.08em] text-muted';
 
 export function CompareAgainst({ specSlug, listType }: { specSlug: string; listType: ListType }) {
   const { error, run } = useApiAction();
