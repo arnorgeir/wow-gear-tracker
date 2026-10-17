@@ -14,4 +14,10 @@ describe('ItemCard', () => {
     expect(html).toContain('data-wowhead="item=271528&amp;bonus=13440:12850&amp;ilvl=321"');
     expect(html.match(/<a /g)).toHaveLength(1);
   });
+
+  it('shows a weight in the corner only when given one', () => {
+    expect(html).not.toContain('Weight');
+    const weighted = renderToStaticMarkup(createElement(ItemCard, { itemId: 1, name: 'Test Helm', quality: 'EPIC', iconUrl: null, bonusIds: [], itemLevel: null, weight: 5 }));
+    expect(weighted).toContain('text-gold" title="Weight"><span class="sr-only">Weight </span>5</span>');
+  });
 });

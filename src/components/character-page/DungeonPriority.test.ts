@@ -23,8 +23,11 @@ describe('DungeonPriority', () => {
     expect(html).toContain('Mythic+ list');
     expect(html).toContain('Alpha Hollow');
     expect(html).toContain('Hoarded Harvest Wrap');
-    expect(html).toContain('Chest · catalyst alternative (Mastery/Vers, BiS Haste/Mastery) · weight 4');
-    expect(html).toContain('Any item, level 334+');
+    expect(html).toContain('Chest · catalyst alternative (Mastery/Vers, BiS Haste/Mastery)<');
+    expect(html).toContain('Any item, level 334+<');
+    expect(html).not.toContain('· weight');
+    expect(html).toContain('title="Weight"><span class="sr-only">Weight </span>4</span>');
+    expect(html).toContain('title="Weight"><span class="sr-only">Weight </span>3</span>');
     expect(html).toContain('Nothing you need from: <a href="/dungeons/502">Beta Spire</a>, <a href="/dungeons/503">Gamma Deep</a>.');
     expect(html).toContain('href="/dungeons/501"');
   });

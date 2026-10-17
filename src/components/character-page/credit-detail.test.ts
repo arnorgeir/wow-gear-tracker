@@ -10,14 +10,14 @@ const tier = (fit: 'bis' | 'unverified' | 'alternative' | 'any', weight: number,
 
 describe('creditDetail', () => {
   it('describes each tier fit', () => {
-    expect(creditDetail(tier('bis', 5) as never)).toBe('Chest · BiS stats · weight 5');
-    expect(creditDetail(tier('bis', 5, null, null) as never)).toBe('Chest · BiS item · weight 5');
-    expect(creditDetail(tier('alternative', 4, HM, MV) as never)).toBe('Chest · catalyst alternative (Mastery/Vers, BiS Haste/Mastery) · weight 4');
-    expect(creditDetail(tier('unverified', 5, HM, null) as never)).toBe('Chest · stats unverified · weight 5');
-    expect(creditDetail(tier('any', 5, null, MV) as never)).toBe('Chest · catalyst into tier · weight 5');
+    expect(creditDetail(tier('bis', 5) as never)).toBe('Chest · BiS stats');
+    expect(creditDetail(tier('bis', 5, null, null) as never)).toBe('Chest · BiS item');
+    expect(creditDetail(tier('alternative', 4, HM, MV) as never)).toBe('Chest · catalyst alternative (Mastery/Vers, BiS Haste/Mastery)');
+    expect(creditDetail(tier('unverified', 5, HM, null) as never)).toBe('Chest · stats unverified');
+    expect(creditDetail(tier('any', 5, null, MV) as never)).toBe('Chest · catalyst into tier');
   });
 
-  it('keeps named items as they were', () => {
-    expect(creditDetail({ kind: 'item', slotLabel: 'Neck', weight: 2, item })).toBe('Neck · weight 2');
+  it('names only the slot for named items: the weight sits in the card corner', () => {
+    expect(creditDetail({ kind: 'item', slotLabel: 'Neck', weight: 2, item })).toBe('Neck');
   });
 });

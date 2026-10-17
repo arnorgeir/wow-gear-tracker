@@ -6,6 +6,7 @@ import { fallbackText } from '@/components/shared/fallback-text';
 import { LIST_NAMES } from '@/components/shared/list-names';
 import { BIS_LOADING } from '@/components/shared/loading-copy';
 import { APPROXIMATE, SEASON_FAILED, SEASON_LOADING, SEASON_STALE, SPLIT_DUNGEON } from '@/components/shared/priority-copy';
+import { Weight } from '@/components/weight/Weight';
 import type { PriorityCreditView, PriorityView } from '@/server/views/types';
 import { creditDetail } from './credit-detail';
 import { DungeonRowsSkeleton } from './DungeonRowsSkeleton';
@@ -16,13 +17,13 @@ function Credit({ credit }: { credit: PriorityCreditView }) {
     const detail = creditDetail(credit);
     return (
       <ItemCard itemId={credit.item.itemId} name={credit.item.name} quality={credit.item.quality} iconUrl={credit.item.iconUrl}
-        bonusIds={credit.item.bonusIds} itemLevel={null} detail={detail} />
+        bonusIds={credit.item.bonusIds} itemLevel={null} detail={detail} weight={credit.weight} />
     );
   }
   return (
-    <p className="text-[15px]">
-      <span className="font-semibold">{credit.slotLabel}</span>
-      <span className="text-muted"> · Any item, level {credit.minItemLevel}+ · weight {credit.weight}</span>
+    <p className="flex items-baseline justify-between gap-2 text-[15px]">
+      <span className="min-w-0"><span className="font-semibold">{credit.slotLabel}</span><span className="text-muted"> · Any item, level {credit.minItemLevel}+</span></span>
+      <Weight weight={credit.weight} />
     </p>
   );
 }
