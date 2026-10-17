@@ -72,3 +72,11 @@ select {
   background-size: 5px 5px;
   background-repeat: no-repeat;
 }
+
+/* Forced-colors mode drops gradient backgrounds, so the drawn chevron would vanish: bring back the native arrow. */
+@media (forced-colors: active) {
+  select {
+    appearance: auto;
+    background-image: none;
+  }
+}

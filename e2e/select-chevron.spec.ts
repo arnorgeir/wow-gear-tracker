@@ -35,3 +35,11 @@ test('dropdowns on the group page leave room for their chevron', async ({ page }
   await expect(page.getByLabel('Tracked characters')).toBeVisible();
   await expectRoomyChevrons(page);
 });
+
+test('forced-colors mode keeps the native arrow, since it drops gradient backgrounds', async ({ page }) => {
+  await page.emulateMedia({ forcedColors: 'active' });
+  await page.goto('/');
+  const appearances = await page.locator('select').evaluateAll((els) => els.map((el) => getComputedStyle(el).appearance));
+  expect(appearances.length).toBeGreaterThan(0);
+  for (const a of appearances) expect(a).toBe('auto');
+});
