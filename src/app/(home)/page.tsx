@@ -8,6 +8,9 @@ import { PendingCharacterProvider } from '@/components/pending-character/Pending
 import { SetupNotice } from '@/components/setup-notice/SetupNotice';
 import { StaleSync } from '@/components/stale-sync/StaleSync';
 import { StateLegend } from '@/components/state-legend/StateLegend';
+import { CharacterSort } from '@/components/character-sort/CharacterSort';
+import { CHARACTERS_SORT_COOKIE, parseCharactersSort } from '@/components/character-sort/characters-sort';
+import { sortCards } from '@/components/character-sort/sort-cards';
 import { CHARACTERS_VIEW_COOKIE, parseCharactersView } from '@/components/view-toggle/characters-view';
 import { ViewToggle } from '@/components/view-toggle/ViewToggle';
 import { isMissingConfigError } from '@/core/config';
@@ -27,7 +30,10 @@ export default async function CharactersPage() {
   }
   const { cards, referenceDue } = await getCharacterCards(services);
   const now = services.now();
-  const view = parseCharactersView((await cookies()).get(CHARACTERS_VIEW_COOKIE)?.value);
+  const jar = await cookies();
+  const view = parseCharactersView(jar.get(CHARACTERS_VIEW_COOKIE)?.value);
+  const sort = parseCharactersSort(jar.get(CHARACTERS_SORT_COOKIE)?.value);
+  const sorted = sortCards(cards, sort);
   const staleIds = cards.filter((c) => c.status === 'ok' && isStale(c.lastSyncedAt, now)).map((c) => c.id);
 
   return (
@@ -40,10 +46,15 @@ export default async function CharactersPage() {
         <AddCharacterBar trackedCharacters={cards.map((c) => ({ region: c.region, realmId: c.realmId, name: c.name }))} />
         <div className="flex flex-wrap items-center justify-between gap-4">
           <StateLegend />
-          {cards.length > 0 && <ViewToggle view={view} cookie={CHARACTERS_VIEW_COOKIE} name={CHARACTERS_VIEW_COOKIE} />}
+          {cards.length > 0 && (
+            <div className="flex flex-wrap items-center gap-4">
+              {cards.length > 1 && <CharacterSort sort={sort} />}
+              <ViewToggle view={view} cookie={CHARACTERS_VIEW_COOKIE} name={CHARACTERS_VIEW_COOKIE} />
+            </div>
+          )}
         </div>
         <CharacterGrid count={cards.length} view={view} empty={<p className="text-muted">No characters yet. Search for one above.</p>}>
-          {cards.map((card) => view === 'list'
+          {sorted.map((card) => view === 'list'
             ? <CharacterRow key={card.id} card={card} now={now} />
             : <CharacterCard key={card.id} card={card} now={now} />)}
         </CharacterGrid>
