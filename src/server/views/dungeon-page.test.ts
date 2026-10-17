@@ -74,11 +74,11 @@ describe('getDungeonPage', () => {
     expect(view!.bosses.map((b) => [b.encounterId, b.name, b.items.map((i) => i.itemId)])).toEqual([[9, 'First Boss', [1, 3]], [3, 'Second Boss', [2]]]);
   });
 
-  it('falls back to epic quality and carries cached icons, null when not cached', async () => {
+  it('shows every drop as epic, the best it reaches in Mythic+, and carries cached icons, null when not cached', async () => {
     const s = await setup([loot(1, 'Boss', 1, { quality: 'RARE' }), loot(1, 'Boss', 2)]);
     await upsertItemIcons(s.db, [{ itemId: 1, iconUrl: 'https://i/1.jpg' }], 1);
     const [a, b] = (await getDungeonPage(s, 501))!.bosses[0]!.items;
-    expect([a!.quality, a!.iconUrl, b!.quality, b!.iconUrl]).toEqual(['RARE', 'https://i/1.jpg', 'EPIC', null]);
+    expect([a!.quality, a!.iconUrl, b!.quality, b!.iconUrl]).toEqual(['EPIC', 'https://i/1.jpg', 'EPIC', null]);
     expect(b).toMatchObject({ inventoryType: 'WRIST', armorType: 'leather', name: 'Item 2' });
   });
 

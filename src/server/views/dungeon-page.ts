@@ -33,7 +33,9 @@ export async function getDungeonPage(services: Services, challengeModeId: number
     bosses.set(l.encounterId, boss);
     const stats = decodeStats(l.secondaryStats ?? null);
     boss.items.push({
-      itemId: l.itemId, name: l.itemName, quality: l.quality ?? 'EPIC', iconUrl: icons.get(l.itemId) ?? null,
+      itemId: l.itemId, name: l.itemName,
+      // Stored quality is the catalog's base one; every season drop reaches epic in Mythic+, as the Wowhead tooltip shows.
+      quality: 'EPIC', iconUrl: icons.get(l.itemId) ?? null,
       inventoryType: l.inventoryType, armorType: l.armorType, stats: stats && stats.length > 0 ? stats : null,
     });
   }
