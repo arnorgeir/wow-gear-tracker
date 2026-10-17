@@ -29,6 +29,14 @@ function AbilityName({ a }: { a: AbilityView }) {
   return a.spellId === null ? a.name : <SpellLink id={a.spellId}>{a.name}</SpellLink>;
 }
 
+/** Turns when its own details opens; a flex summary hides the native marker, and nested details must not turn it. */
+function Chevron() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true" className="shrink-0 text-muted transition [details[open]>summary>&]:rotate-90"><path d="M9 6l6 6-6 6" /></svg>
+  );
+}
+
 /** Top-level abilities sit in their own panels, like the role sections; nested ones are indented under them. */
 function Abilities({ abilities, top = false }: { abilities: AbilityView[]; top?: boolean }) {
   return (
@@ -37,7 +45,7 @@ function Abilities({ abilities, top = false }: { abilities: AbilityView[]; top?:
         <li key={i} className={top ? 'rounded-xl border border-line-strong bg-raised px-3 py-2' : undefined}>
           {a.blocks.length > 0 || a.abilities.length > 0 ? (
             <details open>
-              <summary className={`flex min-h-8 cursor-pointer items-center gap-1.5 font-semibold ${FOCUS}`}><AbilityName a={a} /></summary>
+              <summary className={`flex min-h-8 cursor-pointer items-center gap-1.5 font-semibold ${FOCUS}`}><Chevron /><AbilityName a={a} /></summary>
               <div className="flex flex-col gap-1.5 pb-1 pt-1.5">
                 <Blocks blocks={a.blocks} />
                 {a.abilities.length > 0 && <Abilities abilities={a.abilities} />}

@@ -61,8 +61,14 @@ describe('boss abilities', () => {
   const html = render(withTactics, { boss: 9, tab: 'abilities' });
 
   it('links a spell in the summary, and keeps a spell-less group named with its text and children', () => {
-    expect(html).toMatch(/<summary[^>]*><a[^>]*href="https:\/\/www\.wowhead\.com\/spell=11"[^>]*rel="noreferrer"[^>]*>Umbral Rupture<\/a><\/summary>/);
-    expect(html).toMatch(/<summary[^>]*>Hollow Spawn<\/summary>[\s\S]*Adds arrive\.[\s\S]*Gnaw/);
+    expect(html).toMatch(/<summary[^>]*>(<svg[\s\S]*?<\/svg>)?<a[^>]*href="https:\/\/www\.wowhead\.com\/spell=11"[^>]*rel="noreferrer"[^>]*>Umbral Rupture<\/a><\/summary>/);
+    expect(html).toMatch(/<summary[^>]*>(<svg[\s\S]*?<\/svg>)?Hollow Spawn<\/summary>[\s\S]*Adds arrive\.[\s\S]*Gnaw/);
+  });
+
+  it('marks every expandable ability with a chevron that turns when open', () => {
+    const summaries = [...html.matchAll(/<summary[^>]*>([\s\S]*?)<\/summary>/g)].map((m) => m[1]);
+    expect(summaries).toHaveLength(2);
+    for (const s of summaries) expect(s).toMatch(/^<svg[^>]*aria-hidden="true"[^>]*class="[^"]*\[details\[open\]&gt;summary&gt;&amp;\]:rotate-90/);
   });
 
   it('shows a leaf ability with no text as a plain list item', () => {
