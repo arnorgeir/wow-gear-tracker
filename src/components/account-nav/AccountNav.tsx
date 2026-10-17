@@ -10,7 +10,7 @@ import { TAB_DIAMOND, tabClass } from '@/components/shared/nav-tab';
 export function AccountNav() {
   const active = isActiveLink('/settings', usePathname());
   return (
-    <nav aria-label="Account" className="ml-auto hidden items-stretch gap-4 sm:flex">
+    <nav aria-label="Account" className="ml-auto hidden items-stretch gap-4 lg:flex">
       <span aria-hidden="true" className="h-7 w-px self-center bg-line" />
       <Link href="/settings" aria-current={active ? 'page' : undefined} className={tabClass(active)}>
         <BrandIcon name="settings" />

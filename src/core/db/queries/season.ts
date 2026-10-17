@@ -1,7 +1,7 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../client';
-import { dungeonLoot, seasonDungeons } from '../schema';
-import type { ArmorType, Quality, SeasonLoot } from '../../types';
+import { dungeonEncounters, dungeonLoot, seasonDungeons } from '../schema';
+import type { ArmorType, JournalSection, Quality, SeasonLoot } from '../../types';
 import { withWriteLock } from './write-lock';
 import { decodeStats } from '../../gear/stat-pair';
 
@@ -19,15 +19,18 @@ export interface DungeonLootRow {
   quality?: Quality | null;
   isTier?: boolean;
 }
-export interface SeasonData { slug: string; dungeons: SeasonDungeonRow[]; loot: DungeonLootRow[] }
+export interface EncounterRow { encounterId: number; name: string; description: string | null; sections: JournalSection[] }
+export interface SeasonData { slug: string; dungeons: SeasonDungeonRow[]; loot: DungeonLootRow[]; encounters?: EncounterRow[] }
 
 /** Replaces the stored season in one transaction, so a reader never sees half of one. */
 export async function replaceSeason(db: Db, data: SeasonData): Promise<void> {
   await withWriteLock(db, () => db.transaction(async (tx) => {
     await tx.delete(dungeonLoot);
+    await tx.delete(dungeonEncounters);
     await tx.delete(seasonDungeons);
     if (data.dungeons.length > 0) await tx.insert(seasonDungeons).values(data.dungeons.map((d) => ({ ...d, seasonSlug: data.slug })));
     if (data.loot.length > 0) await tx.insert(dungeonLoot).values(data.loot);
+    if (data.encounters?.length) await tx.insert(dungeonEncounters).values(data.encounters.map((e) => ({ ...e, sections: JSON.stringify(e.sections) })));
   }));
 }
 
@@ -46,16 +49,29 @@ export async function getSeasonLoot(db: Db): Promise<SeasonLoot[]> {
   }));
 }
 
+/** The stored season's dungeons by name, as getSeasonLoot lists them (the key is the row id, so insertion order isn't kept). */
+export async function getSeasonDungeons(db: Db): Promise<SeasonDungeonRow[]> {
+  return db.select().from(seasonDungeons).orderBy(asc(seasonDungeons.name));
+}
+
 /** One stored season dungeon with its loot rows in boss order, or null when the season doesn't list it. */
 export async function getSeasonDungeon(db: Db, challengeModeId: number):
-  Promise<{ dungeon: SeasonDungeonRow; split: boolean; loot: DungeonLootRow[] } | null> {
+  Promise<{ dungeon: SeasonDungeonRow; split: boolean; loot: DungeonLootRow[]; encounters: Map<number, { description: string | null; sections: JournalSection[] }> } | null> {
   const [dungeon] = await db.select().from(seasonDungeons).where(eq(seasonDungeons.challengeModeId, challengeModeId));
   if (!dungeon) return null;
   const sharing = await db.select({ id: seasonDungeons.challengeModeId }).from(seasonDungeons)
     .where(eq(seasonDungeons.journalInstanceId, dungeon.journalInstanceId));
   // rowid is insertion order, which is the journal's boss order (encounter IDs are not).
   const loot = await db.select().from(dungeonLoot).where(eq(dungeonLoot.challengeModeId, challengeModeId)).orderBy(sql`rowid`);
-  return { dungeon, split: sharing.some((x) => x.id !== challengeModeId), loot };
+  const rows = await db.select().from(dungeonEncounters).where(inArray(dungeonEncounters.encounterId, [...new Set(loot.map((l) => l.encounterId))]));
+  const encounters = new Map<number, { description: string | null; sections: JournalSection[] }>();
+  for (const r of rows) {
+    try {
+      const sections = JSON.parse(r.sections);
+      if (Array.isArray(sections)) encounters.set(r.encounterId, { description: r.description, sections });
+    } catch { /* malformed counts as missing */ }
+  }
+  return { dungeon, split: sharing.some((x) => x.id !== challengeModeId), loot, encounters };
 }
 
 /**

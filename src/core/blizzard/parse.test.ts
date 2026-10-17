@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   parseEquipment, parseProfile, parseItemInfo, parseKeystoneDungeon,
   parseJournalInstance, parseJournalEncounter, parseJournalInstanceIndex, secondaryStatsOf,
-  type RawEquipment, type RawProfile,
+  type RawEquipment, type RawProfile, type RawJournalEncounter,
 } from './parse';
 
 const profile: RawProfile = {
@@ -97,7 +97,7 @@ describe('journal parsers', () => {
 
   it('maps an encounter to its items, and the index to ids and names', () => {
     expect(parseJournalEncounter({ id: 1, name: 'Hollow King', items: [{ item: { id: 100, name: 'Hollow Robe' } }] }))
-      .toEqual({ id: 1, name: 'Hollow King', items: [{ itemId: 100, name: 'Hollow Robe' }] });
+      .toEqual({ id: 1, name: 'Hollow King', description: null, sections: [], items: [{ itemId: 100, name: 'Hollow Robe' }] });
     expect(parseJournalInstanceIndex({ instances: [{ id: 901, name: 'Alpha Hollow' }] })).toEqual([{ id: 901, name: 'Alpha Hollow' }]);
   });
 
@@ -105,6 +105,46 @@ describe('journal parsers', () => {
     const robe = { item: { id: 100, name: 'Hollow Robe' } };
     expect(parseJournalEncounter({ id: 1, name: 'Hollow King', items: [robe, { item: { id: 101, name: 'Hollow Ring' } }, robe] }).items)
       .toEqual([{ itemId: 100, name: 'Hollow Robe' }, { itemId: 101, name: 'Hollow Ring' }]);
+  });
+});
+
+describe('parseJournalEncounter text', () => {
+  const raw: RawJournalEncounter = {
+    id: 7, name: 'Hollow King', description: 'A king of echoes.',
+    sections: [
+      {
+        title: 'Overview', body_text: 'The king casts [Echo Slam].',
+        sections: [{ title: 'Tanks', body_text: '$bullet;Swap.' }],
+      },
+      { title: 'Echo Slam', spell: { id: 5001, name: 'Echo Slam' }, body_text: '' },
+      { title: 'Echo Slam', spell: { id: 5001, name: 'Echo Slam' }, body_text: 'dupe', sections: [{ title: 'Child', body_text: 'x' }] },
+      { title: 'Echo Slam', spell: { id: 5002, name: 'Echo Slam' } },
+      { body_text: 'no title', sections: [{ title: 'Orphan' }] } as never,
+      { title: 'Odd', spell: { name: 'Odd' } as never },
+    ],
+  };
+
+  it('keeps description and the section tree', () => {
+    const parsed = parseJournalEncounter(raw);
+    expect(parsed.description).toBe('A king of echoes.');
+    expect(parsed.sections[0]).toEqual({
+      title: 'Overview', spellId: null, bodyText: 'The king casts [Echo Slam].',
+      sections: [{ title: 'Tanks', spellId: null, bodyText: '$bullet;Swap.', sections: [] }],
+    });
+  });
+
+  it('drops a sibling with the same title and spell, with its children, and nulls empty text', () => {
+    const slams = parseJournalEncounter(raw).sections.filter((s) => s.title === 'Echo Slam');
+    expect(slams).toEqual([
+      { title: 'Echo Slam', spellId: 5001, bodyText: null, sections: [] },
+      { title: 'Echo Slam', spellId: 5002, bodyText: null, sections: [] },
+    ]);
+  });
+
+  it('skips untitled nodes and gives null for a spell without a numeric id', () => {
+    const parsed = parseJournalEncounter(raw);
+    expect(parsed.sections.map((s) => s.title)).toEqual(['Overview', 'Echo Slam', 'Echo Slam', 'Odd']);
+    expect(parsed.sections.at(-1)!.spellId).toBeNull();
   });
 });
 

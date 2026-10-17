@@ -8,4 +8,9 @@ describe('tabClass', () => {
     expect(tabClass(false)).toContain('text-muted');
     expect(tabClass(false)).not.toContain('text-gold');
   });
+
+  it('keeps the stacked phone tabs until lg', () => {
+    expect(tabClass(false)).toContain('lg:flex-row');
+    expect(tabClass(false)).not.toContain('sm:');
+  });
 });

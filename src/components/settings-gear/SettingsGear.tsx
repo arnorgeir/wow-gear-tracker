@@ -10,7 +10,7 @@ export function SettingsGear() {
   const active = isActiveLink('/settings', usePathname());
   return (
     <Link href="/settings" aria-label="Settings" aria-current={active ? 'page' : undefined}
-      className={`-mr-3 flex size-11 items-center justify-center rounded-[10px] no-underline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold sm:hidden ${active ? 'bg-gold-soft text-gold' : 'text-muted hover:text-ink'}`}>
+      className={`-mr-3 flex size-11 items-center justify-center rounded-[10px] no-underline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold lg:hidden ${active ? 'bg-gold-soft text-gold' : 'text-muted hover:text-ink'}`}>
       <BrandIcon name="settings" />
     </Link>
   );

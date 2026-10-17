@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { openTestDb } from '@/test/db';
+import { dungeonEncounters } from '../schema';
 import { getSeasonDungeon, getSeasonLoot, replaceSeason, updateSeasonArtwork, type SeasonData } from './season';
 
 const AH = 'https://cdn.raiderio.net/images/dungeons/alpha-hollow.jpg';
@@ -94,5 +96,18 @@ describe('updateSeasonArtwork', () => {
     await replaceSeason(db, data);
     expect((await getSeasonDungeon(db, 502))!.split).toBe(true);
     expect(await getSeasonDungeon(db, 999)).toBeNull();
+  });
+
+  it('returns the dungeon’s encounters by ID, and treats malformed section JSON as missing', async () => {
+    const db = await openTestDb();
+    const sections = [{ title: 'Overview', spellId: null, bodyText: 'Dodge it.', sections: [] }];
+    await replaceSeason(db, { ...data, encounters: [
+      { encounterId: 1, name: 'Hollow King', description: 'Lore.', sections },
+      { encounterId: 2, name: 'Market Warden', description: null, sections: [] },
+    ] });
+    const found = await getSeasonDungeon(db, 501);
+    expect([...found!.encounters.entries()]).toEqual([[1, { description: 'Lore.', sections }]]);
+    await db.update(dungeonEncounters).set({ sections: '{oops' }).where(eq(dungeonEncounters.encounterId, 1));
+    expect((await getSeasonDungeon(db, 501))!.encounters.size).toBe(0);
   });
 });
