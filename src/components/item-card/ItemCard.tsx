@@ -2,6 +2,7 @@ import type { Quality } from '@/core/types';
 import { QUALITY_STYLES } from './quality-styles';
 import { detailParts } from '@/components/shared/track-label';
 import { wowheadData } from './wowhead';
+import { Weight } from '@/components/weight/Weight';
 
 interface ItemCardProps {
   itemId: number;
@@ -15,10 +16,12 @@ interface ItemCardProps {
   stats?: string;
   /** Let the name and detail wrap onto more lines instead of clipping, for cards that must be read in full. */
   wrap?: boolean;
+  /** A dungeon priority weight, in gold in the upper right corner like a dungeon's score, where a long detail line can't push it out. */
+  weight?: number;
 }
 
 /** The whole card is the Wowhead link, so hovering anywhere on it shows the item tooltip. */
-export function ItemCard({ itemId, name, quality, iconUrl, bonusIds, itemLevel, detail, stats, wrap }: ItemCardProps) {
+export function ItemCard({ itemId, name, quality, iconUrl, bonusIds, itemLevel, detail, stats, wrap, weight }: ItemCardProps) {
   const q = QUALITY_STYLES[quality] ?? QUALITY_STYLES.COMMON;
   return (
     <a
@@ -33,7 +36,10 @@ export function ItemCard({ itemId, name, quality, iconUrl, bonusIds, itemLevel, 
         ? <img src={iconUrl} alt="" width={42} height={42} className="size-[42px] shrink-0 rounded-md border-2" style={{ borderColor: q.ring }} />
         : <span className="size-[42px] shrink-0 rounded-md border-2 bg-surface-2" style={{ borderColor: q.ring }} />}
       <span className="flex min-w-0 grow flex-col gap-0.5">
-        <span className={`${wrap ? 'wrap-anywhere' : 'truncate'} text-[15px] font-semibold`} style={{ color: q.text }}>{name}</span>
+        <span className="flex items-baseline justify-between gap-2">
+          <span className={`${wrap ? 'wrap-anywhere' : 'truncate'} min-w-0 text-[15px] font-semibold`} style={{ color: q.text }}>{name}</span>
+          {weight !== undefined && <Weight weight={weight} />}
+        </span>
         {detail && <Detail detail={detail} wrap={wrap} />}
         {stats && <span className={`${wrap ? 'wrap-anywhere' : 'truncate'} font-mono text-[13px] text-muted`}>{stats}</span>}
       </span>
