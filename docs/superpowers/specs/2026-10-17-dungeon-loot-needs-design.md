@@ -1,6 +1,6 @@
 # Dungeon loot: who wants each item
 
-Status: written for the unattended loop on 2026-10-17 after the owner asked to file and spec it; the owner reviews it with the pull request. Spec review round 1 (Codex) folded in: S1.1 needs come from a per-drop matcher, not the ranker's one credit per row; S1.2 tier BiS needs a verified stat match; S1.3 each need carries its reason and fit in words; S1.4 BiS lists use the Overall fallback; S1.5 overflow and spec names open with a disclosure, not a title; S1.6 the page says which characters it couldn't evaluate.
+Status: written for the unattended loop on 2026-10-17 after the owner asked to file and spec it; the owner reviews it with the pull request. Spec review round 1 (Codex) folded in: S1.1 needs come from a per-drop matcher, not the ranker's one credit per row; S1.2 tier BiS needs a verified stat match; S1.3 each need carries its reason and fit in words; S1.4 BiS lists use the Overall fallback; S1.5 overflow and spec names open with a disclosure, not a title; S1.6 the page says which characters it couldn't evaluate. Owner answer on #184 ("All of them"): demand sorting, need counts on boss banners and the group lens move into scope; Any rows stay out for the reason below.
 Date: 2026-10-17
 Issues: #184 (part of #45). Builds on the dungeon guide page (#159, merged).
 
@@ -17,10 +17,12 @@ In scope, from the owner's thread:
 - **Filter:** wanted drops only by default, with a switch to show every drop.
 - **Grid and list views,** chosen with the characters page's toggle and remembered.
 
-Out of scope, kept for follow-ups in #184 or new issues:
+- **Demand order:** wanted drops sorted by how many characters need them, then BiS spec count, then journal order.
+- **Need counts on boss banners:** each boss banner shows how many of its drops someone needs.
+- **Group lens:** "Everyone" or "My group", the group the group page remembers.
 
-- Sorting by demand and need counts on boss banners.
-- A group lens (needs of one group only).
+Out of scope:
+
 - Difficulty, upgrade track and item level (#174). Cards stay epic.
 - "Any" rows (Method rows that name a slot and a minimum item level, not an item). They fit nearly every drop of a slot, so they would mark half the table as wanted. They keep counting in the dungeon rankings, as today.
 
@@ -60,6 +62,24 @@ Nothing is fetched from Method or Blizzard here: specs without a stored list are
 - Wanted with nothing wanted after a full or partial evaluation: "Nothing here is wanted by the characters checked or your BiS lists." with a link to All drops. For a boss: "…from this boss."
 - The count of wanted drops shows on the switch: "Wanted (12)".
 
+### Demand order
+
+- In Wanted, items sort by `neededBy.length` (descending), then `bisFor.length` (descending), then journal order. In All drops, journal order as today, so the list reads like the in-game guide.
+- On the dungeon-wide Loot tab, each item's detail still names its boss.
+
+### Need counts on boss banners
+
+- `DungeonBossView` gains `neededCount`: how many of the boss's drops have a non-empty `neededBy` under the current lens. The banner shows it after the name as "3 needed" in `font-mono text-muted` (words, not a bare number), and nothing when 0 or when no character was evaluated.
+- The dungeon overview row shows the dungeon total the same way.
+
+### Group lens
+
+- New search param `who=group`. Missing or anything else: everyone. `parseGuideState` gains `who: 'all' | 'group'` with the same junk rules, and `guideHref` keeps it.
+- "My group" reads the remembered group from `GROUP_COOKIE` (`decodeGroupCookie`, as `resolveGroupRequest` does) and evaluates only those characters. No remembered group: the switch shows "My group" disabled-looking as a link to `/group` with the words "Pick a group first".
+- The lens switch sits beside the Wanted / All drops switch, styled the same, shows on the Loot tab and affects the banner counts on every tab.
+- `coverage` describes the characters of the lens.
+- BiS for is not filtered by the lens: it describes stored lists, not characters.
+
 ### Grid view (default)
 
 `ItemCard` stays the card; a new `LootCard` in `src/components/dungeon-page/` wraps it and adds two rows under it, inside the same bordered box:
@@ -85,8 +105,9 @@ Every need is words, every name is text, and spec icons carry class and spec as 
 
 - `drop-needs.test.ts` (pure): two same-slot tier candidates on different bosses both credited; same, unknown and different stats give `bis`, `unverified`, `alternative`; a wrong-stats tier row only takes `bis`; stats ignored gives `any`; a missing item row and a wrong-stats item row give `missing` and `wrongStats`; Any rows add nothing. BiS matcher: item row, tier with same stats, tier with different or unknown stats (not BiS), stats ignored (BiS), an override changing the target.
 - `dungeon-page.test.ts` (in-memory DB, made-up characters such as Birkibjörn): `neededBy` and `coverage` for a fully evaluated roster with needs, one with zero needs, a mixed roster, and an all-excluded roster; `bisFor` with an Overall-only stored list under default Mythic+ settings, an empty Raid list falling back, and a spec without a stored list left out.
-- `guide-state.test.ts`: `show` parsing and hrefs keeping it.
+- `guide-state.test.ts`: `show` and `who` parsing and hrefs keeping them.
+- Loader tests: demand order; `neededCount` per boss; the group lens limiting `neededBy`, `coverage` and counts to the remembered group; no remembered group.
 - `characters-view` parser test for the loot cookie, `ViewToggle` test for cookie and name props.
-- `DungeonPage.test.ts`: filter default hides unwanted items; "All drops" shows them; counts; the three coverage states and the empty state; need words for each reason and fit; more than three characters and more than six specs open in `<details>`; list view columns; spec labels as text.
+- `DungeonPage.test.ts`: banner need counts in words and hidden at 0; lens switch states including no remembered group; filter default hides unwanted items; "All drops" shows them; counts; the three coverage states and the empty state; need words for each reason and fit; more than three characters and more than six specs open in `<details>`; list view columns; spec labels as text.
 - Gate: typecheck, lint, test, build.
 - By hand on a DB copy: loot tab for a dungeon where a tracked character needs items, both views at 1440 and 375 px, filter switch, `<details>` opened by keyboard and tap, cookie remembered across reloads.

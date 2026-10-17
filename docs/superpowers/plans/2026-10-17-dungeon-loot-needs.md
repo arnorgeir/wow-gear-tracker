@@ -27,3 +27,9 @@ Spec: `docs/superpowers/specs/2026-10-17-dungeon-loot-needs-design.md` (the auth
 ## Gate
 
 `npm run typecheck && npm run lint && npm test && npm run build` in the worktree.
+
+## Added after the owner's answer ("All of them")
+
+- Task 2 also computes demand order, `neededCount` per boss and dungeon, and the group lens (reads `GROUP_COOKIE`; the route passes the cookie value in).
+- Task 3 also parses `who`.
+- Task 5 also renders banner counts and the lens switch.
