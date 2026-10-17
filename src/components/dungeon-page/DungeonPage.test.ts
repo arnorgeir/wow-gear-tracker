@@ -66,7 +66,7 @@ describe('boss abilities', () => {
   });
 
   it('shows a leaf ability with no text as a plain list item', () => {
-    expect(html).toMatch(/<li><span[^>]*>Lone Strike<\/span><\/li>/);
+    expect(html).toMatch(/<li[^>]*><span[^>]*>Lone Strike<\/span><\/li>/);
     expect(html.match(/<details/g)).toHaveLength(2);
   });
 });

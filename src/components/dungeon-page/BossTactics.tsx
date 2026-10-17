@@ -29,21 +29,22 @@ function AbilityName({ a }: { a: AbilityView }) {
   return a.spellId === null ? a.name : <SpellLink id={a.spellId}>{a.name}</SpellLink>;
 }
 
-function Abilities({ abilities }: { abilities: AbilityView[] }) {
+/** Top-level abilities sit in their own panels, like the role sections; nested ones are indented under them. */
+function Abilities({ abilities, top = false }: { abilities: AbilityView[]; top?: boolean }) {
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className={top ? 'flex flex-col gap-2' : 'flex flex-col gap-1.5 border-l border-line pl-3'}>
       {abilities.map((a, i) => (
-        <li key={i}>
+        <li key={i} className={top ? 'rounded-xl border border-line-strong bg-raised px-3 py-2' : undefined}>
           {a.blocks.length > 0 || a.abilities.length > 0 ? (
             <details open>
-              <summary className={`min-h-8 cursor-pointer font-bold ${FOCUS}`}><AbilityName a={a} /></summary>
-              <div className="flex flex-col gap-1 pb-1 pl-4 pt-1">
+              <summary className={`flex min-h-8 cursor-pointer items-center gap-1.5 font-semibold ${FOCUS}`}><AbilityName a={a} /></summary>
+              <div className="flex flex-col gap-1.5 pb-1 pt-1.5">
                 <Blocks blocks={a.blocks} />
                 {a.abilities.length > 0 && <Abilities abilities={a.abilities} />}
               </div>
             </details>
           ) : (
-            <span className="font-bold"><AbilityName a={a} /></span>
+            <span className="flex min-h-8 items-center font-semibold"><AbilityName a={a} /></span>
           )}
         </li>
       ))}
@@ -55,7 +56,7 @@ function Abilities({ abilities }: { abilities: AbilityView[] }) {
 export function BossOverview({ tactics }: { tactics: BossTacticsView | null }) {
   if (!tactics) return <p className="text-muted">No journal entry for this boss yet.</p>;
   return (
-    <div className="flex flex-col gap-3 text-sm">
+    <div className="flex flex-col gap-3 text-[15px]">
       {tactics.description && <p className="text-muted">{tactics.description}</p>}
       <Blocks blocks={tactics.overview} />
       {tactics.roles.map((r, i) => (
@@ -70,5 +71,10 @@ export function BossOverview({ tactics }: { tactics: BossTacticsView | null }) {
 
 export function BossAbilities({ tactics }: { tactics: BossTacticsView | null }) {
   if (!tactics || tactics.abilities.length === 0) return <p className="text-muted">No abilities in the journal for this boss yet.</p>;
-  return <div className="text-sm"><Abilities abilities={tactics.abilities} /></div>;
+  return (
+    <div className="flex flex-col gap-3 text-[15px]">
+      <p className="text-sm text-muted">Hover an ability for its full description.</p>
+      <Abilities abilities={tactics.abilities} top />
+    </div>
+  );
 }

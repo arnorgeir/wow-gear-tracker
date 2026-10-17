@@ -10,7 +10,7 @@ export function OverviewTab({ view, bossId }: { view: DungeonPageView; bossId: n
   if (boss) return <BossOverview tactics={boss.tactics} />;
   return (
     <div className="flex flex-col gap-4">
-      <DungeonThumbnail imageUrl={view.imageUrl} shortName={view.shortName} className="aspect-video w-full rounded-lg" />
+      <DungeonThumbnail imageUrl={view.imageUrl} shortName={view.shortName} className="aspect-video max-h-80 w-full rounded-lg" />
       <ul className="flex flex-col gap-3">
         {view.bosses.map((b) => (
           <li key={b.encounterId} className="flex flex-col gap-0.5">
