@@ -12,7 +12,7 @@ import { trackDisplay } from '@/components/shared/track-label';
 import { StateBadge } from '@/components/state-badge/StateBadge';
 import { UpgradeBadge } from '@/components/upgrade-badge/UpgradeBadge';
 import type { CharacterSummary, GearRowView } from '@/server/views/types';
-import { cardCoords } from './position';
+import { cardCoords } from '@/components/shared/popover-position';
 
 interface Props { id: string; tracksKnown: boolean; anchor: RefObject<HTMLElement | null>; cell: GearRowView; slotLabel: string; character: CharacterSummary | null; memberName: string }
 
