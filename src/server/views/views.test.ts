@@ -8,6 +8,7 @@ import type { CharacterPageView } from './types';
 import { upgradeFor } from './summarize';
 import { creditView, rowView } from './member';
 import type { GearRow } from '@/core/gear/evaluate';
+import { weekStart } from '@/core/vault/week';
 import { gearToSnapshotItems, saveSnapshotIfChanged } from '@/core/db/queries/snapshots';
 import { insertCharacter, updateCharacter } from '@/core/db/queries/characters';
 import { updateSpecSettings, upsertOverride } from '@/core/db/queries/bis-settings';
@@ -546,5 +547,39 @@ describe('item level', () => {
     await prime(s);
     const { cards: [card] } = await getCharacterCards(s);
     expect(card!.itemLevel).toBeNull();
+  });
+});
+
+describe('this week’s vault', () => {
+  const NOW = Date.UTC(2026, 9, 16, 12); // Friday, EU week started Wed 14 Oct 04:00 UTC
+  const START = weekStart('eu', NOW);
+  const vaultItem = (itemId: number, slot = 'NECK') => ({ location: 'vault' as const, slot, itemId, name: 'Vault ' + itemId, itemLevel: 330, quality: 'EPIC' as const, bonusIds: [], isTier: false, secondaryStats: null });
+  const worn = gearToSnapshotItems(gear);
+  const at = async (s: Services) => { s.now = () => NOW; await prime(s); return birkiPage(s); };
+
+  it('does not pass last week’s paste off as this week’s, and offers history', async () => {
+    const s = await services();
+    const id = await seed(s);
+    await saveSnapshotIfChanged(s.db, id, 'simc', [...worn, vaultItem(20)], START - 1000);
+    const page = await at(s);
+    expect(page).toMatchObject({ vaultChoicesAt: null, vaultChoices: [], vaultHistoryBefore: START });
+  });
+
+  it('shows a paste from this week, and no history without an earlier one', async () => {
+    const s = await services();
+    const id = await seed(s);
+    await saveSnapshotIfChanged(s.db, id, 'simc', [...worn, vaultItem(20)], START + 1000);
+    const page = await at(s);
+    expect(page.vaultChoices.map((v) => [v.itemId, v.isBis])).toEqual([[20, true]]);
+    expect(page).toMatchObject({ vaultChoicesAt: START + 1000, vaultHistoryBefore: null });
+  });
+
+  it('keeps last week’s time for an identical paste after the reset (known limit)', async () => {
+    const s = await services();
+    const id = await seed(s);
+    await saveSnapshotIfChanged(s.db, id, 'simc', [...worn, vaultItem(20)], START - 1000);
+    await saveSnapshotIfChanged(s.db, id, 'simc', [...worn, vaultItem(20)], START + 1000);
+    const page = await at(s);
+    expect(page.vaultChoicesAt).toBeNull();
   });
 });

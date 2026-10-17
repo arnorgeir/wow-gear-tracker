@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, exists, gte, lt } from 'drizzle-orm';
 import type { Db } from '../client';
 import { gearSnapshots, snapshotItems, snapshotCurrencies } from '../schema';
 import { type GearItem, type ItemLocation, type Quality, type SlotType, type SnapshotSource } from '../../types';
@@ -107,6 +107,26 @@ export async function getLatestSnapshot(db: Db, characterId: number, source?: Sn
     items: rows.map(({ location, slot, itemId, name, itemLevel, quality, bonusIds, isTier, secondaryStats }) =>
       ({ location, slot, itemId, name, itemLevel, quality, bonusIds, isTier, secondaryStats: decodeStats(secondaryStats) })),
     currencies: money.map(({ kind, currencyId, quantity }) => ({ kind, currencyId, quantity })),
+  };
+}
+
+/** The latest SimC paste with vault items, with only its vault items, created in [from, before). */
+export async function getLatestVaultPaste(
+  db: Db, characterId: number, range: { from?: number; before?: number },
+): Promise<{ createdAt: number; items: SnapshotItemInput[] } | null> {
+  const hasVault = db.select().from(snapshotItems).where(and(eq(snapshotItems.snapshotId, gearSnapshots.id), eq(snapshotItems.location, 'vault')));
+  const paste = await db.select().from(gearSnapshots).where(and(
+    eq(gearSnapshots.characterId, characterId), eq(gearSnapshots.source, 'simc'),
+    range.from === undefined ? undefined : gte(gearSnapshots.createdAt, range.from),
+    range.before === undefined ? undefined : lt(gearSnapshots.createdAt, range.before),
+    exists(hasVault),
+  )).orderBy(desc(gearSnapshots.createdAt), desc(gearSnapshots.id)).get();
+  if (!paste) return null;
+  const rows = await db.select().from(snapshotItems).where(and(eq(snapshotItems.snapshotId, paste.id), eq(snapshotItems.location, 'vault'))).orderBy(asc(snapshotItems.id));
+  return {
+    createdAt: paste.createdAt,
+    items: rows.map(({ location, slot, itemId, name, itemLevel, quality, bonusIds, isTier, secondaryStats }) =>
+      ({ location, slot, itemId, name, itemLevel, quality, bonusIds, isTier, secondaryStats: decodeStats(secondaryStats) })),
   };
 }
 

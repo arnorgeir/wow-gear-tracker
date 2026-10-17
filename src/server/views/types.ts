@@ -34,6 +34,14 @@ export interface VaultChoiceView extends ItemView {
   isBis: boolean;
 }
 
+/** One past week of Great Vault choices, as the character page's history shows it. */
+export interface VaultWeekView {
+  start: number;
+  label: string;
+  pastedAt: number;
+  choices: VaultChoiceView[];
+}
+
 export interface CrestView {
   balances: CrestBalance[];
   pastedAt: number;
@@ -107,6 +115,8 @@ export interface CharacterPageView extends CharacterSummary {
   vault: GearRowView[];
   vaultChoices: VaultChoiceView[];
   vaultChoicesAt: number | null;
+  /** This week's start when an earlier week has a vault paste, else null. */
+  vaultHistoryBefore: number | null;
   crests: CrestView | null;
   /** Rows an account override replaced on this spec's lists. */
   editedCount: number;

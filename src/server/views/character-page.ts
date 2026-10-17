@@ -1,4 +1,6 @@
 import type { MemberKey } from '@/core/characters/member-key';
+import { getLatestVaultPaste } from '@/core/db/queries/snapshots';
+import { weekStart } from '@/core/vault/week';
 import { findCharacterByKey } from '@/core/db/queries/characters';
 import { getSpec } from '@/core/db/queries/specs';
 import { crestCostsByGroup } from '@/core/gear/crests';
@@ -26,7 +28,7 @@ export async function getCharacterPage(services: Services, key: MemberKey): Prom
   const tracksRead = await readTracks(db, time);
   const { tracks } = tracksRead;
   const tracksKnown = tracks.size > 0;
-  const member = await loadMember({ db, tracks, bisFor: createBisLookup(db, time, services.currentAccountId()) }, character);
+  const member = await loadMember({ db, tracks, now: time, bisFor: createBisLookup(db, time, services.currentAccountId()) }, character);
   const { summary, gear, bis, choice } = member;
   const specs = await specsPromise;
   const classIcons = await ensureClassIcons({ db, blizzard, now: time }, character.region);
@@ -37,8 +39,11 @@ export async function getCharacterPage(services: Services, key: MemberKey): Prom
   const ranks = rankDungeons([priorityCharacter(member, tracks)], season.dungeons);
   const creditItemIds = ranks.flatMap((d) => d.characters.flatMap((c) => c.credits.flatMap((cr) => (cr.kind === 'any' ? [] : [cr.itemId]))));
 
-  const iconIds = [...gear.equipped.map((g) => g.itemId), ...gearRows.flatMap((r) => (r.row.kind === 'item' ? [r.row.itemId] : [])), ...member.vaultItems.map((i) => i.itemId), ...creditItemIds];
+  const iconIds = [...gear.equipped.map((g) => g.itemId), ...gearRows.flatMap((r) => (r.row.kind === 'item' ? [r.row.itemId] : [])), ...member.vault.items.map((i) => i.itemId), ...creditItemIds];
   const icons = await ensureItemIcons({ db, blizzard, now: time }, character.region, iconIds);
+
+  const thisWeek = weekStart(character.region, time);
+  const vaultHistoryBefore = (await getLatestVaultPaste(db, character.id, { before: thisWeek })) ? thisWeek : null;
 
   const rows = gearRows.map((r) => rowView(r, icons, costs, gear.balances, bis.targets));
 
@@ -48,8 +53,9 @@ export async function getCharacterPage(services: Services, key: MemberKey): Prom
     listType: choice.listType,
     rows,
     vault: rows.filter((r) => r.state === 'belowMyth'),
-    vaultChoices: vaultChoicesFor(member.vaultItems, bis.lists?.[choice.listType] ?? [], icons, tracks),
-    vaultChoicesAt: gear.simc?.createdAt ?? null,
+    vaultChoices: vaultChoicesFor(member.vault.items, bis.lists?.[choice.listType] ?? [], icons, tracks),
+    vaultChoicesAt: member.vault.pastedAt,
+    vaultHistoryBefore,
     crests: crestView(gear, costs),
     editedCount: bis.editedCount,
     doneCount: rows.filter((r) => r.state === 'done').length,

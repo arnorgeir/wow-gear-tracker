@@ -34,7 +34,7 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
   const loaded: Loaded[] = [];
   for (const key of selected) {
     const character = findByMemberKey(all, key) ?? null;
-    const data = character ? await loadMember({ db, tracks, bisFor }, character, classIcons) : null;
+    const data = character ? await loadMember({ db, tracks, now: time, bisFor }, character, classIcons) : null;
     const state = memberState(character, data?.gear.current != null);
     const hasRows = (data?.priorityRows.length ?? 0) > 0;
     const bisLoading = data?.bis.status === 'loading';
@@ -66,7 +66,7 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
   const iconIds = loaded.flatMap(({ data }) => (data ? [
     ...data.gear.equipped.map((g) => g.itemId),
     ...data.priorityRows.flatMap((r) => (r.row.kind === 'item' ? [r.row.itemId] : [])),
-    ...data.vaultItems.map((i) => i.itemId),
+    ...data.vault.items.map((i) => i.itemId),
   ] : []));
   const creditIds = (ranks ?? []).flatMap((d) => d.characters.flatMap((c) => c.credits.flatMap((cr) => (cr.kind === 'any' ? [] : [cr.itemId]))));
   const icons = await ensureItemIcons({ db, blizzard, now: time }, region ?? 'eu', [...iconIds, ...creditIds]);
@@ -116,8 +116,8 @@ export async function getGroupPage(services: Services, keys: MemberKey[]): Promi
       className: view.character!.className,
       avatarUrl: view.character!.avatarUrl,
       classIconUrl: view.character!.classIconUrl,
-      pastedAt: data.gear.simc?.createdAt ?? null,
-      choices: vaultChoicesFor(data.vaultItems, data.bis.lists?.[data.choice.listType] ?? [], icons, tracks),
+      pastedAt: data.vault.pastedAt,
+      choices: vaultChoicesFor(data.vault.items, data.bis.lists?.[data.choice.listType] ?? [], icons, tracks),
     }] : [])),
     dropped: dropped.map((k) => ({ name: findByMemberKey(all, k)?.name ?? k.nameKey, region: k.region })),
     available: all
