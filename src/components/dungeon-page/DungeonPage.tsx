@@ -9,7 +9,7 @@ import { LootTab } from './LootTab';
 import { OverviewTab } from './OverviewTab';
 
 /** One season dungeon as an open book: boss index on the left page, the chosen boss or dungeon on the right, tab ribbons on its edge. */
-export function DungeonPage({ view, state }: { view: DungeonPageView; state: GuideState }) {
+export function DungeonPage({ view, state, layout = 'grid' }: { view: DungeonPageView; state: GuideState; layout?: 'grid' | 'list' }) {
   const boss = view.bosses.find((b) => b.encounterId === state.boss);
   return (
     <>
@@ -24,7 +24,7 @@ export function DungeonPage({ view, state }: { view: DungeonPageView; state: Gui
           <div className="lg:order-last"><GuideTabs dungeonId={view.challengeModeId} state={state} /></div>
           <section aria-labelledby="guide-title" className="flex min-w-0 flex-1 flex-col gap-4 p-4 lg:p-6">
             <h2 id="guide-title" className="font-display text-2xl font-bold">{boss?.name ?? view.name}</h2>
-            {state.tab === 'loot' ? <LootTab view={view} bossId={state.boss} />
+            {state.tab === 'loot' ? <LootTab view={view} state={state} layout={layout} />
               : state.tab === 'abilities' && boss ? <BossAbilities tactics={boss.tactics} />
               : <OverviewTab view={view} bossId={state.boss} keep={state} />}
           </section>

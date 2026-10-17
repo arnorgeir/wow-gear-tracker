@@ -1,9 +1,11 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
-import type { BossTacticsView, DungeonPageView } from '@/server/views/types';
+import { describe, expect, it, vi } from 'vitest';
+import type { BossTacticsView, DungeonPageView, LootBisView, LootNeedView } from '@/server/views/types';
 import { DungeonPage } from './DungeonPage';
 import type { GuideState } from './guide-state';
+
+vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: () => {}, refresh: () => {}, push: () => {} }) }));
 
 const render = (v: DungeonPageView, state: Pick<GuideState, 'boss' | 'tab'> & Partial<GuideState> = { boss: null, tab: 'overview' }) =>
   renderToStaticMarkup(createElement(DungeonPage, { view: v, state: { show: 'wanted', who: 'all', ...state } })).replace(/<link[^>]*\/>/g, '');
@@ -54,7 +56,7 @@ describe('boss overview', () => {
   it('says so when the boss has no journal entry, and the loot tab still lists its items', () => {
     const empty = render(view, { boss: 9, tab: 'overview' });
     expect(empty).toContain('No journal entry for this boss yet.');
-    expect(render(view, { boss: 9, tab: 'loot' })).toContain('Hollow Robe');
+    expect(render(view, { boss: 9, tab: 'loot', show: 'all' })).toContain('Hollow Robe');
   });
 });
 
@@ -108,7 +110,7 @@ describe('DungeonPage', () => {
     expect(loot).toMatch(/bg-gold-soft/);
     expect(loot).toMatch(/shadow-\[inset/);
     expect(boss).toMatch(/<a[^>]*href="\/dungeons\/501\?boss=3&amp;tab=abilities"[^>]*>Abilities<\/a>/);
-    expect(boss.match(/aria-current="page"/g)).toHaveLength(3); // breadcrumb, banner, ribbon
+    expect(boss.match(/aria-current="page"/g)).toHaveLength(5); // breadcrumb, banner, ribbon, and the Wanted and Everyone switches
   });
 
   it('keeps the tab when moving to another boss', () => {
@@ -122,12 +124,12 @@ describe('DungeonPage', () => {
   });
 
   it('lists every item on the dungeon loot tab with its boss, and one boss only on a boss', () => {
-    const all = render(view, { boss: null, tab: 'loot' });
+    const all = render(view, { boss: null, tab: 'loot', show: 'all' });
     expect([...all.matchAll(/href="https:\/\/www\.wowhead\.com\/item=(\d+)"/g)].map((m) => m[1])).toEqual(['100', '101', '102']);
     expect(all).toContain('Leather chest, First Boss');
     expect(all).toContain('Trinket, First Boss');
     expect(all).toContain('Plate head, Second Boss');
-    const one = render(view, { boss: 3, tab: 'loot' });
+    const one = render(view, { boss: 3, tab: 'loot', show: 'all' });
     expect([...one.matchAll(/href="https:\/\/www\.wowhead\.com\/item=(\d+)"/g)].map((m) => m[1])).toEqual(['102']);
     expect(one).toContain('Plate head');
     expect(one).not.toContain('Plate head, ');
@@ -142,8 +144,133 @@ describe('DungeonPage', () => {
   });
 
   it('shows a stats line only for an item with stats', () => {
-    const html = render(view, { boss: null, tab: 'loot' });
+    const html = render(view, { boss: null, tab: 'loot', show: 'all' });
     expect(html).toContain('Haste/Mastery');
     expect(html.match(/Haste\/Mastery|Vers|Crit/g)).toHaveLength(1);
+  });
+});
+
+describe('loot needs', () => {
+  const need = (name: string, extra: Partial<LootNeedView> = {}): LootNeedView =>
+    ({ key: `eu.argent-dawn.${name.toLowerCase()}`, name, className: 'Druid', avatarUrl: null, classIconUrl: null, slotLabel: 'Ring', via: 'drop', reason: 'missing', ...extra });
+  const spec = (n: number): LootBisView => ({ slug: `spec-${n}`, label: `Spec ${n} Druid`, className: 'Druid', iconUrl: null });
+  const base = (): DungeonPageView => ({
+    ...view,
+    neededCount: 2,
+    bosses: [
+      { ...view.bosses[0]!, neededCount: 2, items: [
+        { ...view.bosses[0]!.items[0]!, neededBy: [need('Birkibjörn'), need('Sólrún', { via: 'catalyst', fit: 'unverified' })], bisFor: [spec(1)] },
+        { ...view.bosses[0]!.items[1]!, neededBy: [need('Hrafnhildur', { reason: 'wrongStats' })], bisFor: [] },
+      ] },
+      { ...view.bosses[1]!, neededCount: 0 },
+    ],
+  });
+  const loot = (v: DungeonPageView, state: Partial<GuideState> = {}, layout: 'grid' | 'list' = 'grid') =>
+    renderToStaticMarkup(createElement(DungeonPage, { view: v, layout, state: { boss: null, tab: 'loot', show: 'wanted', who: 'all', ...state } })).replace(/<link[^>]*\/>/g, '');
+
+  it('shows need counts in words on banners and the overview row, and nothing at zero', () => {
+    const html = loot(base());
+    expect(html).toMatch(/Dungeon overview<\/span><span[^>]*>2 needed</);
+    expect(html).toMatch(/First Boss<\/span><span[^>]*>2 needed</);
+    expect(html).not.toMatch(/Second Boss<\/span><span[^>]*>0 needed/);
+    expect(html.match(/ needed</g)).toHaveLength(2);
+    expect(loot({ ...base(), neededCount: 0, bosses: base().bosses.map((b) => ({ ...b, neededCount: 0 })) })).not.toContain(' needed<');
+  });
+
+  it('shows the lens switch with Everyone current, and My group as a link', () => {
+    const html = loot({ ...base(), lens: { who: 'all', groupRemembered: true } });
+    expect(html).toMatch(/<a[^>]*aria-current="page"[^>]*>Everyone<\/a>/);
+    expect(html).toMatch(/<a[^>]*href="\/dungeons\/501\?tab=loot&amp;who=group"[^>]*>My group<\/a>/);
+    const group = loot({ ...base(), lens: { who: 'group', groupRemembered: true } }, { who: 'group' });
+    expect(group).toMatch(/<a[^>]*aria-current="page"[^>]*>My group<\/a>/);
+  });
+
+  it('sends My group to the group page when no group is remembered', () => {
+    const html = loot(base());
+    expect(html).toMatch(/<a[^>]*href="\/group"[^>]*>My group<\/a>/);
+    expect(html).toContain('Pick a group first');
+  });
+
+  it('shows wanted drops by default with the count on the switch, and every drop on request', () => {
+    const wanted = loot(base());
+    expect([...wanted.matchAll(/href="https:\/\/www\.wowhead\.com\/item=(\d+)"/g)].map((m) => m[1])).toEqual(['100', '101']);
+    expect(wanted).toMatch(/<a[^>]*aria-current="page"[^>]*>Wanted \(2\)<\/a>/);
+    expect(wanted).toMatch(/<a[^>]*href="\/dungeons\/501\?tab=loot&amp;show=all"[^>]*>All drops<\/a>/);
+    const all = loot(base(), { show: 'all' });
+    expect([...all.matchAll(/href="https:\/\/www\.wowhead\.com\/item=(\d+)"/g)].map((m) => m[1])).toEqual(['100', '101', '102']);
+    expect(all).toMatch(/<a[^>]*aria-current="page"[^>]*>All drops<\/a>/);
+  });
+
+  it('words each need, with the route and the stat caveat', () => {
+    const html = loot(base());
+    expect(html).toContain('Needed by');
+    expect(html).toContain('Birkibjörn');
+    expect(html).toContain('via Catalyst, stats unverified');
+    expect(html).toContain('has wrong stats');
+  });
+
+  it('puts characters past the third and specs past the sixth in a disclosure', () => {
+    const v = base();
+    v.bosses[0]!.items[0] = { ...v.bosses[0]!.items[0]!, neededBy: ['Ásta', 'Birkibjörn', 'Hrafnhildur', 'Sólrún'].map((n) => need(n)), bisFor: [1, 2, 3, 4, 5, 6, 7].map(spec) };
+    const html = loot(v);
+    expect(html).toMatch(/<summary[^>]*>\+1 more<\/summary>/);
+    expect(html).toMatch(/<summary[^>]*>BiS for 7 specs<\/summary>/);
+    expect(html).toMatch(/<details[^>]*>(?:(?!<\/details>)[\s\S])*Spec 7 Druid/);
+    expect(html.match(/class="sr-only">Spec \d Druid</g)).toHaveLength(6);
+    expect(loot(base())).toMatch(/<summary[^>]*>BiS for 1 spec<\/summary>/);
+    expect(loot(base()).match(/\+\d+ more/g)).toBeNull();
+  });
+
+  it('leaves out a row with nothing to show', () => {
+    const html = loot(base(), { boss: 9 });
+    expect(html.match(/>BiS for</g)).toHaveLength(1);
+    expect(html.match(/>Needed by</g)).toHaveLength(2);
+  });
+
+  it('says nobody could be checked, with each name and reason, and still shows BiS for', () => {
+    const v = base();
+    v.coverage = { evaluated: 0, excluded: [{ name: 'Birkibjörn', reason: 'syncing' }, { name: 'Sólrún', reason: 'no gear yet' }] };
+    v.bosses[0]!.items = v.bosses[0]!.items.map((i) => ({ ...i, neededBy: [] }));
+    const html = loot(v);
+    expect(html).toContain('No character could be checked yet.');
+    expect(html).toContain('Birkibjörn (syncing), Sólrún (no gear yet)');
+    expect(html).toContain('BiS for 1 spec');
+  });
+
+  it('names the characters it left out as one muted line', () => {
+    const v = base();
+    v.coverage = { evaluated: 1, excluded: [{ name: 'Birkibjörn', reason: 'syncing' }] };
+    const html = loot(v);
+    expect(html).toContain('Not checked: Birkibjörn (syncing).');
+    expect(html).not.toContain('No character could be checked yet.');
+  });
+
+  it('explains an empty Wanted list and links to All drops', () => {
+    const v = base();
+    v.bosses[0]!.items = v.bosses[0]!.items.map((i) => ({ ...i, neededBy: [], bisFor: [] }));
+    const html = loot(v);
+    expect(html).toContain('Nothing here is wanted by the characters checked or your BiS lists.');
+    expect(html).toMatch(/<a[^>]*href="\/dungeons\/501\?tab=loot&amp;show=all"[^>]*>All drops<\/a>/);
+    expect(loot(v, { boss: 9 })).toContain('Nothing from this boss is wanted by the characters checked or your BiS lists.');
+    expect(loot(v, { show: 'all' })).not.toContain('Nothing here is wanted');
+  });
+
+  it('lists in rows with column headers and the spec names as text', () => {
+    const html = loot(base(), {}, 'list');
+    expect([...html.matchAll(/role="columnheader"[^>]*>([^<]*)</g)].map((m) => m[1])).toEqual(['Item', 'Needed by', 'BiS for']);
+    expect(html).toContain('Spec 1 Druid');
+    expect(html).toContain('Birkibjörn');
+    expect(html.match(/role="row"/g)).toHaveLength(3);
+  });
+
+  it('shows the layout toggle on the loot tab only, remembered under its own name', () => {
+    expect(loot(base())).toContain('name="dungeon-loot-view"');
+    expect(render(base(), { boss: null, tab: 'overview' })).not.toContain('dungeon-loot-view');
+  });
+
+  it('keeps the filter and lens when moving between bosses and tabs', () => {
+    const html = loot(base(), { show: 'all', who: 'group' });
+    expect(html).toContain('href="/dungeons/501?boss=3&amp;tab=loot&amp;show=all&amp;who=group"');
+    expect(html).toContain('href="/dungeons/501?show=all&amp;who=group"');
   });
 });

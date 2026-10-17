@@ -7,6 +7,9 @@ const ROW = 'flex shrink-0 items-center gap-3 rounded-lg border px-3 py-2.5 no-u
 const CHOSEN = 'border-gold-line bg-gold-soft text-gold';
 const IDLE = 'border-transparent hover:bg-surface-2';
 
+/** How many drops someone needs, in words; nothing at zero. */
+const NeededCount = ({ count }: { count: number }) => (count > 0 ? <span className="font-mono text-sm text-muted">{`${count} needed`}</span> : null);
+
 /** The left page: the dungeon's heading, an Overview row, then one banner per boss in journal order. */
 export function BossIndex({ view, state }: { view: DungeonPageView; state: GuideState }) {
   return (
@@ -19,6 +22,7 @@ export function BossIndex({ view, state }: { view: DungeonPageView; state: Guide
         <Link href={guideHref(view.challengeModeId, { ...state, boss: null })} aria-current={state.boss === null ? 'page' : undefined}
           className={`${ROW} ${state.boss === null ? CHOSEN : IDLE}`}>
           <span className="font-display font-bold">Dungeon overview</span>
+          <NeededCount count={view.neededCount} />
         </Link>
         {view.bosses.map((boss, i) => {
           const chosen = state.boss === boss.encounterId;
@@ -27,6 +31,7 @@ export function BossIndex({ view, state }: { view: DungeonPageView; state: Guide
               aria-current={chosen ? 'page' : undefined} className={`${ROW} ${chosen ? CHOSEN : IDLE}`}>
               <span className={`font-mono text-sm ${chosen ? 'text-gold' : 'text-muted'}`}>{i + 1}</span>
               <span className="font-display font-bold">{boss.name}</span>
+              <NeededCount count={boss.neededCount} />
             </Link>
           );
         })}
