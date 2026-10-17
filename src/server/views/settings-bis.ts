@@ -11,7 +11,7 @@ import { chipOf, fetchStateOf, specIconOf, trackedSlug } from './settings-shared
 import type { PickerSpecView, SpecPickerView } from './types';
 
 /** Every spec Blizzard knows, or just the tracked ones until the spec catalog has been fetched. */
-function specRows(catalog: SpecRow[], characters: CharacterRow[]): SpecRow[] {
+export function specRows(catalog: SpecRow[], characters: CharacterRow[]): SpecRow[] {
   if (catalog.length > 0) return catalog;
   return [...new Map(characters.map((c) => [trackedSlug(c), { methodSlug: trackedSlug(c), classId: 0, className: c.className, specName: c.specOverride || c.specName, iconUrl: null }])).values()];
 }

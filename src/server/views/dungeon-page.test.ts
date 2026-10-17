@@ -4,6 +4,12 @@ import { replaceSeason, type DungeonLootRow, type EncounterRow } from '@/core/db
 import { upsertItemIcons } from '@/core/db/queries/media';
 import type { JournalSection } from '@/core/types';
 import type { Services } from '../services';
+import { insertCharacter, updateCharacter } from '@/core/db/queries/characters';
+import { replaceBisLists } from '@/core/db/queries/bis-lists';
+import { updateSpecSettings } from '@/core/db/queries/bis-settings';
+import { replaceSpecs } from '@/core/db/queries/specs';
+import { gearToSnapshotItems, saveSnapshotIfChanged } from '@/core/db/queries/snapshots';
+import type { BisLists, BisRow, GearItem } from '@/core/types';
 import { getDungeonPage } from './dungeon-page';
 
 const loot = (encounterId: number, encounterName: string, itemId: number, extra: Partial<DungeonLootRow> = {}): DungeonLootRow =>
@@ -21,7 +27,7 @@ async function setup(rows: DungeonLootRow[], encounters?: EncounterRow[]) {
     loot: rows,
     encounters,
   });
-  return { db } as unknown as Services;
+  return { db, now: () => 10_000_000, currentAccountId: () => 1 } as unknown as Services;
 }
 
 const node = (title: string, spellId: number | null, bodyText: string | null, sections: JournalSection[] = []): JournalSection => ({ title, spellId, bodyText, sections });
@@ -91,5 +97,132 @@ describe('getDungeonPage', () => {
     const s = await setup([loot(1, 'Boss', 1, { challengeModeId: 502 })]);
     expect((await getDungeonPage(s, 502))!.split).toBe(true);
     expect(await getDungeonPage(s, 999)).toBeNull();
+  });
+});
+
+const ring = (itemId: number): BisRow => ({ kind: 'item', slotLabel: 'Ring', slots: ['FINGER_1', 'FINGER_2'], itemId, name: `Item ${itemId}`, bonusIds: [], isTier: false, isCatalyst: false, source: 'Alpha Hollow' });
+const worn = (slot: GearItem['slot'], itemId: number): GearItem => ({ slot, itemId, name: `Worn ${itemId}`, itemLevel: 300, quality: 'EPIC', bonusIds: [], isTier: false });
+const lists = (overall: BisRow[], mythicPlus: BisRow[] = []): BisLists => ({ overall, raid: [], mythicPlus });
+
+async function track(s: Services, name: string, className: string, specName: string, gear: GearItem[] | null) {
+  const { id } = await insertCharacter(s.db, { region: 'eu', realmId: 1, realmSlug: 'argent-dawn', realmName: 'Argent Dawn', name, className, specName }, 1);
+  if (gear) {
+    await saveSnapshotIfChanged(s.db, id, 'blizzard', gearToSnapshotItems(gear), 500);
+    await updateCharacter(s.db, id, { lastSyncedAt: s.now() });
+  }
+}
+
+const drops = [
+  loot(1, 'Boss One', 41, { inventoryType: 'FINGER', armorType: null }),
+  loot(1, 'Boss One', 70, { inventoryType: 'TWOHWEAPON', armorType: null }),
+  loot(2, 'Boss Two', 61, { inventoryType: 'HOLDABLE', armorType: null }),
+];
+const neededNames = (view: Awaited<ReturnType<typeof getDungeonPage>>) => view!.bosses.flatMap((b) => b.items.map((i) => [i.itemId, i.neededBy.map((n) => n.name)] as const));
+
+describe('getDungeonPage needs', () => {
+  it('lists who needs each drop, counts them per boss and dungeon, and covers the roster', async () => {
+    const s = await setup(drops);
+    await replaceBisLists(s.db, 'method', 'guardian-druid', lists([], [ring(40), ring(41)]), 1);
+    await track(s, 'Birkibjörn', 'Druid', 'Guardian', [worn('FINGER_1', 42), worn('FINGER_2', 40)]);
+    const view = await getDungeonPage(s, 501);
+    expect(neededNames(view)).toEqual([[41, ['Birkibjörn']], [70, []], [61, []]]);
+    expect(view!.bosses[0]!.items[0]!.neededBy[0]).toMatchObject({ key: 'eu.argent-dawn.birkibjörn', className: 'Druid', slotLabel: 'Ring', via: 'drop', reason: 'missing' });
+    expect(view!.bosses.map((b) => b.neededCount)).toEqual([1, 0]);
+    expect(view).toMatchObject({ neededCount: 1, coverage: { evaluated: 1, excluded: [] }, lens: { who: 'all', groupRemembered: false } });
+  });
+
+  it('shows no needs for a roster that has everything', async () => {
+    const s = await setup(drops);
+    await replaceBisLists(s.db, 'method', 'guardian-druid', lists([], [ring(40), ring(41)]), 1);
+    await track(s, 'Birkibjörn', 'Druid', 'Guardian', [worn('FINGER_1', 41), worn('FINGER_2', 40)]);
+    const view = await getDungeonPage(s, 501);
+    expect(neededNames(view).every(([, who]) => who.length === 0)).toBe(true);
+    expect(view).toMatchObject({ neededCount: 0, coverage: { evaluated: 1, excluded: [] } });
+  });
+
+  it('checks the characters it can and names the rest with a reason', async () => {
+    const s = await setup(drops);
+    await replaceBisLists(s.db, 'method', 'guardian-druid', lists([], [ring(40), ring(41)]), 1);
+    await track(s, 'Birkibjörn', 'Druid', 'Guardian', [worn('FINGER_1', 42), worn('FINGER_2', 40)]);
+    await track(s, 'Sólrún', 'Druid', 'Guardian', null);
+    const view = await getDungeonPage(s, 501);
+    expect(view!.coverage).toEqual({ evaluated: 1, excluded: [{ name: 'Sólrún', reason: 'syncing' }] });
+    expect(neededNames(view)[0]).toEqual([41, ['Birkibjörn']]);
+  });
+
+  it('evaluates nobody when every character is left out, or none is tracked', async () => {
+    const s = await setup(drops);
+    await track(s, 'Sólrún', 'Druid', 'Guardian', null);
+    const view = await getDungeonPage(s, 501);
+    expect(view).toMatchObject({ neededCount: 0, coverage: { evaluated: 0, excluded: [{ name: 'Sólrún', reason: 'syncing' }] } });
+    expect(neededNames(view).every(([, who]) => who.length === 0)).toBe(true);
+    expect((await getDungeonPage(await setup(drops), 501))!.coverage).toEqual({ evaluated: 0, excluded: [] });
+  });
+});
+
+describe('getDungeonPage BiS for', () => {
+  const specs = [
+    { methodSlug: 'guardian-druid', classId: 11, className: 'Druid', specName: 'Guardian', iconUrl: 'https://render/guardian.jpg' },
+    { methodSlug: 'feral-druid', classId: 11, className: 'Druid', specName: 'Feral', iconUrl: null },
+    { methodSlug: 'protection-warrior', classId: 1, className: 'Warrior', specName: 'Protection', iconUrl: null },
+    { methodSlug: 'balance-druid', classId: 11, className: 'Druid', specName: 'Balance', iconUrl: null },
+  ];
+
+  it('names the specs whose stored list holds the drop, falling back to Overall, ordered by class then spec', async () => {
+    const s = await setup(drops);
+    await replaceSpecs(s.db, specs, 1);
+    await replaceBisLists(s.db, 'method', 'guardian-druid', lists([ring(41)]), 1);
+    await replaceBisLists(s.db, 'method', 'feral-druid', lists([ring(41)]), 1);
+    await replaceBisLists(s.db, 'method', 'protection-warrior', lists([{ ...ring(70), slots: ['MAIN_HAND'], slotLabel: 'Main Hand' }]), 1);
+    await updateSpecSettings(s.db, 1, 'protection-warrior', { listType: 'raid' });
+    const view = await getDungeonPage(s, 501);
+    const [a, b] = view!.bosses[0]!.items;
+    expect(a!.bisFor).toEqual([
+      { slug: 'feral-druid', label: 'Feral Druid', className: 'Druid', iconUrl: null },
+      { slug: 'guardian-druid', label: 'Guardian Druid', className: 'Druid', iconUrl: 'https://render/guardian.jpg' },
+    ]);
+    expect(b!.bisFor.map((x) => x.slug)).toEqual(['protection-warrior']);
+    expect(view!.bosses[1]!.items[0]!.bisFor).toEqual([]);
+  });
+
+  it('uses the tracked specs when the spec catalog is not loaded', async () => {
+    const s = await setup(drops);
+    await replaceBisLists(s.db, 'method', 'guardian-druid', lists([ring(41)]), 1);
+    await track(s, 'Birkibjörn', 'Druid', 'Guardian', [worn('FINGER_1', 41)]);
+    expect((await getDungeonPage(s, 501))!.bosses[0]!.items[0]!.bisFor).toMatchObject([{ slug: 'guardian-druid', label: 'Guardian Druid' }]);
+  });
+});
+
+describe('getDungeonPage lens', () => {
+  const cookie = encodeURIComponent('eu.argent-dawn.birkibjörn');
+  async function roster() {
+    const s = await setup(drops);
+    await replaceBisLists(s.db, 'method', 'guardian-druid', lists([], [ring(40), ring(41)]), 1);
+    await track(s, 'Birkibjörn', 'Druid', 'Guardian', [worn('FINGER_1', 42), worn('FINGER_2', 40)]);
+    await track(s, 'Sólrún', 'Druid', 'Guardian', [worn('FINGER_1', 42), worn('FINGER_2', 40)]);
+    return s;
+  }
+
+  it('limits needs, coverage and counts to the remembered group', async () => {
+    const view = await getDungeonPage(await roster(), 501, { who: 'group', groupCookie: cookie });
+    expect(neededNames(view)[0]).toEqual([41, ['Birkibjörn']]);
+    expect(view).toMatchObject({ coverage: { evaluated: 1, excluded: [] }, lens: { who: 'group', groupRemembered: true } });
+  });
+
+  it('names a remembered member the app does not track', async () => {
+    const view = await getDungeonPage(await roster(), 501, { who: 'group', groupCookie: encodeURIComponent('eu.argent-dawn.birkibjörn,eu.argent-dawn.fenrir') });
+    expect(view!.coverage).toEqual({ evaluated: 1, excluded: [{ name: 'fenrir', reason: 'not tracked' }] });
+  });
+
+  it('shows everyone when the group lens is asked for without a remembered group', async () => {
+    const view = await getDungeonPage(await roster(), 501, { who: 'group' });
+    expect(neededNames(view)[0]).toEqual([41, ['Birkibjörn', 'Sólrún']]);
+    expect(view!.lens).toEqual({ who: 'all', groupRemembered: false });
+  });
+
+  it('keeps the remembered group known while showing everyone', async () => {
+    const view = await getDungeonPage(await roster(), 501, { who: 'all', groupCookie: cookie });
+    expect(neededNames(view)[0]).toEqual([41, ['Birkibjörn', 'Sólrún']]);
+    expect(view!.lens).toEqual({ who: 'all', groupRemembered: true });
   });
 });

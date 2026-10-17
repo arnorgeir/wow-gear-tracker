@@ -9,12 +9,13 @@ const render = (v: DungeonPageView, state: GuideState = { boss: null, tab: 'over
   renderToStaticMarkup(createElement(DungeonPage, { view: v, state })).replace(/<link[^>]*\/>/g, '');
 const view: DungeonPageView = {
   challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: null, split: false,
+  neededCount: 0, coverage: { evaluated: 0, excluded: [] }, lens: { who: 'all', groupRemembered: false },
   bosses: [
     { encounterId: 9, name: 'First Boss', items: [
-      { itemId: 100, name: 'Hollow Robe', quality: 'EPIC', iconUrl: null, inventoryType: 'ROBE', armorType: 'leather', stats: ['HASTE_RATING', 'MASTERY_RATING'] },
-      { itemId: 101, name: 'Vanished Charm', quality: 'EPIC', iconUrl: null, inventoryType: 'TRINKET', armorType: null, stats: null },
-    ], tactics: null },
-    { encounterId: 3, name: 'Second Boss', items: [{ itemId: 102, name: 'Warden Helm', quality: 'EPIC', iconUrl: null, inventoryType: 'HEAD', armorType: 'plate', stats: null }], tactics: null },
+      { itemId: 100, name: 'Hollow Robe', quality: 'EPIC', iconUrl: null, inventoryType: 'ROBE', armorType: 'leather', stats: ['HASTE_RATING', 'MASTERY_RATING'], neededBy: [], bisFor: [] },
+      { itemId: 101, name: 'Vanished Charm', quality: 'EPIC', iconUrl: null, inventoryType: 'TRINKET', armorType: null, stats: null, neededBy: [], bisFor: [] },
+    ], tactics: null, neededCount: 0 },
+    { encounterId: 3, name: 'Second Boss', items: [{ itemId: 102, name: 'Warden Helm', quality: 'EPIC', iconUrl: null, inventoryType: 'HEAD', armorType: 'plate', stats: null, neededBy: [], bisFor: [] }], tactics: null, neededCount: 0 },
   ],
 };
 
