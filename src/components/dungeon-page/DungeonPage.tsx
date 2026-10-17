@@ -13,7 +13,7 @@ export function DungeonPage({ view, state }: { view: DungeonPageView; state: Gui
   const boss = view.bosses.find((b) => b.encounterId === state.boss);
   return (
     <>
-      <Breadcrumb dungeonId={view.challengeModeId} dungeonName={view.name} bossName={boss?.name ?? null} />
+      <Breadcrumb dungeonId={view.challengeModeId} dungeonName={view.name} bossName={boss?.name ?? null} keep={state} />
       {view.split && <p className="text-sm text-muted">{SPLIT_DUNGEON}</p>}
       <div className="flex flex-col overflow-hidden rounded-xl border border-line-strong bg-surface lg:flex-row">
         {/* The spine: a hairline with a soft shadow falling away on each page. The page's one flourish. */}
@@ -26,7 +26,7 @@ export function DungeonPage({ view, state }: { view: DungeonPageView; state: Gui
             <h2 id="guide-title" className="font-display text-2xl font-bold">{boss?.name ?? view.name}</h2>
             {state.tab === 'loot' ? <LootTab view={view} bossId={state.boss} />
               : state.tab === 'abilities' && boss ? <BossAbilities tactics={boss.tactics} />
-              : <OverviewTab view={view} bossId={state.boss} />}
+              : <OverviewTab view={view} bossId={state.boss} keep={state} />}
           </section>
         </div>
       </div>

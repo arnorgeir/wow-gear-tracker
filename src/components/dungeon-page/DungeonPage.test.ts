@@ -5,8 +5,8 @@ import type { BossTacticsView, DungeonPageView } from '@/server/views/types';
 import { DungeonPage } from './DungeonPage';
 import type { GuideState } from './guide-state';
 
-const render = (v: DungeonPageView, state: GuideState = { boss: null, tab: 'overview' }) =>
-  renderToStaticMarkup(createElement(DungeonPage, { view: v, state })).replace(/<link[^>]*\/>/g, '');
+const render = (v: DungeonPageView, state: Pick<GuideState, 'boss' | 'tab'> & Partial<GuideState> = { boss: null, tab: 'overview' }) =>
+  renderToStaticMarkup(createElement(DungeonPage, { view: v, state: { show: 'wanted', who: 'all', ...state } })).replace(/<link[^>]*\/>/g, '');
 const view: DungeonPageView = {
   challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: null, split: false,
   neededCount: 0, coverage: { evaluated: 0, excluded: [] }, lens: { who: 'all', groupRemembered: false },
@@ -136,7 +136,7 @@ describe('DungeonPage', () => {
   it('shows the split note on every tab and with a boss chosen', () => {
     const split = { ...view, split: true };
     expect(render(view)).not.toContain('Split dungeon');
-    for (const state of [{ boss: null, tab: 'overview' }, { boss: null, tab: 'loot' }, { boss: 9, tab: 'overview' }] as GuideState[]) {
+    for (const state of [{ boss: null, tab: 'overview', show: 'wanted', who: 'all' }, { boss: null, tab: 'loot' }, { boss: 9, tab: 'overview' }] as GuideState[]) {
       expect(render(split, state)).toContain('Split dungeon');
     }
   });

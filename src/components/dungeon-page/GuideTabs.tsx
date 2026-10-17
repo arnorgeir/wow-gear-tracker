@@ -17,7 +17,7 @@ export function GuideTabs({ dungeonId, state }: { dungeonId: number; state: Guid
   return (
     <nav aria-label="Sections" className="flex gap-1 overflow-x-auto px-4 pt-3 lg:w-32 lg:shrink-0 lg:flex-col lg:overflow-visible lg:p-0 lg:pt-6">
       {TABS.filter((t) => t.tab !== 'abilities' || state.boss !== null).map(({ tab, label }) => (
-        <Link key={tab} href={guideHref(dungeonId, { boss: state.boss, tab })} aria-current={state.tab === tab ? 'page' : undefined}
+        <Link key={tab} href={guideHref(dungeonId, { ...state, tab })} aria-current={state.tab === tab ? 'page' : undefined}
           className={`${RIBBON} ${state.tab === tab ? CHOSEN : IDLE}`}>{label}</Link>
       ))}
     </nav>
