@@ -29,11 +29,11 @@ describe('AccountNav', () => {
 });
 
 describe('SettingsGear', () => {
-  it('is an icon-only link named Settings, hidden from sm up', () => {
+  it('is an icon-only link named Settings, hidden from lg up', () => {
     path = '/group';
     const html = render(createElement(SettingsGear));
     expect(html).toContain('aria-label="Settings"');
-    expect(html).toContain('sm:hidden');
+    expect(html).toContain('lg:hidden');
     expect(html).toContain('size-11');
     expect(html).not.toContain('aria-current');
     expect(html).not.toContain('>Settings<');
