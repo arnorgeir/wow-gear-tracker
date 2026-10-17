@@ -1,5 +1,5 @@
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import type { ArmorType, BisSourceId, FetchedSourceId, Faction, ItemLocation, ListType, Quality, Region, SlotType, SnapshotSource } from '../types';
+import type { ArmorType, WeaponType, BisSourceId, FetchedSourceId, Faction, ItemLocation, ListType, Quality, Region, SlotType, SnapshotSource } from '../types';
 
 export const characters = sqliteTable('characters', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -143,6 +143,7 @@ export const dungeonLoot = sqliteTable('dungeon_loot', {
   itemName: text('item_name').notNull(),
   inventoryType: text('inventory_type'),
   armorType: text('armor_type').$type<ArmorType>(),
+  weaponType: text('weapon_type').$type<WeaponType>(),
   secondaryStats: text('secondary_stats'),
   quality: text('quality').$type<Quality>(),
   isTier: integer('is_tier', { mode: 'boolean' }).notNull().default(false),
@@ -223,6 +224,7 @@ export const itemCatalog = sqliteTable('item_catalog', {
   name: text('name').notNull(),
   inventoryType: text('inventory_type'),
   armorType: text('armor_type').$type<ArmorType>(),
+  weaponType: text('weapon_type').$type<WeaponType>(),
   quality: text('quality').$type<Quality>(),
   isTier: integer('is_tier', { mode: 'boolean' }).notNull(),
   fetchedAt: integer('fetched_at').notNull(),

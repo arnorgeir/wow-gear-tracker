@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { evaluateGear } from '../gear/evaluate';
-import type { ArmorType, BisLists, BisRow, GearItem, LootItem, SeasonLoot, SlotType, TierTarget, Track } from '../types';
+import type { WeaponType, ArmorType, BisLists, BisRow, GearItem, LootItem, SeasonLoot, SlotType, TierTarget, Track } from '../types';
 import { choosePriorityList } from './list';
 import { rankDungeons, type PriorityCharacter } from './rank';
 
@@ -12,14 +12,32 @@ const gear = (slot: SlotType, itemId: number, bonus?: number, isTier = false, it
 const named = (slots: SlotType[], itemId: number, isTier = false): BisRow =>
   ({ kind: 'item', slotLabel: slots[0]!, slots, itemId, name: `BiS ${itemId}`, bonusIds: [], isTier, isCatalyst: isTier, source: '' });
 const anyRow = (slots: SlotType[], minItemLevel: number): BisRow => ({ kind: 'any', slotLabel: slots[0]!, slots, minItemLevel, source: '' });
-const loot = (itemId: number, inventoryType: string | null = null, armorType: ArmorType | null = null, secondaryStats?: string[] | null): LootItem =>
-  ({ itemId, name: `Loot ${itemId}`, inventoryType, armorType, secondaryStats });
+const loot = (itemId: number, inventoryType: string | null = null, armorType: ArmorType | null = null, secondaryStats?: string[] | null, weaponType: WeaponType | null = null): LootItem =>
+  ({ itemId, name: `Loot ${itemId}`, inventoryType, armorType, secondaryStats, weaponType });
 const dungeon = (challengeModeId: number, name: string, items: LootItem[], split = false): SeasonLoot =>
   ({ challengeModeId, name, shortName: '', imageUrl: null, split, loot: items });
 
 const character = (rows: BisRow[], equipped: GearItem[], className = 'Druid', id = 1, name = 'Birkibjörn', targets: ReadonlyMap<number, TierTarget> = new Map(), statsMatter = true): PriorityCharacter =>
   ({ id, name, className, rows: evaluateGear({ equipped, bisRows: rows, tracks, targets, statsMatter }), equipped, tracks, targets, statsMatter });
 const scores = (ranks: ReturnType<typeof rankDungeons>) => ranks.map((r) => [r.name, r.score]);
+
+describe('rankDungeons weapons', () => {
+  const mage = (rows: BisRow[]) => character(rows, [], 'Mage');
+
+  it('credits an Any Main Hand row only for a drop the class can use', () => {
+    const c = mage([anyRow(['MAIN_HAND'], 334)]);
+    const axe = loot(1, 'TWOHWEAPON', null, null, 'axe2h');
+    const staff = loot(2, 'TWOHWEAPON', null, null, 'staff');
+    expect(rankDungeons([c], [dungeon(501, 'Alpha Hollow', [axe])])[0]!.score).toBe(0);
+    expect(rankDungeons([c], [dungeon(501, 'Alpha Hollow', [staff])])[0]!.score).toBeGreaterThan(0);
+  });
+
+  it('does not credit an Any Off Hand row with a shield for a Mage', () => {
+    const c = mage([anyRow(['OFF_HAND'], 334)]);
+    expect(rankDungeons([c], [dungeon(501, 'Alpha Hollow', [loot(3, 'SHIELD')])])[0]!.score).toBe(0);
+    expect(rankDungeons([c], [dungeon(501, 'Alpha Hollow', [loot(4, 'HOLDABLE')])])[0]!.score).toBeGreaterThan(0);
+  });
+});
 
 describe('rankDungeons', () => {
   it('credits a named item only to the dungeon that drops it, weighted by the current item', () => {

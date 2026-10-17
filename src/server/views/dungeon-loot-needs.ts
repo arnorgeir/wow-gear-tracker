@@ -4,7 +4,6 @@ import { getClassIconMap } from '@/core/db/queries/media';
 import { listSpecs } from '@/core/db/queries/specs';
 import { bisMatches, needsByDrop } from '@/core/priority/drop-needs';
 import { choosePriorityList } from '@/core/priority/list';
-import { armorTypeForClass } from '@/core/priority/slots';
 import { readTracks } from '@/core/sync/reference-sync';
 import type { LootItem, Region } from '@/core/types';
 import type { Services } from '../services';
@@ -73,7 +72,7 @@ export async function loadLootNeeds(services: Services, loot: LootItem[], lens: 
     if (!read.lists) continue;
     const rows = read.lists[choosePriorityList(read.lists, read.listType).listType];
     const view: LootBisView = { slug: spec.methodSlug, label: `${spec.specName} ${spec.className}`, className: spec.className, iconUrl: specIconOf(spec.iconUrl, spec.className, classIcons) };
-    for (const itemId of bisMatches(rows, read.targets, read.statsMatter, armorTypeForClass(spec.className), loot)) bis.set(itemId, [...(bis.get(itemId) ?? []), view]);
+    for (const itemId of bisMatches(rows, read.targets, read.statsMatter, spec.className, loot)) bis.set(itemId, [...(bis.get(itemId) ?? []), view]);
   }
 
   return { needs, bis, coverage: { evaluated: evaluated.length, excluded }, lens: { who, groupRemembered } };

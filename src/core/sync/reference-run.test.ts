@@ -37,7 +37,7 @@ describe('syncReference', () => {
   it('fetches stats for override items and fills the spec catalog', async () => {
     const db = await openTestDb();
     await track(db, 'Birkibjörn', 'Mage', 'Frost');
-    await upsertCatalogItem(db, { itemId: 301, name: 'Woven Hood', inventoryType: 'HEAD', armorType: 'cloth', quality: 'EPIC', isTier: false }, 1);
+    await upsertCatalogItem(db, { itemId: 301, name: 'Woven Hood', inventoryType: 'HEAD', armorType: 'cloth', weaponType: null, quality: 'EPIC', isTier: false }, 1);
     await upsertOverride(db, 1, 'frost-mage', 'method', 'mythicPlus', { slotKey: 'Head#1', itemId: 301, catalyst: true });
     const { d, calls } = deps(db);
     d.blizzard = { ...d.blizzard, getClasses: async () => [{ id: 8, name: 'Mage', specs: ['Frost'] }] } as unknown as BlizzardClient;

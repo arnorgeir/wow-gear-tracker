@@ -41,7 +41,7 @@ describe('getSpecPicker tracked cards', () => {
   it('lists each tracked spec with its compared list, edit count, character and icon', async () => {
     const { db, s } = await setup();
     await replaceBisLists(db, 'method', 'guardian-druid', lists, 500);
-    await upsertCatalogItem(db, { itemId: 21, name: 'Other Neck', inventoryType: 'NECK', armorType: null, quality: 'EPIC', isTier: false }, 1);
+    await upsertCatalogItem(db, { itemId: 21, name: 'Other Neck', inventoryType: 'NECK', armorType: null, weaponType: null, quality: 'EPIC', isTier: false }, 1);
     await upsertOverride(db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Neck#1', itemId: 21, catalyst: false });
     await upsertOverride(db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Gone#1', itemId: 21, catalyst: false });
     await upsertClassIcons(db, [{ className: 'Druid', classId: 11, iconUrl: 'https://render/druid.jpg' }], 1);
@@ -93,7 +93,7 @@ describe('getSettingsSpec', () => {
   it('pairs each Method slot with its override and lists orphans', async () => {
     const { db, s } = await setup();
     await replaceBisLists(db, 'method', 'guardian-druid', lists, 500);
-    await upsertCatalogItem(db, { itemId: 21, name: 'Other Neck', inventoryType: 'NECK', armorType: null, quality: 'EPIC', isTier: false }, 1);
+    await upsertCatalogItem(db, { itemId: 21, name: 'Other Neck', inventoryType: 'NECK', armorType: null, weaponType: null, quality: 'EPIC', isTier: false }, 1);
     await upsertOverride(db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Neck#1', itemId: 21, catalyst: false });
     await upsertOverride(db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Gone#1', itemId: 21, catalyst: false });
     const view = await getSettingsSpec(s, 'guardian-druid', 'mythicPlus');
@@ -107,7 +107,7 @@ describe('getSettingsSpec', () => {
   it('shows an override of a Rare catalog item as Epic, in the slot and among orphans', async () => {
     const { db, s } = await setup();
     await replaceBisLists(db, 'method', 'guardian-druid', lists, 500);
-    await upsertCatalogItem(db, { itemId: 22, name: 'Dungeon Neck', inventoryType: 'NECK', armorType: null, quality: 'RARE', isTier: false }, 1);
+    await upsertCatalogItem(db, { itemId: 22, name: 'Dungeon Neck', inventoryType: 'NECK', armorType: null, weaponType: null, quality: 'RARE', isTier: false }, 1);
     await upsertOverride(db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Neck#1', itemId: 22, catalyst: false });
     await upsertOverride(db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Gone#1', itemId: 22, catalyst: false });
     const view = await getSettingsSpec(s, 'guardian-druid', 'mythicPlus');

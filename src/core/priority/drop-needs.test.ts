@@ -78,23 +78,23 @@ describe('bisMatches', () => {
   const drops = [loot(10, 'NECK'), loot(901, 'CHEST', 'leather', stats), loot(902, 'CHEST', 'leather', ['CRIT_RATING', 'VERSATILITY']), loot(903, 'CHEST', 'leather', null), loot(904, 'CHEST', 'plate', stats)];
 
   it('matches an item row by id', () => {
-    expect(bisMatches([named(['NECK'], 10)], new Map(), true, 'leather', drops)).toEqual(new Set([10]));
+    expect(bisMatches([named(['NECK'], 10)], new Map(), true, 'Druid', drops)).toEqual(new Set([10]));
   });
 
   it('matches a tier row only on the same verified stats and armor type', () => {
-    expect(bisMatches([named(['CHEST'], 80, true)], targets, true, 'leather', drops)).toEqual(new Set([901]));
+    expect(bisMatches([named(['CHEST'], 80, true)], targets, true, 'Druid', drops)).toEqual(new Set([901]));
   });
 
   it('matches every slot drop when stats do not matter', () => {
-    expect(bisMatches([named(['CHEST'], 80, true)], targets, false, 'leather', drops)).toEqual(new Set([901, 902, 903]));
+    expect(bisMatches([named(['CHEST'], 80, true)], targets, false, 'Druid', drops)).toEqual(new Set([901, 902, 903]));
   });
 
   it('follows an override that changes the target', () => {
     const changed = new Map([[80, target(['CRIT_RATING', 'VERSATILITY'])]]);
-    expect(bisMatches([named(['CHEST'], 80, true)], changed, true, 'leather', drops)).toEqual(new Set([902]));
+    expect(bisMatches([named(['CHEST'], 80, true)], changed, true, 'Druid', drops)).toEqual(new Set([902]));
   });
 
   it('ignores Any rows', () => {
-    expect(bisMatches([anyRow(['NECK'])], new Map(), true, 'leather', drops).size).toBe(0);
+    expect(bisMatches([anyRow(['NECK'])], new Map(), true, 'Druid', drops).size).toBe(0);
   });
 });

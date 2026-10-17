@@ -55,10 +55,14 @@ async function resolveRow({ db, accountId, now }: ReadDeps, ref: RowRef): Promis
 const choice = (item: CatalogItem & { source?: string | null }, icons: ReadonlyMap<number, string | null>, className: string, row: BisRow): ItemChoice =>
   ({ ...item, source: item.source ?? null, iconUrl: icons.get(item.itemId) ?? null, canUse: classCanUse(item, className, row), canCatalyst: canCatalyst(item, row.slots) });
 
+const WEAPON_SLOTS = new Set(['WEAPON', 'WEAPONMAINHAND', 'WEAPONOFFHAND', 'TWOHWEAPON', 'RANGED', 'RANGEDRIGHT']);
+/** A weapon cataloged before weapon types were stored: fetched again on use. */
+const isUntypedWeapon = (item: CatalogItem) => item.weaponType === null && item.inventoryType !== null && WEAPON_SLOTS.has(item.inventoryType);
+
 /** The item from local data, else one Blizzard request, cached. Writes nothing when Blizzard fails. */
 async function ensureItem(deps: EditDeps, itemId: number): Promise<CatalogItem> {
   const local = await findLocalItem(deps.db, itemId);
-  if (local) {
+  if (local && !isUntypedWeapon(local)) {
     // Season loot is a complete source too; the catalog row keeps the item after a season change.
     await upsertCatalogItem(deps.db, local, deps.now);
     return local;
@@ -67,12 +71,15 @@ async function ensureItem(deps: EditDeps, itemId: number): Promise<CatalogItem> 
   try {
     info = await deps.blizzard.getItemDetails('eu', itemId);
   } catch (err) {
+    // A weapon already known without its type is allowed through rather than blocked by a failed refetch.
+    if (local) return local;
     if (isUserError(err)) throw err;
     throw new UserError("Couldn't reach Blizzard. Try again.");
   }
+  if (!info && local) return local;
   if (!info) throw new UserError(`No item with ID ${itemId}.`);
   if (!info.name || !info.inventoryType) throw new UserError("Couldn't read that item from Blizzard.");
-  const item: CatalogItem = { itemId, name: info.name, inventoryType: info.inventoryType, armorType: info.armorType, quality: info.quality, isTier: info.isTier };
+  const item: CatalogItem = { itemId, name: info.name, inventoryType: info.inventoryType, armorType: info.armorType, weaponType: info.weaponType, quality: info.quality, isTier: info.isTier };
   await upsertCatalogItem(deps.db, item, deps.now);
   return item;
 }

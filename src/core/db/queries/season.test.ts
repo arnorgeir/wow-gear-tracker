@@ -27,11 +27,11 @@ describe('season storage', () => {
     await replaceSeason(db, data);
     expect(await getSeasonLoot(db)).toEqual([
       { challengeModeId: 501, name: 'Alpha Hollow', shortName: 'AH', imageUrl: AH, split: false, loot: [
-        { itemId: 100, name: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather', secondaryStats: null },
-        { itemId: 101, name: 'Vanished Band', inventoryType: null, armorType: null, secondaryStats: null },
+        { itemId: 100, name: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather', weaponType: null, secondaryStats: null },
+        { itemId: 101, name: 'Vanished Band', inventoryType: null, armorType: null, weaponType: null, secondaryStats: null },
       ] },
-      { challengeModeId: 503, name: 'Beta Gambit', shortName: 'GMBT', imageUrl: null, split: true, loot: [{ itemId: 200, name: 'Warden Helm', inventoryType: 'HEAD', armorType: 'plate', secondaryStats: null }] },
-      { challengeModeId: 502, name: 'Streets of Beta', shortName: 'STRT', imageUrl: STRT, split: true, loot: [{ itemId: 200, name: 'Warden Helm', inventoryType: 'HEAD', armorType: 'plate', secondaryStats: null }] },
+      { challengeModeId: 503, name: 'Beta Gambit', shortName: 'GMBT', imageUrl: null, split: true, loot: [{ itemId: 200, name: 'Warden Helm', inventoryType: 'HEAD', armorType: 'plate', weaponType: null, secondaryStats: null }] },
+      { challengeModeId: 502, name: 'Streets of Beta', shortName: 'STRT', imageUrl: STRT, split: true, loot: [{ itemId: 200, name: 'Warden Helm', inventoryType: 'HEAD', armorType: 'plate', weaponType: null, secondaryStats: null }] },
     ]);
   });
 
@@ -39,8 +39,15 @@ describe('season storage', () => {
     const db = await openTestDb();
     await replaceSeason(db, { ...data, loot: data.loot.map((l) => (l.itemId === 100 ? { ...l, secondaryStats: 'HASTE_RATING,MASTERY_RATING' } : l)) });
     const alpha = (await getSeasonLoot(db)).find((d) => d.challengeModeId === 501)!;
-    expect(alpha.loot[0]).toEqual({ itemId: 100, name: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather', secondaryStats: ['HASTE_RATING', 'MASTERY_RATING'] });
+    expect(alpha.loot[0]).toEqual({ itemId: 100, name: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather', weaponType: null, secondaryStats: ['HASTE_RATING', 'MASTERY_RATING'] });
     expect(alpha.loot[1]!.secondaryStats).toBeNull();
+  });
+
+  it('reads back the weapon type, null for armor', async () => {
+    const db = await openTestDb();
+    await replaceSeason(db, { ...data, loot: [...data.loot, { challengeModeId: 501, encounterId: 1, encounterName: 'Hollow King', itemId: 102, itemName: 'Hollow Blade', inventoryType: 'WEAPON', armorType: null, weaponType: 'sword1h' }] });
+    const alpha = (await getSeasonLoot(db)).find((d) => d.challengeModeId === 501)!;
+    expect(alpha.loot.map((l) => [l.itemId, l.weaponType])).toEqual([[100, null], [101, null], [102, 'sword1h']]);
   });
 
   it('replaces the previous season entirely', async () => {

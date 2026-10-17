@@ -1,4 +1,4 @@
-import type { ArmorType, Faction, JournalSection, Quality, Region } from '../types';
+import type { ArmorType, WeaponType, Faction, JournalSection, Quality, Region } from '../types';
 
 export interface CharacterRef { region: Region; realmSlug: string; name: string }
 export interface CharacterProfile {
@@ -17,7 +17,7 @@ export interface PlayableClass { id: number; name: string; specs: string[]; spec
 
 export interface ItemDetails { quality: Quality | null; isTier: boolean }
 
-export interface ItemInfo extends ItemDetails { name: string | null; inventoryType: string | null; armorType: ArmorType | null; secondaryStats: string[] | null }
+export interface ItemInfo extends ItemDetails { name: string | null; inventoryType: string | null; armorType: ArmorType | null; weaponType: WeaponType | null; secondaryStats: string[] | null }
 export interface KeystoneDungeon { name: string; mapId: number; mapName: string }
 export interface JournalInstanceRef { id: number; name: string }
 export interface JournalInstance { id: number; name: string; mapId: number | null; encounterIds: number[] }

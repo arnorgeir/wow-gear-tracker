@@ -39,7 +39,7 @@ describe('overrides', () => {
     const db = await openTestDb();
     await db.insert(accounts).values({ id: 2, name: 'Other' });
     await replaceBisLists(db, 'method', 'frost-mage', withNeck, 1);
-    await upsertCatalogItem(db, { itemId: 30, name: 'Birkibjörn Band', inventoryType: 'NECK', armorType: null, quality: 'EPIC', isTier: false }, 1);
+    await upsertCatalogItem(db, { itemId: 30, name: 'Birkibjörn Band', inventoryType: 'NECK', armorType: null, weaponType: null, quality: 'EPIC', isTier: false }, 1);
     await upsertOverride(db, 1, 'frost-mage', 'method', 'mythicPlus', { slotKey: 'Neck#1', itemId: 30, catalyst: false });
     await upsertOverride(db, 1, 'frost-mage', 'method', 'mythicPlus', { slotKey: 'Gone#1', itemId: 30, catalyst: false });
     await updateSpecSettings(db, 1, 'frost-mage', { listType: 'raid', statsMatter: false });
@@ -53,7 +53,7 @@ describe('overrides', () => {
   it('reports tier targets due for a catalyst override with no stats', async () => {
     const db = await openTestDb();
     await replaceBisLists(db, 'method', 'frost-mage', { ...lists, mythicPlus: [{ ...lists.mythicPlus[0]!, isTier: false } as BisLists['mythicPlus'][number]] }, 1);
-    await upsertCatalogItem(db, { itemId: 31, name: 'Woven Hood', inventoryType: 'HEAD', armorType: 'cloth', quality: 'EPIC', isTier: false }, 1);
+    await upsertCatalogItem(db, { itemId: 31, name: 'Woven Hood', inventoryType: 'HEAD', armorType: 'cloth', weaponType: null, quality: 'EPIC', isTier: false }, 1);
     await upsertOverride(db, 1, 'frost-mage', 'method', 'mythicPlus', { slotKey: 'Head#1', itemId: 31, catalyst: true });
     expect((await createBisLookup(db, 2, 1)('frost-mage', 'eu')).targetsDue).toBe(true);
   });

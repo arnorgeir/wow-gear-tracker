@@ -23,6 +23,23 @@ describe('classCanUse', () => {
   });
 });
 
+describe('classCanUse weapons', () => {
+  const mainRow = { slotLabel: 'Main Hand', slots: ['MAIN_HAND' as const] };
+  const offRow = { slotLabel: 'Off Hand', slots: ['OFF_HAND' as const] };
+
+  it('refuses a weapon type the class cannot use', () => {
+    expect(classCanUse({ inventoryType: 'TWOHWEAPON', armorType: null, weaponType: 'axe2h' }, 'Mage', mainRow)).toEqual({ ok: false, reason: "Mage can't use two-handed axes." });
+  });
+
+  it('allows a shield in the off hand for a Warrior', () => {
+    expect(classCanUse({ inventoryType: 'SHIELD', armorType: null, weaponType: null }, 'Warrior', offRow)).toEqual({ ok: true });
+  });
+
+  it('refuses a one-hander in the off hand for a Druid', () => {
+    expect(classCanUse({ inventoryType: 'WEAPON', armorType: null, weaponType: 'mace1h' }, 'Druid', offRow)).toEqual({ ok: false, reason: "Druid can't dual wield." });
+  });
+});
+
 describe('canCatalyst', () => {
   it('allows a regular item in a tier slot only', () => {
     expect(canCatalyst({ isTier: false }, ['CHEST'])).toBe(true);

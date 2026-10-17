@@ -4,7 +4,7 @@ import { replaceSeason } from './season';
 import { findLocalItem, getCatalogItems, searchLocalItems, upsertCatalogItem } from './item-catalog';
 import type { CatalogItem } from '../../types';
 
-const ROBE: CatalogItem = { itemId: 500, name: 'Björnsdóttir Robe', inventoryType: 'ROBE', armorType: 'cloth', quality: 'EPIC', isTier: false };
+const ROBE: CatalogItem = { itemId: 500, name: 'Björnsdóttir Robe', inventoryType: 'ROBE', armorType: 'cloth', weaponType: null, quality: 'EPIC', isTier: false };
 
 async function withLoot() {
   const db = await openTestDb();
@@ -13,6 +13,7 @@ async function withLoot() {
     dungeons: [{ challengeModeId: 1, name: 'Alpha Hollow', shortName: 'AH', journalInstanceId: 9, mapId: 7, imageUrl: null }],
     loot: [
       { challengeModeId: 1, encounterId: 3, encounterName: 'Boss', itemId: 600, itemName: 'Æther Band', inventoryType: 'FINGER', armorType: null, quality: 'EPIC', isTier: false },
+      { challengeModeId: 1, encounterId: 3, encounterName: 'Boss', itemId: 603, itemName: 'Hollow Axe', inventoryType: 'TWOHWEAPON', armorType: null, weaponType: 'axe2h', quality: 'EPIC', isTier: false },
       { challengeModeId: 1, encounterId: 3, encounterName: 'Boss', itemId: 601, itemName: 'Old Cloak', inventoryType: null, armorType: null, quality: null, isTier: false },
       { challengeModeId: 1, encounterId: 3, encounterName: 'Boss', itemId: 602, itemName: 'Season Three Helm', inventoryType: 'HEAD', armorType: 'cloth', quality: null, isTier: false },
     ],
@@ -31,7 +32,22 @@ describe('item catalog', () => {
     const db = await withLoot();
     await upsertCatalogItem(db, ROBE, 1);
     expect(await findLocalItem(db, 500)).toEqual(ROBE);
-    expect(await findLocalItem(db, 600)).toEqual({ itemId: 600, name: 'Æther Band', inventoryType: 'FINGER', armorType: null, quality: 'EPIC', isTier: false });
+    expect(await findLocalItem(db, 600)).toEqual({ itemId: 600, name: 'Æther Band', inventoryType: 'FINGER', armorType: null, weaponType: null, quality: 'EPIC', isTier: false });
+  });
+
+  it('stores the weapon type and reads it back from the catalog and from loot', async () => {
+    const db = await withLoot();
+    const axe: CatalogItem = { itemId: 700, name: 'Birki Axe', inventoryType: 'WEAPON', armorType: null, weaponType: 'axe1h', quality: 'EPIC', isTier: false };
+    await upsertCatalogItem(db, axe, 1);
+    expect((await getCatalogItems(db, [700])).get(700)).toEqual(axe);
+    expect((await findLocalItem(db, 603))?.weaponType).toBe('axe2h');
+  });
+
+  it('falls back to the loot weapon type when the catalog row has none', async () => {
+    const db = await withLoot();
+    await upsertCatalogItem(db, { itemId: 603, name: 'Hollow Axe', inventoryType: 'TWOHWEAPON', armorType: null, weaponType: null, quality: 'EPIC', isTier: false }, 1);
+    expect((await findLocalItem(db, 603))?.weaponType).toBe('axe2h');
+    expect((await searchLocalItems(db, 'hollow axe'))[0]!.weaponType).toBe('axe2h');
   });
 
   it('treats a loot row without a slot as unknown', async () => {

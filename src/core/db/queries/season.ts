@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { dungeonEncounters, dungeonLoot, seasonDungeons } from '../schema';
-import type { ArmorType, JournalSection, Quality, SeasonLoot } from '../../types';
+import type { ArmorType, WeaponType, JournalSection, Quality, SeasonLoot } from '../../types';
 import { withWriteLock } from './write-lock';
 import { decodeStats } from '../../gear/stat-pair';
 
@@ -14,6 +14,7 @@ export interface DungeonLootRow {
   itemName: string;
   inventoryType: string | null;
   armorType: ArmorType | null;
+  weaponType?: WeaponType | null;
   /** Encoded as in snapshot_items; absent or null when unknown. */
   secondaryStats?: string | null;
   quality?: Quality | null;
@@ -45,7 +46,7 @@ export async function getSeasonLoot(db: Db): Promise<SeasonLoot[]> {
     imageUrl: d.imageUrl,
     split: dungeons.some((x) => x !== d && x.journalInstanceId === d.journalInstanceId),
     loot: loot.filter((l) => l.challengeModeId === d.challengeModeId)
-      .map((l) => ({ itemId: l.itemId, name: l.itemName, inventoryType: l.inventoryType, armorType: l.armorType, secondaryStats: decodeStats(l.secondaryStats) })),
+      .map((l) => ({ itemId: l.itemId, name: l.itemName, inventoryType: l.inventoryType, armorType: l.armorType, weaponType: l.weaponType, secondaryStats: decodeStats(l.secondaryStats) })),
   }));
 }
 
