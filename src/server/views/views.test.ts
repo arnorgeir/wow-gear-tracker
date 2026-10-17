@@ -548,3 +548,27 @@ describe('item level', () => {
     expect(card!.itemLevel).toBeNull();
   });
 });
+
+describe('tier pieces', () => {
+  it('counts equipped tier pieces only, not bag ones', async () => {
+    const s = await services();
+    const id = await seed(s, false);
+    const tier = (slot: GearItem['slot'], itemId: number) => ({ slot, itemId, name: `Tier ${slot}`, itemLevel: 321, quality: 'EPIC' as const, bonusIds: [], isTier: true });
+    const items = [
+      ...gearToSnapshotItems([tier('HEAD', 11), tier('SHOULDER', 12), { ...gear[1]! }]),
+      { location: 'bag' as const, slot: 'CHEST', itemId: 13, name: 'Bag Tier', itemLevel: 330, quality: 'EPIC' as const, bonusIds: [], isTier: true, secondaryStats: null },
+    ];
+    await saveSnapshotIfChanged(s.db, id, 'simc', items, 900);
+    await prime(s);
+    const { cards: [card] } = await getCharacterCards(s);
+    expect(card!.tierPieces).toBe(2);
+  });
+
+  it('is 0 without gear', async () => {
+    const s = await services();
+    await seed(s, false);
+    await prime(s);
+    const { cards: [card] } = await getCharacterCards(s);
+    expect(card!.tierPieces).toBe(0);
+  });
+});

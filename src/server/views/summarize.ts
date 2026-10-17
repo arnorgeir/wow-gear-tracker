@@ -4,6 +4,7 @@ import { type CharacterRow } from '@/core/db/queries/characters';
 import { affordableUpgrade, summarizeCrests, type CrestCost } from '@/core/gear/crests';
 import { type GearRow } from '@/core/gear/evaluate';
 import { equippedItemLevel } from '@/core/gear/item-level';
+import { countTierPieces } from '@/core/gear/tier-set';
 import { borrowStats } from '@/core/gear/stat-pair';
 import { methodSpecSlug } from '@/core/method/method';
 import { identityLine } from '@/core/characters/identity';
@@ -50,6 +51,7 @@ export function summarize(c: CharacterRow, snapshot: Snapshot | null, classIcons
     classIconUrl: classIcons.get(c.className) ?? null,
     identity: identityLine(c.race, spec, c.className),
     itemLevel: snapshot ? equippedItemLevel(equippedGear(snapshot)) : null,
+    tierPieces: snapshot ? countTierPieces(equippedGear(snapshot)) : 0,
   };
 }
 

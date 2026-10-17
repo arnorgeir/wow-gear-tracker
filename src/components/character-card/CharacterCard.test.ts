@@ -11,7 +11,7 @@ const counts = { done: 5, mythUpgradable: 2, belowMyth: 3, wrongStats: 0, missin
 const card = (over: Partial<CharacterCardView>): CharacterCardView => ({
   id: 3, href: '/characters/eu/argent-dawn/birkibj%C3%B6rn', name: 'Birkibjörn', realmName: 'Argent Dawn', realmId: 1, region: 'eu',
   className: 'Druid', activeSpec: 'Guardian', spec: 'Guardian', specSlug: 'guardian-druid', status: 'ok', lastSyncedAt: 5, lastSyncError: null,
-  listType: 'mythicPlus', snapshot: null, sourceAt: null, race: null, faction: null, avatarUrl: null, classIconUrl: null, identity: 'Guardian Druid', itemLevel: null,
+  listType: 'mythicPlus', snapshot: null, sourceAt: null, race: null, faction: null, avatarUrl: null, classIconUrl: null, identity: 'Guardian Druid', itemLevel: null, tierPieces: 0,
   counts, tracksError: null, tracksKnown: true, tracksLoading: false, total: 16, bisError: null, crests: null, upgradesReady: 0, ...over,
 });
 const render = (c: CharacterCardView) => renderToStaticMarkup(createElement(CharacterCard, { card: c, now: 10 })).replace(/<link[^>]*\/>/g, '');
@@ -83,4 +83,13 @@ describe('CharacterCard item level', () => {
     expect(html).toContain('Argent Dawn');
     expect(html).not.toContain('ilvl');
   });
+});
+
+describe('CharacterCard tier set chip', () => {
+  const chip = '<span class="font-mono">4</span>-set';
+  it('shows the chip with 4 tier pieces, even without an item level', () => {
+    expect(render(card({ tierPieces: 4 }))).toContain(chip);
+    expect(render(card({ tierPieces: 4, itemLevel: 642.34 }))).toContain(chip);
+  });
+  it('shows no chip with 1 tier piece', () => expect(render(card({ tierPieces: 1 }))).not.toContain('-set'));
 });

@@ -11,7 +11,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: () => {}, refre
 const summary = (id: number, name: string): CharacterSummary => ({
   id, href: '/characters/eu/argent-dawn/birkibj%C3%B6rn', name, realmName: 'Argent Dawn', realmId: 1, region: 'eu', className: 'Druid', activeSpec: 'Guardian', spec: 'Guardian', specSlug: 'guardian-druid',
   status: 'ok', lastSyncedAt: 5, lastSyncError: null, snapshot: null, sourceAt: null, race: null, faction: null,
-  avatarUrl: null, classIconUrl: null, identity: 'Guardian Druid', itemLevel: null,
+  avatarUrl: null, classIconUrl: null, identity: 'Guardian Druid', itemLevel: null, tierPieces: 0,
 });
 const member = (over: Partial<GroupMemberView>): GroupMemberView => ({
   key: 'eu.argent-dawn.birkibjörn', name: 'Birkibjörn', realmSlug: 'argent-dawn', character: null, state: 'ready',
@@ -225,5 +225,16 @@ describe('GroupGrid item level', () => {
 
   it('shows no item level when unknown', () => {
     expect(render([member({ character: summary(3, 'Birkibjörn') })], [])).not.toContain('ilvl');
+  });
+});
+
+describe('GroupGrid tier set chip', () => {
+  const chip = '<span class="font-mono">4</span>-set';
+  it('shows the chip in the member header, with or without an item level', () => {
+    expect(render([member({ character: { ...summary(3, 'Birkibjörn'), tierPieces: 4 } })], [])).toContain(chip);
+    expect(render([member({ character: { ...summary(3, 'Birkibjörn'), tierPieces: 4, itemLevel: 334.6 } })], [])).toContain(chip);
+  });
+  it('shows no chip with 1 tier piece', () => {
+    expect(render([member({ character: { ...summary(3, 'Birkibjörn'), tierPieces: 1 } })], [])).not.toContain('-set');
   });
 });

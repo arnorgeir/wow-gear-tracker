@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { CrestChip } from '@/components/crest-chip/CrestChip';
 import { LinkPending } from '@/components/link-pending/LinkPending';
+import { TierSetChip } from '@/components/tier-set-chip/TierSetChip';
+import { tierSetBonus } from '@/core/gear/tier-set';
 import { classTextColor } from '@/components/shared/class-colors';
 import { sourceSubject } from '@/components/shared/fallback-text';
 import { LIST_NAMES } from '@/components/shared/list-names';
@@ -18,7 +20,12 @@ export function MemberHeader({ member }: { member: GroupMemberView }) {
         <span className="sr-only truncate sm:not-sr-only">{c.name}</span>
         <LinkPending />
       </Link>
-      {c.itemLevel !== null && <span className="font-mono text-xs text-muted" title="Equipped item level">{`${c.itemLevel.toFixed(1)} ilvl`}</span>}
+      {(c.itemLevel !== null || tierSetBonus(c.tierPieces) !== null) && (
+        <div className="flex flex-wrap items-center justify-center gap-1 sm:justify-start">
+          {c.itemLevel !== null && <span className="font-mono text-xs text-muted" title="Equipped item level">{`${c.itemLevel.toFixed(1)} ilvl`}</span>}
+          <TierSetChip pieces={c.tierPieces} />
+        </div>
+      )}
       {member.crests ? (
         member.crests.balances.length > 0
           ? <div className="flex min-w-0 max-w-full flex-col items-center gap-1 sm:flex-row sm:flex-wrap">{member.crests.balances.map((b) => <CrestChip key={b.currencyId} balance={b} />)}</div>

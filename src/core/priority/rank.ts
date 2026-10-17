@@ -1,4 +1,5 @@
 import type { GearRow } from '../gear/evaluate';
+import { countTierPieces } from '../gear/tier-set';
 import { compareStats } from '../gear/stat-pair';
 import { decodeTrack } from '../raidbots/tracks';
 import type { ArmorType, BisItemRow, BisRow, GearItem, LootItem, SeasonLoot, SlotType, StatMatch, TierTarget, Track } from '../types';
@@ -99,7 +100,7 @@ export function rankDungeons(characters: PriorityCharacter[], dungeons: SeasonLo
   const needs = characters.map((character) => {
     const bySlot = new Map(character.equipped.map((item) => [item.slot, item]));
     const matchedSlots = new Set(character.rows.filter((r) => r.matched).map((r) => r.slot));
-    const tierCount = character.equipped.filter((item) => item.isTier).length;
+    const tierCount = countTierPieces(character.equipped);
     return {
       character,
       armor: armorTypeForClass(character.className),
