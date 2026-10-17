@@ -8,9 +8,9 @@ const TABS: { tab: GuideTab; label: string }[] = [
 ];
 
 const RIBBON = 'relative block border px-4 py-2.5 font-display text-sm font-bold no-underline focus-visible:outline-2 focus-visible:outline-gold rounded-t-md lg:rounded-r-md lg:rounded-tl-none';
-// The chosen ribbon wears the page's background and drops the border on the side facing the page.
-const CHOSEN = 'border-line bg-surface text-gold border-b-surface lg:border-b-line lg:border-l-surface lg:-ml-px';
-const IDLE = 'border-line bg-surface-2 text-muted hover:text-ink';
+// The chosen ribbon is gold-soft with a gold bar on its outer edge (top in the phone row), so it reads as picked without relying on text color alone.
+const CHOSEN = 'border-gold-line bg-gold-soft text-gold shadow-[inset_0_3px_0_var(--color-gold)] lg:shadow-[inset_-3px_0_0_var(--color-gold)] lg:-ml-px';
+const IDLE = 'border-line bg-surface-2 text-muted hover:border-line-strong hover:text-ink';
 
 /** Ribbon tabs on the right page's outer edge (a row above the panel on narrow screens). Each is a link, not an ARIA tab. */
 export function GuideTabs({ dungeonId, state }: { dungeonId: number; state: GuideState }) {

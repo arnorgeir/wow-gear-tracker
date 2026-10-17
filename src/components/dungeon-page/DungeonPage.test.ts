@@ -102,6 +102,10 @@ describe('DungeonPage', () => {
     const boss = render(view, { boss: 3, tab: 'loot' });
     expect(boss).toMatch(/<a[^>]*aria-current="page"[^>]*>(<[^>]+>)*2(<[^>]+>)*Second Boss/);
     expect(boss).toMatch(/<a[^>]*aria-current="page"[^>]*>Loot<\/a>/);
+    // The picked ribbon carries more than a color change: a gold edge bar on a gold-soft fill.
+    const loot = boss.match(/<a[^>]*>Loot<\/a>/)![0];
+    expect(loot).toMatch(/bg-gold-soft/);
+    expect(loot).toMatch(/shadow-\[inset/);
     expect(boss).toMatch(/<a[^>]*href="\/dungeons\/501\?boss=3&amp;tab=abilities"[^>]*>Abilities<\/a>/);
     expect(boss.match(/aria-current="page"/g)).toHaveLength(3); // breadcrumb, banner, ribbon
   });
