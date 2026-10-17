@@ -11,9 +11,10 @@ const HEADING = 'mb-3 p-0 text-[13px] font-bold uppercase tracking-[0.08em] text
 export function CompareAgainst({ specSlug, listType }: { specSlug: string; listType: ListType }) {
   const { error, run } = useApiAction();
   const tipId = useId();
+  const titleId = useId();
   return (
-    <fieldset aria-describedby={tipId} className="m-0 flex flex-col gap-2.5 border-0 p-0">
-      <legend className={HEADING}><span className="inline-flex items-center gap-1.5">Compare against<InfoTip id={tipId} title="Compare against">Characters of this spec compare their gear against this list. Saved as you choose.</InfoTip></span></legend>
+    <fieldset aria-labelledby={titleId} aria-describedby={tipId} className="m-0 flex flex-col gap-2.5 border-0 p-0">
+      <legend className={HEADING}><span className="inline-flex items-center gap-1.5"><span id={titleId}>Compare against</span><InfoTip id={tipId} title="Compare against">Characters of this spec compare their gear against this list. Saved as you choose.</InfoTip></span></legend>
       <div className="grid w-full grid-cols-3 gap-1 rounded-xl border border-line bg-bg p-1 md:inline-flex md:w-fit">
         {LIST_TYPES.map((value) => (
           <label key={value}

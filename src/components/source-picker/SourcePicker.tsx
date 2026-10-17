@@ -12,9 +12,10 @@ const HEADING = 'mb-3 p-0 text-[13px] font-bold uppercase tracking-[0.08em] text
 export function SourcePicker({ specSlug, source }: { specSlug: string; source: BisSourceId }) {
   const { error, run } = useApiAction();
   const tipId = useId();
+  const titleId = useId();
   return (
-    <fieldset aria-describedby={tipId} className="m-0 flex flex-col gap-2.5 border-0 p-0">
-      <legend className={HEADING}><span className="inline-flex items-center gap-1.5">BiS source<InfoTip id={tipId} title="BiS source">Where this spec&apos;s list comes from. Manual copies the current list for you to edit.</InfoTip></span></legend>
+    <fieldset aria-labelledby={titleId} aria-describedby={tipId} className="m-0 flex flex-col gap-2.5 border-0 p-0">
+      <legend className={HEADING}><span className="inline-flex items-center gap-1.5"><span id={titleId}>BiS source</span><InfoTip id={tipId} title="BiS source">Where this spec&apos;s list comes from. Manual copies the current list for you to edit.</InfoTip></span></legend>
       <div className="grid w-full grid-cols-3 gap-1 rounded-xl border border-line bg-bg p-1 md:inline-flex md:w-fit">
         {sourceOptions().map(({ value, label }) => (
           <label key={value}
