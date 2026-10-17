@@ -12,7 +12,7 @@ export function parseCurrencyIcon(data: unknown): string | null {
 }
 
 /** Looks up a currency's icon name. Never throws: a failed lookup is just a missing icon. */
-export function createCurrencyIconFetcher(fetchFn: FetchFn = fetch) {
+export function createCurrencyIconFetcher(fetchFn: FetchFn) {
   return async (currencyId: number): Promise<string | null> => {
     try {
       return parseCurrencyIcon(await fetchJson<unknown>(fetchFn, currencyTooltipUrl(currencyId)));

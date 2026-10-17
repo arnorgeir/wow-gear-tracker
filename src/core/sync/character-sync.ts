@@ -18,11 +18,11 @@ export interface CharacterSyncer {
 interface Deps {
   db: Db;
   blizzard: BlizzardClient;
-  now?: () => number;
+  now: () => number;
   ttlMs?: number;
 }
 
-export function createCharacterSyncer({ db, blizzard, now = Date.now, ttlMs = GEAR_TTL_MS }: Deps): CharacterSyncer {
+export function createCharacterSyncer({ db, blizzard, now, ttlMs = GEAR_TTL_MS }: Deps): CharacterSyncer {
   const inFlight = new Map<number, Promise<SyncResult>>();
 
   async function run(characterId: number, force: boolean): Promise<SyncResult> {

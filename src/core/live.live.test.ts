@@ -13,27 +13,27 @@ const env = process.env;
 
 describe('live services', () => {
   it('Method still has all three BiS tables for Guardian Druid', async () => {
-    const lists = await createMethodSource().fetchLists('guardian-druid');
+    const lists = await createMethodSource(fetch).fetchLists('guardian-druid');
     expect(lists.overall.length).toBeGreaterThan(10);
     expect(lists.raid.length).toBeGreaterThan(10);
     expect(lists.mythicPlus.length).toBeGreaterThan(10);
   });
 
   it('Raidbots still publishes Myth upgrade tracks', async () => {
-    const { tracks, qualities } = await createRaidbotsFetcher()();
+    const { tracks, qualities } = await createRaidbotsFetcher(fetch)();
     expect(tracks.some((t) => t.name === 'Myth')).toBe(true);
     expect(qualities.length).toBeGreaterThan(100);
   });
 
   it('Blizzard accepts the credentials and returns realms', async () => {
     const config = readConfig();
-    const blizzard = createBlizzardClient({ clientId: config.blizzardClientId, clientSecret: config.blizzardClientSecret });
+    const blizzard = createBlizzardClient({ clientId: config.blizzardClientId, clientSecret: config.blizzardClientSecret, fetchFn: fetch, now: Date.now });
     expect((await blizzard.getRealms((env.LIVE_TEST_REGION as Region) || 'eu')).length).toBeGreaterThan(10);
   });
 
   it.runIf(Boolean(env.LIVE_TEST_REALM && env.LIVE_TEST_CHARACTER))('Blizzard returns equipment for the test character', async () => {
     const config = readConfig();
-    const blizzard = createBlizzardClient({ clientId: config.blizzardClientId, clientSecret: config.blizzardClientSecret });
+    const blizzard = createBlizzardClient({ clientId: config.blizzardClientId, clientSecret: config.blizzardClientSecret, fetchFn: fetch, now: Date.now });
     const gear = await blizzard.getEquipment({
       region: (env.LIVE_TEST_REGION as Region) || 'eu', realmSlug: env.LIVE_TEST_REALM!, name: env.LIVE_TEST_CHARACTER!,
     });
@@ -44,7 +44,7 @@ describe('live services', () => {
 
   it('Blizzard item endpoint still returns secondary stats in preview_item.stats', async () => {
     const config = readConfig();
-    const blizzard = createBlizzardClient({ clientId: config.blizzardClientId, clientSecret: config.blizzardClientSecret });
+    const blizzard = createBlizzardClient({ clientId: config.blizzardClientId, clientSecret: config.blizzardClientSecret, fetchFn: fetch, now: Date.now });
     const region = (env.LIVE_TEST_REGION as Region) || 'eu';
     expect((await blizzard.getItemDetails(region, 273785))?.secondaryStats).toEqual(['HASTE_RATING', 'MASTERY_RATING']);
     expect((await blizzard.getItemDetails(region, 251147))?.secondaryStats).toEqual(['MASTERY_RATING', 'VERSATILITY']);
@@ -52,7 +52,7 @@ describe('live services', () => {
 
   it('this season’s dungeons still join to Encounter Journal loot by map ID', async () => {
     const config = readConfig();
-    const blizzard = createBlizzardClient({ clientId: config.blizzardClientId, clientSecret: config.blizzardClientSecret });
+    const blizzard = createBlizzardClient({ clientId: config.blizzardClientId, clientSecret: config.blizzardClientSecret, fetchFn: fetch, now: Date.now });
     const season = await fetchMainSeason(fetch, Date.now());
     const data = await loadSeasonLoot(blizzard, (env.LIVE_TEST_REGION as Region) || 'eu', season);
     expect(data.dungeons).toHaveLength(season.dungeons.length);

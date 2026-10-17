@@ -73,7 +73,7 @@ export function methodSpecSlug(specName: string, className: string): string {
   return `${slugify(specName)}-${slugify(className)}`;
 }
 
-export function createMethodSource(fetchFn: FetchFn = fetch): BisSource {
+export function createMethodSource(fetchFn: FetchFn): BisSource {
   return {
     name: SOURCE_NAMES.method,
     async fetchLists(specSlug) {

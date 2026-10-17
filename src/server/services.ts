@@ -28,15 +28,18 @@ async function build(): Promise<Services> {
     mkdirSync(path.dirname(path.resolve(config.databaseUrl.slice('file:'.length))), { recursive: true });
   }
   const db = await openDb(config.databaseUrl);
-  const blizzard = createBlizzardClient({ clientId: config.blizzardClientId, clientSecret: config.blizzardClientSecret });
+  // Every client gets the now and fetchFn that Services carries, so one swap reaches them all.
+  const now = Date.now;
+  const fetchFn = fetch;
+  const blizzard = createBlizzardClient({ clientId: config.blizzardClientId, clientSecret: config.blizzardClientSecret, fetchFn, now });
   return {
     db,
     blizzard,
-    bisSources: { method: createMethodSource(), icyVeins: createIcyVeinsSource() },
-    fetchRaidbots: withCurrencyIcons(createRaidbotsFetcher(), createCurrencyIconFetcher()),
-    syncer: createCharacterSyncer({ db, blizzard }),
-    now: Date.now,
-    fetchFn: fetch,
+    bisSources: { method: createMethodSource(fetchFn), icyVeins: createIcyVeinsSource(fetchFn) },
+    fetchRaidbots: withCurrencyIcons(createRaidbotsFetcher(fetchFn), createCurrencyIconFetcher(fetchFn)),
+    syncer: createCharacterSyncer({ db, blizzard, now }),
+    now,
+    fetchFn,
     currentAccountId: () => LOCAL_ACCOUNT_ID,
   };
 }

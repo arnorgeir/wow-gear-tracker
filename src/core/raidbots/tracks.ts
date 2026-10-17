@@ -75,7 +75,7 @@ export function decodeTrack(bonusIds: number[], tracks: ReadonlyMap<number, Trac
 
 export const trackLabel = (track: Track) => `${track.name} ${track.step}/${track.max}`;
 
-export function createRaidbotsFetcher(fetchFn: FetchFn = fetch) {
+export function createRaidbotsFetcher(fetchFn: FetchFn) {
   return async (): Promise<RaidbotsData> => {
     const data = await fetchJson<Record<string, unknown>>(fetchFn, RAIDBOTS_BONUSES_URL);
     return { tracks: parseRaidbotsBonuses(data), qualities: parseBonusQualities(data) };
