@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { searchCharacters, type CharacterSearchResult } from '@/core/raiderio/search';
-import { ensureClassIcons } from '@/core/sync/reference-sync';
+import { ensureClassIcons } from '@/core/sync/reference/class-icons';
 import { parseRegion } from '@/server/route-helpers';
 import { getServices, type Services } from '@/server/services';
 

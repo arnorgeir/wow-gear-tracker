@@ -4,7 +4,8 @@ import { getCharacter } from '../db/queries/characters';
 import { saveSnapshotIfChanged, type SnapshotItemInput } from '../db/queries/snapshots';
 import { UserError } from '../errors';
 import { qualityFromBonuses } from '../raidbots/tracks';
-import { ensureItemDetails, ensureItemStats } from '../sync/reference-sync';
+import { ensureItemDetails } from '../sync/reference/item-details';
+import { ensureItemStats } from '../sync/reference/tier-stats';
 import type { ItemLocation, Quality } from '../types';
 import { isSimcParseError, parseSimc, type SimcProfile } from './parse';
 

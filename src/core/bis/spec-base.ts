@@ -5,7 +5,7 @@ import { getCatalogItems } from '../db/queries/item-catalog';
 import { getManualLists, setManualSource, writeManualCopy } from '../db/queries/manual-lists';
 import { withWriteLock } from '../db/queries/write-lock';
 import { UserError } from '../errors';
-import { readBisLists, type BisRead } from '../sync/reference-sync';
+import { readBisLists, type BisRead } from '../sync/reference/bis-lists';
 import { LIST_TYPES, type BisLists, type BisRow, type BisSourceId, type FetchedSourceId } from '../types';
 import { applyOverrides } from './overlay';
 

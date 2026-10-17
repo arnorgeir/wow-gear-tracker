@@ -6,7 +6,10 @@ import type { RaidbotsData } from '../raidbots/tracks';
 import { LIST_TYPES, type BisSource, type FetchedSourceId, type Region } from '../types';
 import { overrideTierItemIds, sourcesInUse } from '../db/queries/bis-settings';
 import { manualTierItemIds } from '../db/queries/manual-lists';
-import { readBisLists, syncBisLists, syncSpecs, syncTierTargets, syncTracks } from './reference-sync';
+import { readBisLists, syncBisLists } from './reference/bis-lists';
+import { syncSpecs } from './reference/specs';
+import { syncTierTargets } from './reference/tier-stats';
+import { syncTracks } from './reference/tracks';
 
 export type ReferenceSyncResult = 'skipped' | 'synced';
 export interface ReferenceSyncDeps { db: Db; bisSources: Record<FetchedSourceId, BisSource>; fetchRaidbots: () => Promise<RaidbotsData>; blizzard: BlizzardClient; now: number }

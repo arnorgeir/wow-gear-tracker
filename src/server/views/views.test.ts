@@ -18,7 +18,9 @@ import { setMeta } from '@/core/db/queries/meta';
 import { SEASON_META_KEY } from '@/core/sync/season-sync';
 import { syncReference } from '@/core/sync/reference-run';
 import { chooseManual } from '@/core/bis/spec-base';
-import { DAY_MS, syncBisLists, syncTracks } from '@/core/sync/reference-sync';
+import { DAY_MS } from '@/core/sync/freshness';
+import { syncBisLists } from '@/core/sync/reference/bis-lists';
+import { syncTracks } from '@/core/sync/reference/tracks';
 import type { BisLists, GearItem, Track } from '@/core/types';
 import type { BlizzardClient } from '@/core/blizzard/client';
 

@@ -7,7 +7,8 @@ import type { FetchFn } from '../http';
 import { fetchMainSeason, type MainSeason } from '../raiderio/season';
 import type { Region, SeasonLoot } from '../types';
 import { encodeStats } from '../gear/stat-pair';
-import { DAY_MS, ensureItemIcons } from './reference-sync';
+import { DAY_MS } from './freshness';
+import { ensureItemIcons } from './reference/item-icons';
 
 // The version in the key marks the stored tables' format. Bump it when season_dungeons,
 // dungeon_loot or dungeon_encounters gain columns, or when a sync starts caching more (v5: loot icons, v6: dungeon_encounters),
