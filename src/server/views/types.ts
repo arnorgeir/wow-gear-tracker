@@ -66,6 +66,8 @@ export interface CharacterSummary {
   identity: string;
   /** Equipped item level cut to one decimal, from the current snapshot; null without gear or with an unknown item level. */
   itemLevel: number | null;
+  /** Equipped tier pieces in the current snapshot; 0 without one. */
+  tierPieces: number;
 }
 
 export interface CharacterCardView extends CharacterSummary {

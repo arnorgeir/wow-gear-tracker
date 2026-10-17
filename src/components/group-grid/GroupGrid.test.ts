@@ -11,7 +11,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: () => {}, refre
 const summary = (id: number, name: string): CharacterSummary => ({
   id, href: '/characters/eu/argent-dawn/birkibj%C3%B6rn', name, realmName: 'Argent Dawn', realmId: 1, region: 'eu', className: 'Druid', activeSpec: 'Guardian', spec: 'Guardian', specSlug: 'guardian-druid',
   status: 'ok', lastSyncedAt: 5, lastSyncError: null, snapshot: null, sourceAt: null, race: null, faction: null,
-  avatarUrl: null, classIconUrl: null, identity: 'Guardian Druid', itemLevel: null,
+  avatarUrl: null, classIconUrl: null, identity: 'Guardian Druid', itemLevel: null, tierPieces: 0,
 });
 const member = (over: Partial<GroupMemberView>): GroupMemberView => ({
   key: 'eu.argent-dawn.birkibjörn', name: 'Birkibjörn', realmSlug: 'argent-dawn', character: null, state: 'ready',

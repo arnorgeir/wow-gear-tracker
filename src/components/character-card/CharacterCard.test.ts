@@ -11,7 +11,7 @@ const counts = { done: 5, mythUpgradable: 2, belowMyth: 3, wrongStats: 0, missin
 const card = (over: Partial<CharacterCardView>): CharacterCardView => ({
   id: 3, href: '/characters/eu/argent-dawn/birkibj%C3%B6rn', name: 'Birkibjörn', realmName: 'Argent Dawn', realmId: 1, region: 'eu',
   className: 'Druid', activeSpec: 'Guardian', spec: 'Guardian', specSlug: 'guardian-druid', status: 'ok', lastSyncedAt: 5, lastSyncError: null,
-  listType: 'mythicPlus', snapshot: null, sourceAt: null, race: null, faction: null, avatarUrl: null, classIconUrl: null, identity: 'Guardian Druid', itemLevel: null,
+  listType: 'mythicPlus', snapshot: null, sourceAt: null, race: null, faction: null, avatarUrl: null, classIconUrl: null, identity: 'Guardian Druid', itemLevel: null, tierPieces: 0,
   counts, tracksError: null, tracksKnown: true, tracksLoading: false, total: 16, bisError: null, crests: null, upgradesReady: 0, ...over,
 });
 const render = (c: CharacterCardView) => renderToStaticMarkup(createElement(CharacterCard, { card: c, now: 10 })).replace(/<link[^>]*\/>/g, '');
