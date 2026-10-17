@@ -49,11 +49,15 @@ function weightOf(row: GearRow, bySlot: ReadonlyMap<SlotType, GearItem>, matched
 
 interface Need { row: BisRow; weight: number; wrongStats: boolean }
 
-const FIT: Record<StatMatch, TierFit> = { same: 'bis', unknown: 'unverified', different: 'alternative' };
+/** The tier fit a stat comparison gives; shared with the per-drop matcher. */
+export const FIT: Record<StatMatch, TierFit> = { same: 'bis', unknown: 'unverified', different: 'alternative' };
 const MATCH_RANK: Record<StatMatch, number> = { same: 1, unknown: 2, different: 3 };
 
+/** Whether a row still wants an item: it is missing or held with the wrong stats. */
+export const isOpenRow = (r: GearRow): boolean => r.state === 'missing' || r.state === 'wrongStats';
+
 /** A drop for one of the row's slots, in the character's armor type where the slot has one. */
-function fitsSlot(row: BisRow, armor: ArmorType | null, l: LootItem): boolean {
+export function fitsSlot(row: BisRow, armor: ArmorType | null, l: LootItem): boolean {
   const armorSlot = row.slots.some((s) => ARMOR_SLOTS.has(s));
   return slotsForInventoryType(l.inventoryType).some((s) => row.slots.includes(s)) && (!armorSlot || (armor !== null && l.armorType === armor));
 }
@@ -103,7 +107,7 @@ export function rankDungeons(characters: PriorityCharacter[], dungeons: SeasonLo
     return {
       character,
       armor: armorTypeForClass(character.className),
-      missing: character.rows.filter((r) => r.state === 'missing' || r.state === 'wrongStats')
+      missing: character.rows.filter(isOpenRow)
         .map((r): Need => r.state === 'wrongStats'
           ? { row: r.row, weight: 1, wrongStats: true }
           : { row: r.row, weight: weightOf(r, bySlot, matchedSlots, tierCount, character.tracks), wrongStats: false }),
