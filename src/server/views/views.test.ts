@@ -122,7 +122,7 @@ describe('getCharacterPage', () => {
     const s = await services();
     await seed(s);
     await prime(s);
-    await upsertCatalogItem(s.db, { itemId: 21, name: 'Other Neck', inventoryType: 'NECK', armorType: null, quality: 'EPIC', isTier: false }, 1);
+    await upsertCatalogItem(s.db, { itemId: 21, name: 'Other Neck', inventoryType: 'NECK', armorType: null, weaponType: null, quality: 'EPIC', isTier: false }, 1);
     await upsertOverride(s.db, 1, 'guardian-druid', 'method', 'mythicPlus', { slotKey: 'Neck#1', itemId: 21, catalyst: false });
     const page = await birkiPage(s);
     expect(page.rows[1]!.bis).toMatchObject({ itemId: 21 });

@@ -43,13 +43,14 @@ const INSTANCES: Record<number, { id: number; name: string; mapId: number; encou
 const ENCOUNTERS: Record<number, { id: number; name: string; description: string | null; sections: JournalSection[]; items: { itemId: number; name: string }[] }> = {
   1: { id: 1, name: 'Hollow King', description: 'A king of hollow things.', sections: [{ title: 'Overview', spellId: null, bodyText: 'Avoid the pits.', sections: [] }], items: [{ itemId: 100, name: 'Hollow Robe' }, { itemId: 101, name: 'Vanished Band' }] },
   2: { id: 2, name: 'Market Warden', description: null, sections: [], items: [{ itemId: 200, name: 'Warden Helm' }] },
-  3: { id: 3, name: 'Gambit Queen', description: null, sections: [], items: [{ itemId: 300, name: 'Queen’s Charm' }] },
+  3: { id: 3, name: 'Gambit Queen', description: null, sections: [], items: [{ itemId: 300, name: 'Queen’s Charm' }, { itemId: 400, name: 'Queen’s Blade' }] },
 };
-const ITEMS: Record<number, { inventoryType: string; armorType: 'leather' | 'plate' | null; secondaryStats?: string[] | null; isTier?: boolean } | null> = {
-  100: { inventoryType: 'ROBE', armorType: 'leather', secondaryStats: ['CRIT_RATING', 'VERSATILITY'] },
+const ITEMS: Record<number, { inventoryType: string; armorType: 'leather' | 'plate' | null; weaponType?: 'sword1h' | null; secondaryStats?: string[] | null; isTier?: boolean } | null> = {
+  100: { inventoryType: 'ROBE', armorType: 'leather', weaponType: null, secondaryStats: ['CRIT_RATING', 'VERSATILITY'] },
   101: null,
   200: { inventoryType: 'HEAD', armorType: 'plate', secondaryStats: null, isTier: true },
   300: { inventoryType: 'TRINKET', armorType: null },
+  400: { inventoryType: 'WEAPON', armorType: null, weaponType: 'sword1h' },
 };
 
 function fakeBlizzard(overrides: Partial<Record<string, unknown>> = {}) {
@@ -73,8 +74,8 @@ function fakeBlizzard(overrides: Partial<Record<string, unknown>> = {}) {
 const deps = async (blizzard: BlizzardClient, fetchFn = raiderIo().fn) => ({ db: await openTestDb(), blizzard, fetchFn, now: T, region: 'eu' as const });
 
 describe('syncSeason', () => {
-  it('stores the season under season.v6', () => {
-    expect(SEASON_META_KEY).toBe('season.v6');
+  it('stores the season under season.v7', () => {
+    expect(SEASON_META_KEY).toBe('season.v7');
   });
 
   it('joins each dungeon to its journal instance by map ID and stores the loot with slots', async () => {
@@ -85,10 +86,11 @@ describe('syncSeason', () => {
     expect(state).toMatchObject({ status: 'ready', needsSync: false });
     expect(state.dungeons.map((x) => [x.name, x.split])).toEqual([['Alpha Hollow', false], ['Beta Gambit', true], ['Streets of Beta', true]]);
     expect(state.dungeons[0]!.loot).toEqual([
-      { itemId: 100, name: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather', secondaryStats: ['CRIT_RATING', 'VERSATILITY'] },
-      { itemId: 101, name: 'Vanished Band', inventoryType: null, armorType: null, secondaryStats: null },
+      { itemId: 100, name: 'Hollow Robe', inventoryType: 'ROBE', armorType: 'leather', weaponType: null, secondaryStats: ['CRIT_RATING', 'VERSATILITY'] },
+      { itemId: 101, name: 'Vanished Band', inventoryType: null, armorType: null, weaponType: null, secondaryStats: null },
     ]);
     expect(state.dungeons[1]!.loot[0]!.secondaryStats).toBeNull();
+    expect(state.dungeons.flatMap((x) => x.loot).find((l) => l.itemId === 400)?.weaponType).toBe('sword1h');
     const stored = await d.db.select().from(dungeonLoot);
     expect(stored.find((r) => r.itemId === 200)).toMatchObject({ quality: 'EPIC', isTier: true });
     expect(stored.find((r) => r.itemId === 100)).toMatchObject({ quality: 'EPIC', isTier: false });
@@ -98,7 +100,7 @@ describe('syncSeason', () => {
     ]);
     // Both Beta halves share instance 902: its encounters and items are fetched once.
     expect([...calls.encounters].sort()).toEqual([1, 2, 3]);
-    expect([...calls.items].sort()).toEqual([100, 101, 200, 300]);
+    expect([...calls.items].sort()).toEqual([100, 101, 200, 300, 400]);
   });
 
   it('stores one encounter row per distinct encounter, shared by split halves, and replaces them on a reload', async () => {
@@ -116,7 +118,7 @@ describe('syncSeason', () => {
   });
 
   describe('loot icons', () => {
-    const LOOT_IDS = [100, 101, 200, 300];
+    const LOOT_IDS = [100, 101, 200, 300, 400];
 
     it('caches an icon for every loot item when the season loads', async () => {
       const d = await deps(fakeBlizzard().blizzard);
@@ -135,7 +137,7 @@ describe('syncSeason', () => {
       expect((await getItemIcons(d.db, LOOT_IDS)).size).toBe(0);
       expect(await syncSeason({ ...d, blizzard: fakeBlizzard().blizzard, now: T + DAY_MS + 1 })).toBe('current');
       await lootIconsSettled(d.db);
-      expect((await getItemIcons(d.db, LOOT_IDS)).size).toBe(4);
+      expect((await getItemIcons(d.db, LOOT_IDS)).size).toBe(5);
     });
 
     it('still reports loaded, and writes the season meta, when every icon request fails', async () => {

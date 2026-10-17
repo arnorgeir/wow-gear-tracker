@@ -113,6 +113,13 @@
       "when": 1792090932900,
       "tag": "0015_dungeon_encounters",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1792251953670,
+      "tag": "0016_weapon_types",
+      "breakpoints": true
     }
   ]
 }

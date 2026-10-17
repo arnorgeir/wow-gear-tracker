@@ -6,9 +6,9 @@ const head: BisRow = { kind: 'item', slotLabel: 'Head', slots: ['HEAD'], itemId:
 const ring1: BisRow = { kind: 'item', slotLabel: 'Ring', slots: ['FINGER_1', 'FINGER_2'], itemId: 20, name: 'Band A', bonusIds: [], isTier: false, isCatalyst: false, source: 'Alpha Hollow' };
 const ring2: BisRow = { ...ring1, itemId: 21, name: 'Band B' };
 const catalog = new Map<number, CatalogItem>([
-  [30, { itemId: 30, name: 'Birkibjörn Band', inventoryType: 'FINGER', armorType: null, quality: 'EPIC', isTier: false }],
-  [31, { itemId: 31, name: 'Woven Hood', inventoryType: 'HEAD', armorType: 'cloth', quality: 'EPIC', isTier: false }],
-  [32, { itemId: 32, name: 'Frostbound Crown', inventoryType: 'HEAD', armorType: 'cloth', quality: 'EPIC', isTier: true }],
+  [30, { itemId: 30, name: 'Birkibjörn Band', inventoryType: 'FINGER', armorType: null, weaponType: null, quality: 'EPIC', isTier: false }],
+  [31, { itemId: 31, name: 'Woven Hood', inventoryType: 'HEAD', armorType: 'cloth', weaponType: null, quality: 'EPIC', isTier: false }],
+  [32, { itemId: 32, name: 'Frostbound Crown', inventoryType: 'HEAD', armorType: 'cloth', weaponType: null, quality: 'EPIC', isTier: true }],
 ]);
 
 describe('applyOverrides', () => {

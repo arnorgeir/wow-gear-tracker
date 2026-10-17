@@ -45,7 +45,7 @@ export type BisRow = BisItemRow | BisAnyRow;
 export type BisLists = Record<ListType, BisRow[]>;
 
 export interface BisOverride { slotKey: string; itemId: number; catalyst: boolean }
-export interface CatalogItem { itemId: number; name: string; inventoryType: string | null; armorType: ArmorType | null; quality: Quality | null; isTier: boolean }
+export interface CatalogItem { itemId: number; name: string; inventoryType: string | null; armorType: ArmorType | null; weaponType: WeaponType | null; quality: Quality | null; isTier: boolean }
 export type BisSourceId = 'method' | 'icyVeins' | 'manual';
 export type FetchedSourceId = Exclude<BisSourceId, 'manual'>;
 export const FETCHED_SOURCES: readonly FetchedSourceId[] = ['method', 'icyVeins'];
@@ -84,7 +84,7 @@ export type StatMatch = 'same' | 'different' | 'unknown';
 /** A tier row's Method item: its secondary stat pair, and whether it is the tier piece itself (bought with a tier token). */
 export interface TierTarget { secondaryStats: string[] | null; isTier: boolean }
 
-export interface LootItem { itemId: number; name: string; inventoryType: string | null; armorType: ArmorType | null; secondaryStats?: string[] | null }
+export interface LootItem { itemId: number; name: string; inventoryType: string | null; armorType: ArmorType | null; weaponType?: WeaponType | null; secondaryStats?: string[] | null }
 /** One season dungeon and what it drops. `split` marks half of a dungeon credited with the whole instance's loot. */
 export interface SeasonLoot { challengeModeId: number; name: string; shortName: string; imageUrl: string | null; split: boolean; loot: LootItem[] }
 

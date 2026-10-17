@@ -23,7 +23,7 @@ async function seeded(): Promise<Db> {
   await db.insert(accounts).values({ id: 2, name: 'Other' });
   await replaceBisLists(db, 'method', SLUG, methodLists, 1);
   for (const itemId of [900, 901]) {
-    await upsertCatalogItem(db, { itemId, name: `Woven Hood ${itemId}`, inventoryType: 'HEAD', armorType: 'cloth', quality: 'EPIC', isTier: false }, 1);
+    await upsertCatalogItem(db, { itemId, name: `Woven Hood ${itemId}`, inventoryType: 'HEAD', armorType: 'cloth', weaponType: null, quality: 'EPIC', isTier: false }, 1);
   }
   return db;
 }

@@ -68,10 +68,19 @@ describe('saveOverride', () => {
     const calls: number[] = [];
     const { db, deps } = await setup(async (_r, id) => { calls.push(id); return null; });
     await replaceSeason(db, { slug: 's', dungeons: [{ challengeModeId: 1, name: 'AH', shortName: 'AH', journalInstanceId: 1, mapId: 1, imageUrl: null }],
-      loot: [{ challengeModeId: 1, encounterId: 1, encounterName: 'B', itemId: 60, itemName: 'Loot Band', inventoryType: 'FINGER', armorType: null, quality: 'EPIC', isTier: false }] });
+      loot: [{ challengeModeId: 1, encounterId: 1, encounterName: 'B', itemId: 60, itemName: 'Loot Band', inventoryType: 'FINGER', armorType: null, weaponType: null, quality: 'EPIC', isTier: false }] });
     await saveOverride(deps, ring, 60, false);
     expect(calls).toEqual([]);
     expect((await getCatalogItems(db, [60])).get(60)).toMatchObject({ name: 'Loot Band' });
+  });
+
+  it('refetches a cataloged weapon that has no weapon type yet', async () => {
+    const calls: number[] = [];
+    const { db, deps } = await setup(async (_r, id) => { calls.push(id); return info({ inventoryType: 'TWOHWEAPON', armorType: null, weaponType: 'staff' }); });
+    await upsertCatalogItem(db, { itemId: 70, name: 'Woven Robe', inventoryType: 'TWOHWEAPON', armorType: null, weaponType: null, quality: 'EPIC', isTier: false }, 1);
+    await lookupItem(deps, chest, '70');
+    expect(calls).toEqual([70]);
+    expect((await getCatalogItems(db, [70])).get(70)?.weaponType).toBe('staff');
   });
 
   it('saves a catalyst override on a tier slot', async () => {
@@ -118,7 +127,7 @@ describe('searchItems and lookupItem', () => {
     const calls: number[] = [];
     const { db, deps } = await setup(async () => info({ name: 'Cloth Robe', inventoryType: 'ROBE' }), async (_r, id) => { calls.push(id); return null; });
     for (const [itemId, name] of [[71, 'Cached Robe'], [72, 'Bare Robe']] as const) {
-      await upsertCatalogItem(db, { itemId, name, inventoryType: 'ROBE', armorType: 'cloth', quality: 'EPIC', isTier: false }, 1);
+      await upsertCatalogItem(db, { itemId, name, inventoryType: 'ROBE', armorType: 'cloth', weaponType: null, quality: 'EPIC', isTier: false }, 1);
     }
     await upsertItemIcons(db, [{ itemId: 71, iconUrl: 'https://render/icons/71.jpg' }], 1);
     const out = await searchItems(deps, chest, 'Robe');
