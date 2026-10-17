@@ -1,11 +1,11 @@
 import { createElement, isValidElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import type { ListType } from '@/core/types';
+import type { BisSourceId, ListType } from '@/core/types';
 import { VaultHistory } from '@/components/vault-history/VaultHistory';
 import { VaultSection } from './VaultSection';
 
-const base = { id: 1, vault: [], vaultChoices: [], vaultChoicesAt: null, vaultHistoryBefore: null as number | null, specSlug: 'guardian-druid', listType: 'mythicPlus' as ListType, now: 0 };
+const base = { id: 1, vault: [], vaultChoices: [], vaultChoicesAt: null, vaultHistoryBefore: null as number | null, specSlug: 'guardian-druid', listType: 'mythicPlus' as ListType, bisSource: 'method' as BisSourceId, bisFetchedAt: 500 as number | null, editedCount: 0, now: 0 };
 
 /** The key React gives the history: a new key remounts it, dropping weeks marked against another list. */
 function historyKey(node: ReactNode): string | null {
@@ -37,5 +37,10 @@ describe('VaultSection', () => {
     expect(key({ vaultHistoryBefore: 1000, listType: 'raid' })).not.toBe(first);
     expect(key({ vaultHistoryBefore: 1000, specSlug: 'feral-druid' })).not.toBe(first);
     expect(key({ vaultHistoryBefore: 2000 })).not.toBe(first);
+    // A background BiS fetch or an edit changes the list's contents under the same spec and list.
+    expect(key({ vaultHistoryBefore: 1000, bisFetchedAt: 900 })).not.toBe(first);
+    expect(key({ vaultHistoryBefore: 1000, bisFetchedAt: null })).not.toBe(first);
+    expect(key({ vaultHistoryBefore: 1000, editedCount: 2 })).not.toBe(first);
+    expect(key({ vaultHistoryBefore: 1000, bisSource: 'manual' })).not.toBe(first);
   });
 });
