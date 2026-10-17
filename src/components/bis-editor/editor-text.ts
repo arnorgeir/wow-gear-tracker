@@ -31,7 +31,7 @@ export const orphanText = (source: BisSourceId) => source === 'manual'
 export const rowButton = ({ edited, open }: { edited: boolean; open: boolean }) => (edited ? 'Reset' : open ? 'Cancel' : 'Override');
 
 /** A phone tab's second line: the compared list says so beside its edit count. */
-export const tabSub = (editedCount: number, compared: boolean) => (compared ? `Compared · ${editedText(editedCount)}` : editedText(editedCount));
+export const tabSub = (editedCount: number, compared: boolean) => [compared ? 'Compared' : null, editedText(editedCount)].filter(Boolean).join(' · ') || null;
 
 /** `Ring#3` was a slot of the list that no longer exists. */
 export const orphanLabel = (slotKey: string) => `Was your pick for ${slotKey.replace('#', ' ')}`;

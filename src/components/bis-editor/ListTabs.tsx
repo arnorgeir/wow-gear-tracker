@@ -21,7 +21,7 @@ export function ListTabs({ view }: { view: SettingsSpecView }) {
                   <span aria-hidden="true" className="size-1.5 rotate-45 bg-gold" />Compared
                 </span>
               )}
-              <span className="text-[13px] font-medium text-muted">{editedText(view.lists[l].editedCount)}</span>
+              {editedText(view.lists[l].editedCount) && <span className="text-[13px] font-medium text-muted">{editedText(view.lists[l].editedCount)}</span>}
             </Link>
           );
         })}
@@ -36,7 +36,7 @@ export function ListTabs({ view }: { view: SettingsSpecView }) {
                 {l === view.listType && <span aria-hidden="true" className="size-[7px] rotate-45 bg-gold" />}
                 {LIST_NAMES[l]}
               </span>
-              <span className="text-xs font-medium text-muted">{tabSub(view.lists[l].editedCount, l === view.listType)}</span>
+              {tabSub(view.lists[l].editedCount, l === view.listType) && <span className="text-xs font-medium text-muted">{tabSub(view.lists[l].editedCount, l === view.listType)}</span>}
             </Link>
           );
         })}

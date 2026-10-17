@@ -33,7 +33,9 @@ describe('editor text', () => {
   });
 
   it('puts the compared mark in the tab sub line on a phone', () => {
-    expect(tabSub(0, false)).toBe('no edits');
+    expect(tabSub(0, false)).toBeNull();
+    expect(tabSub(0, true)).toBe('Compared');
+    expect(tabSub(3, false)).toBe('3 edited');
     expect(tabSub(3, true)).toBe('Compared · 3 edited');
   });
 

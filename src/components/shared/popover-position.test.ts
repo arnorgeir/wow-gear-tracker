@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardCoords, placeBeside } from './position';
+import { cardCoords, placeBeside } from './popover-position';
 
 const viewport = { width: 1280, height: 800 };
 const card = { width: 320, height: 240 };

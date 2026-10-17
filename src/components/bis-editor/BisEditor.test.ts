@@ -54,7 +54,7 @@ describe('BisEditor', () => {
 
   it('marks the compared tab in words and counts every tab’s edits', () => {
     expect(html).toContain('Compared');
-    expect(html).toContain('no edits');
+    expect(html).not.toContain('no edits');
     expect(html).toContain('1 edited');
     expect(html).toContain('Compared · 1 edited');
   });
