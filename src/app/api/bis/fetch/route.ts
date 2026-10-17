@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { knownSpecSlug, regionForSpec } from '@/core/bis/edits';
 import { getSpecSettings } from '@/core/db/queries/bis-settings';
 import { UserError } from '@/core/errors';
-import { syncBisLists } from '@/core/sync/reference-sync';
+import { syncBisLists } from '@/core/sync/reference/bis-lists';
 import { getServices } from '@/server/services';
 import { errorResponse } from '@/server/route-helpers';
 

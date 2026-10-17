@@ -8,7 +8,7 @@ import { insertCharacter } from '@/core/db/queries/characters';
 import { upsertCatalogItem } from '@/core/db/queries/item-catalog';
 import { upsertClassIcons } from '@/core/db/queries/media';
 import { replaceSpecs } from '@/core/db/queries/specs';
-import { syncBisLists } from '@/core/sync/reference-sync';
+import { syncBisLists } from '@/core/sync/reference/bis-lists';
 import type { BisLists } from '@/core/types';
 import { getSpecPicker } from './settings-bis';
 import { getSettingsSpec } from './settings-spec';

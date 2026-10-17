@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BlizzardClient } from '@/core/blizzard/client';
 import { openTestDb } from '@/test/db';
-import { syncBisLists } from '@/core/sync/reference-sync';
+import { syncBisLists } from '@/core/sync/reference/bis-lists';
 import { replaceBisLists } from '@/core/db/queries/bis-lists';
 import { updateSpecSettings, upsertOverride } from '@/core/db/queries/bis-settings';
 import { upsertCatalogItem } from '@/core/db/queries/item-catalog';

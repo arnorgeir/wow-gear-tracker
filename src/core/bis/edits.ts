@@ -7,7 +7,7 @@ import { findLocalItem, searchLocalItems, upsertCatalogItem } from '../db/querie
 import { getSpec } from '../db/queries/specs';
 import { UserError, isUserError } from '../errors';
 import { methodSpecSlug } from '../method/method';
-import { ensureItemIcons } from '../sync/reference-sync';
+import { ensureItemIcons } from '../sync/reference/item-icons';
 import { SOURCE_NAMES, type BisRow, type BisSourceId, type CatalogItem, type ListType, type Region } from '../types';
 import { canCatalyst, classCanUse, type CanUse } from './class-can-use';
 import { parseItemInput } from './item-input';

@@ -3,7 +3,9 @@ import { listCharacters, type CharacterRow } from '@/core/db/queries/characters'
 import { crestCostsByGroup } from '@/core/gear/crests';
 import { rankDungeons } from '@/core/priority/rank';
 import { isStale } from '@/core/sync/character-sync';
-import { ensureClassIcons, ensureItemIcons, readTracks } from '@/core/sync/reference-sync';
+import { ensureClassIcons } from '@/core/sync/reference/class-icons';
+import { ensureItemIcons } from '@/core/sync/reference/item-icons';
+import { readTracks } from '@/core/sync/reference/tracks';
 import { readSeason } from '@/core/sync/season-sync';
 import type { Services } from '../services';
 import { createBisLookup, referenceDue } from './bis-lookup';

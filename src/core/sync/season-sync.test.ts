@@ -5,7 +5,7 @@ import { getItemIcons } from '../db/queries/media';
 import { fakeFetch, json, on } from '@/test/fake-fetch';
 import type { BlizzardClient } from '../blizzard/client';
 import type { JournalSection } from '../types';
-import { DAY_MS } from './reference-sync';
+import { DAY_MS } from './freshness';
 import { getMeta, setMeta } from '../db/queries/meta';
 import { replaceSeason } from '../db/queries/season';
 import { lootIconsSettled, readSeason, SEASON_META_KEY, syncSeason } from './season-sync';

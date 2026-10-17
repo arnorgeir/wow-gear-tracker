@@ -94,7 +94,7 @@ Plan: docs/superpowers/plans/<file>"
 
 - **Every write goes through `withWriteLock`** in `src/core/db/queries/write-lock.ts`. libsql's SQLite driver runs synchronously on the main thread: a write that waits on another connection's lock blocks the event loop, so the lock holder can never finish.
 - **Change the schema in `src/core/db/schema.ts`,** then run `npm run db:generate -- --name <name>`. Never edit a migration that's already committed.
-- **Cached Raidbots data is versioned.** When `upgrade_tracks` or `bonus_qualities` gain columns, bump the version in `TRACKS_META_KEY` in `src/core/sync/reference-sync.ts`, so installs refetch instead of trusting old rows for a day.
+- **Cached Raidbots data is versioned.** When `upgrade_tracks` or `bonus_qualities` gain columns, bump the version in `TRACKS_META_KEY` in `src/core/sync/reference/tracks.ts`, so installs refetch instead of trusting old rows for a day.
 - **Cached season loot is versioned the same way.** When `season_dungeons`, `dungeon_loot` or `dungeon_encounters` gain columns, bump the version in `SEASON_META_KEY` in `src/core/sync/season-sync.ts`.
 - **In-memory test databases have one connection.** Don't run database reads in parallel with a write in the same code path. Run them in sequence.
 

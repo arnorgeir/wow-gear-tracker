@@ -3,7 +3,7 @@ import { applyOverrides } from '@/core/bis/overlay';
 import { readSpecBase, type SpecBase } from '@/core/bis/spec-base';
 import { getSpecSettings, listOverrides } from '@/core/db/queries/bis-settings';
 import { getCatalogItems } from '@/core/db/queries/item-catalog';
-import { readTierTargets } from '@/core/sync/reference-sync';
+import { readTierTargets } from '@/core/sync/reference/tier-stats';
 import { LIST_TYPES, type BisOverride, type ListType, type Region, type TierTarget } from '@/core/types';
 
 interface Overlay {

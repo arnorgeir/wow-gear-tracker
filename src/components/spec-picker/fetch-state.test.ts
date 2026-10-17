@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DAY_MS } from '@/core/sync/reference-sync';
+import { DAY_MS } from '@/core/sync/freshness';
 import { fetchAction, fetchStateLabel } from './fetch-state';
 
 describe('fetchStateLabel', () => {
