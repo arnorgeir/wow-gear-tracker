@@ -4,7 +4,7 @@ import { openTestDb } from '@/test/db';
 import type { GearItem } from '../../types';
 import { snapshotItems } from '../schema';
 import { type NewCharacter, insertCharacter } from './characters';
-import { gearToSnapshotItems, saveSnapshotIfChanged, getLatestSnapshot, equippedGear } from './snapshots';
+import { gearToSnapshotItems, saveSnapshotIfChanged, getLatestSnapshot, getLatestVaultPaste, equippedGear } from './snapshots';
 
 const newCharacter: NewCharacter = {
   region: 'eu', realmId: 1306, realmSlug: 'tarren-mill', realmName: 'Tarren Mill',
@@ -127,5 +127,39 @@ describe('snapshot stat pairs', () => {
     expect((await getLatestSnapshot(db, id))!.id).toBe(paste.snapshotId);
     const rows = await db.select().from(snapshotItems).where(eq(snapshotItems.snapshotId, old.snapshotId));
     expect(rows.find((r) => r.slot === 'HEAD')!.secondaryStats).toBe('HASTE_RATING,MASTERY_RATING');
+  });
+});
+
+describe('getLatestVaultPaste', () => {
+  const item = (location: 'vault' | 'equipped', slot: string, itemId: number) =>
+    ({ location, slot, itemId, name: 'Thing', itemLevel: 300, quality: 'EPIC' as const, bonusIds: [], isTier: false, secondaryStats: null });
+  const withVault = (n: number) => [item('equipped', 'HEAD', 1), item('vault', 'NECK', n)];
+
+  it('skips a later paste without vault items and returns only vault items', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    await saveSnapshotIfChanged(db, id, 'simc', withVault(5), 100);
+    await saveSnapshotIfChanged(db, id, 'simc', [item('equipped', 'HEAD', 2)], 200);
+    const got = await getLatestVaultPaste(db, id, {});
+    expect(got?.createdAt).toBe(100);
+    expect(got?.items.map((i) => [i.location, i.itemId])).toEqual([['vault', 5]]);
+  });
+
+  it('includes a paste exactly at from and excludes one exactly at before', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    await saveSnapshotIfChanged(db, id, 'simc', withVault(5), 100);
+    await saveSnapshotIfChanged(db, id, 'simc', withVault(6), 200);
+    expect((await getLatestVaultPaste(db, id, { from: 200 }))?.createdAt).toBe(200);
+    expect((await getLatestVaultPaste(db, id, { before: 200 }))?.createdAt).toBe(100);
+    expect(await getLatestVaultPaste(db, id, { before: 100 })).toBeNull();
+    expect(await getLatestVaultPaste(db, id, { from: 201 })).toBeNull();
+  });
+
+  it('ignores Blizzard snapshots', async () => {
+    const db = await openTestDb();
+    const { id } = await insertCharacter(db, newCharacter, 1);
+    await saveSnapshotIfChanged(db, id, 'blizzard', withVault(5), 100);
+    expect(await getLatestVaultPaste(db, id, {})).toBeNull();
   });
 });
