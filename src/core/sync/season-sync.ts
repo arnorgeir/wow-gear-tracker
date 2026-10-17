@@ -7,7 +7,7 @@ import type { FetchFn } from '../http';
 import { fetchMainSeason, type MainSeason } from '../raiderio/season';
 import type { Region, SeasonLoot } from '../types';
 import { encodeStats } from '../gear/stat-pair';
-import { DAY_MS } from './freshness';
+import { cacheTiming, referenceStatus, type ReferenceStatus } from './freshness';
 import { ensureItemIcons } from './reference/item-icons';
 
 // The version in the key marks the stored tables' format. Bump it when season_dungeons,
@@ -15,21 +15,10 @@ import { ensureItemIcons } from './reference/item-icons';
 // so installs reload the season instead of trusting old rows until the next daily check.
 export const SEASON_META_KEY = 'season.v6';
 const SEASON_FAILED_META_KEY = 'season.failedAt';
-const SEASON_RETRY_MS = 60 * 60 * 1000;
 
 export type SeasonSyncResult = 'skipped' | 'current' | 'loaded' | 'failed';
 export interface SeasonSyncDeps { db: Db; blizzard: BlizzardClient; fetchFn: FetchFn; now: number; region: Region }
-export interface SeasonState { status: 'loading' | 'failed' | 'ready' | 'stale'; needsSync: boolean; dungeons: SeasonLoot[] }
-
-type MetaRow = Awaited<ReturnType<typeof getMeta>>;
-
-/** One rule for both the sync and the page: a sync is due unless the season loaded within a day, or the last load failed within the hour. */
-function seasonTiming(loaded: MetaRow, failed: MetaRow, now: number) {
-  const lastFailed = failed !== null && (loaded === null || failed.updatedAt > loaded.updatedAt);
-  const fresh = loaded !== null && now - loaded.updatedAt < DAY_MS;
-  const backingOff = lastFailed && now - failed!.updatedAt < SEASON_RETRY_MS;
-  return { lastFailed, due: !fresh && !backingOff };
-}
+export interface SeasonState { status: ReferenceStatus; needsSync: boolean; dungeons: SeasonLoot[] }
 
 /**
  * Loads one season's loot: each dungeon's challenge mode → keystone dungeon → map → the journal
@@ -102,7 +91,7 @@ async function runSync(deps: SeasonSyncDeps): Promise<SeasonSyncResult> {
   const { db, blizzard, fetchFn, now, region } = deps;
   const loaded = await getMeta(db, SEASON_META_KEY);
   const failed = await getMeta(db, SEASON_FAILED_META_KEY);
-  if (!seasonTiming(loaded, failed, now).due) return 'skipped';
+  if (!cacheTiming(loaded?.updatedAt ?? null, failed?.updatedAt ?? null, now).due) return 'skipped';
   try {
     const season = await fetchMainSeason(fetchFn, now);
     if (loaded?.value === season.slug) {
@@ -139,7 +128,7 @@ export async function readSeason(db: Db, now: number): Promise<SeasonState> {
   const loaded = await getMeta(db, SEASON_META_KEY);
   const failed = await getMeta(db, SEASON_FAILED_META_KEY);
   const dungeons = await getSeasonLoot(db);
-  const { lastFailed, due } = seasonTiming(loaded, failed, now);
-  const status = dungeons.length === 0 ? (lastFailed ? 'failed' : 'loading') : (lastFailed ? 'stale' : 'ready');
+  const { lastFailed, due } = cacheTiming(loaded?.updatedAt ?? null, failed?.updatedAt ?? null, now);
+  const status = referenceStatus(dungeons.length > 0, lastFailed);
   return { status, needsSync: due, dungeons };
 }
