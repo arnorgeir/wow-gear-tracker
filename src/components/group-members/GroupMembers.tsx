@@ -3,15 +3,15 @@
 import { useState } from 'react';
 import { AddCharacterBar } from '@/components/add-character-bar/AddCharacterBar';
 import type { TrackedCharacter } from '@/components/add-character-bar/tracked';
-import { CharacterAvatar } from '@/components/character-avatar/CharacterAvatar';
 import { useGroupEdits } from '@/components/group-edits/GroupEditsProvider';
-import { RemoveFromGroupButton } from '@/components/remove-from-group/RemoveFromGroupButton';
-import { classTextColor } from '@/components/shared/class-colors';
 import { LABEL_CLASS } from '@/components/shared/field-classes';
-import { GROUP_UPDATING } from '@/components/shared/loading-copy';
 import { MAX_GROUP_SIZE } from '@/core/characters/member-key';
 import type { Region } from '@/core/types';
 import type { GroupMemberView } from '@/server/views/types';
+import { MemberChip } from './MemberChip';
+import { orderByKeys } from './order-by-keys';
+import { statusText } from './status-text';
+import { useMemberDrag } from './use-member-drag';
 
 interface Props {
   members: GroupMemberView[];
@@ -23,24 +23,26 @@ interface Props {
 export function GroupMembers({ members, region, available, tracked }: Props) {
   const [open, setOpen] = useState(false);
   // Every edit goes through the shared membership, never through the keys this render was given.
-  const { keys, pending, add } = useGroupEdits();
+  const { keys, pending, add, move, moved } = useGroupEdits();
+  const drag = useMemberDrag(keys, (key, index) => move(key, members.find((m) => m.key === key)?.name ?? '', index));
+  const display = orderByKeys(members, drag.preview ?? keys);
+  const picked = members.find((m) => m.key === drag.pickedKey) ?? null;
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        {members.map((m) => (
-          <span key={m.key} className="flex h-12 items-center gap-2 rounded-full border border-line bg-surface-2 pl-1.5 pr-0.5">
-            {m.character && <CharacterAvatar name={m.character.name} className={m.character.className} avatarUrl={m.character.avatarUrl} classIconUrl={m.character.classIconUrl} size={32} />}
-            <span className="font-semibold" style={m.character ? { color: classTextColor(m.character.className) } : undefined}>{m.name}</span>
-            {m.character && <span className="hidden text-sm text-muted sm:inline">{m.character.spec}</span>}
-            <RemoveFromGroupButton memberKey={m.key} name={m.name} />
-          </span>
+      <div className={`flex flex-wrap items-center gap-2 ${drag.draggingKey ? 'select-none' : ''}`}>
+        {display.map((m, index) => (
+          <MemberChip key={m.key} member={m} index={index} count={display.length} reorderable={display.length >= 2 && keys.includes(m.key)}
+            lift={drag.draggingKey === m.key ? 'dragging' : drag.pickedKey === m.key ? 'picked' : 'none'}
+            pickedName={picked?.name ?? null} rowDragging={drag.draggingKey !== null}
+            handle={drag.handleEvents(m.key)} chipRef={drag.chipRef(m.key)} onKeyMove={(to) => move(m.key, m.name, to)} />
         ))}
         {keys.length < MAX_GROUP_SIZE
           ? <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="h-12 rounded-full border border-line-strong bg-raised px-5 font-semibold">Add character</button>
           : <span className="text-sm text-muted">Group is full ({MAX_GROUP_SIZE})</span>}
         {/* Always mounted: screen readers skip a live region that arrives with its text. */}
-        <span role="status" className="sr-only">{pending ? GROUP_UPDATING : ''}</span>
+        <span role="status" className="sr-only">{statusText({ picked, moved, pending })}</span>
+        <span id="group-move-hint" className="sr-only">Drag, or press to pick up. Arrow keys, Home and End also move it.</span>
       </div>
       {open && keys.length < MAX_GROUP_SIZE && (
         <div className="flex flex-col gap-3">
