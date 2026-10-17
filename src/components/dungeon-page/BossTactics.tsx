@@ -1,9 +1,11 @@
 import type { JournalBlock, JournalInline } from '@/core/journal/markup';
 import type { AbilityView, BossTacticsView } from '@/server/views/types';
 
+const FOCUS = 'focus-visible:outline-2 focus-visible:outline-gold';
+
 function SpellLink({ id, children }: { id: number; children: React.ReactNode }) {
   return (
-    <a href={`https://www.wowhead.com/spell=${id}`} data-wowhead={`spell=${id}`} target="_blank" rel="noreferrer" className="text-gold hover:underline">
+    <a href={`https://www.wowhead.com/spell=${id}`} data-wowhead={`spell=${id}`} target="_blank" rel="noreferrer" className={`text-gold hover:underline ${FOCUS}`}>
       {children}
     </a>
   );
@@ -22,41 +24,51 @@ function Blocks({ blocks }: { blocks: JournalBlock[] }) {
     : <p key={i}><Parts parts={b.parts} /></p>);
 }
 
+/** An ability's name: the spell link when there is a spell, plain text for a group such as an add. */
+function AbilityName({ a }: { a: AbilityView }) {
+  return a.spellId === null ? a.name : <SpellLink id={a.spellId}>{a.name}</SpellLink>;
+}
+
 function Abilities({ abilities }: { abilities: AbilityView[] }) {
   return (
     <ul className="flex flex-col gap-2">
       {abilities.map((a, i) => (
-        <li key={i} className="flex flex-col gap-1">
-          <span className="font-bold">{a.spellId === null ? a.name : <SpellLink id={a.spellId}>{a.name}</SpellLink>}</span>
-          <Blocks blocks={a.blocks} />
-          {a.abilities.length > 0 && <div className="pl-4"><Abilities abilities={a.abilities} /></div>}
+        <li key={i}>
+          {a.blocks.length > 0 || a.abilities.length > 0 ? (
+            <details open>
+              <summary className={`min-h-8 cursor-pointer font-bold ${FOCUS}`}><AbilityName a={a} /></summary>
+              <div className="flex flex-col gap-1 pb-1 pl-4 pt-1">
+                <Blocks blocks={a.blocks} />
+                {a.abilities.length > 0 && <Abilities abilities={a.abilities} />}
+              </div>
+            </details>
+          ) : (
+            <span className="font-bold"><AbilityName a={a} /></span>
+          )}
         </li>
       ))}
     </ul>
   );
 }
 
-/** A boss's journal text in a closed disclosure. Journal text only ever reaches the page as text nodes. */
-export function BossTactics({ tactics }: { tactics: BossTacticsView }) {
+/** A boss's journal text only ever reaches the page as text nodes. */
+export function BossOverview({ tactics }: { tactics: BossTacticsView | null }) {
+  if (!tactics) return <p className="text-muted">No journal entry for this boss yet.</p>;
   return (
-    <details className="rounded-xl border border-line-strong bg-raised">
-      <summary className="min-h-11 cursor-pointer rounded-xl p-2.5 font-bold focus-visible:outline-2 focus-visible:outline-gold">Tactics</summary>
-      <div className="flex flex-col gap-3 p-3 pt-1 text-sm">
-        {tactics.description && <p className="text-muted">{tactics.description}</p>}
-        <Blocks blocks={tactics.overview} />
-        {tactics.roles.map((r, i) => (
-          <div key={i} className="flex flex-col gap-1">
-            <h3 className="font-display font-bold">{r.title}</h3>
-            <Blocks blocks={r.blocks} />
-          </div>
-        ))}
-        {tactics.abilities.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <h3 className="font-display font-bold">Abilities</h3>
-            <Abilities abilities={tactics.abilities} />
-          </div>
-        )}
-      </div>
-    </details>
+    <div className="flex flex-col gap-3 text-sm">
+      {tactics.description && <p className="text-muted">{tactics.description}</p>}
+      <Blocks blocks={tactics.overview} />
+      {tactics.roles.map((r, i) => (
+        <details key={i} open className="rounded-xl border border-line-strong bg-raised">
+          <summary className={`min-h-11 cursor-pointer rounded-xl p-2.5 font-display font-bold ${FOCUS}`}>{r.title}</summary>
+          <div className="flex flex-col gap-1 p-3 pt-1"><Blocks blocks={r.blocks} /></div>
+        </details>
+      ))}
+    </div>
   );
+}
+
+export function BossAbilities({ tactics }: { tactics: BossTacticsView | null }) {
+  if (!tactics || tactics.abilities.length === 0) return <p className="text-muted">No abilities in the journal for this boss yet.</p>;
+  return <div className="text-sm"><Abilities abilities={tactics.abilities} /></div>;
 }

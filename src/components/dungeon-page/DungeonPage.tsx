@@ -1,35 +1,35 @@
-import { BossTactics } from './BossTactics';
-import { DungeonThumbnail } from '@/components/dungeon-thumbnail/DungeonThumbnail';
-import { ItemCard } from '@/components/item-card/ItemCard';
-import { itemKind } from '@/components/shared/item-kind';
 import { SPLIT_DUNGEON } from '@/components/shared/priority-copy';
-import { statPairLabel } from '@/components/shared/stat-pair';
 import type { DungeonPageView } from '@/server/views/types';
+import { BossAbilities } from './BossTactics';
+import { BossIndex } from './BossIndex';
+import { Breadcrumb } from './Breadcrumb';
+import { GuideTabs } from './GuideTabs';
+import type { GuideState } from './guide-state';
+import { LootTab } from './LootTab';
+import { OverviewTab } from './OverviewTab';
 
-/** One season dungeon: its art and name, then each boss with everything it drops. */
-export function DungeonPage({ view }: { view: DungeonPageView }) {
+/** One season dungeon as an open book: boss index on the left page, the chosen boss or dungeon on the right, tab ribbons on its edge. */
+export function DungeonPage({ view, state }: { view: DungeonPageView; state: GuideState }) {
+  const boss = view.bosses.find((b) => b.encounterId === state.boss);
   return (
     <>
-      <header className="flex flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <DungeonThumbnail imageUrl={view.imageUrl} shortName={view.shortName} />
-          <h1 className="font-display text-3xl font-bold">{view.name}</h1>
+      <Breadcrumb dungeonId={view.challengeModeId} dungeonName={view.name} bossName={boss?.name ?? null} />
+      {view.split && <p className="text-sm text-muted">{SPLIT_DUNGEON}</p>}
+      <div className="flex flex-col overflow-hidden rounded-xl border border-line-strong bg-surface lg:flex-row">
+        {/* The spine: a hairline with a soft shadow falling away on each page. The page's one flourish. */}
+        <div className="min-w-0 border-b border-line lg:w-80 lg:shrink-0 lg:border-b-0 lg:border-r lg:shadow-[inset_-14px_0_14px_-14px_var(--color-bg)]">
+          <BossIndex view={view} state={state} />
         </div>
-        {view.split && <p className="text-sm text-muted">{SPLIT_DUNGEON}</p>}
-      </header>
-      {view.bosses.map((boss) => (
-        <section key={boss.encounterId} aria-labelledby={`boss-${boss.encounterId}`} className="flex flex-col gap-3">
-          <h2 id={`boss-${boss.encounterId}`} className="font-display text-xl font-bold">{boss.name}</h2>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {boss.items.map((item) => (
-              <ItemCard key={item.itemId} itemId={item.itemId} name={item.name} quality={item.quality} iconUrl={item.iconUrl}
-                bonusIds={[]} itemLevel={null} detail={itemKind(item) ?? undefined}
-                stats={item.stats && item.stats.length > 0 ? statPairLabel(item.stats) : undefined} />
-            ))}
-          </div>
-          {boss.tactics && <BossTactics tactics={boss.tactics} />}
-        </section>
-      ))}
+        <div className="flex min-w-0 flex-1 flex-col lg:flex-row lg:shadow-[inset_14px_0_14px_-14px_var(--color-bg)]">
+          <div className="lg:order-last"><GuideTabs dungeonId={view.challengeModeId} state={state} /></div>
+          <section aria-labelledby="guide-title" className="flex min-w-0 flex-1 flex-col gap-4 p-4 lg:p-6">
+            <h2 id="guide-title" className="font-display text-2xl font-bold">{boss?.name ?? view.name}</h2>
+            {state.tab === 'loot' ? <LootTab view={view} bossId={state.boss} />
+              : state.tab === 'abilities' && boss ? <BossAbilities tactics={boss.tactics} />
+              : <OverviewTab view={view} bossId={state.boss} />}
+          </section>
+        </div>
+      </div>
     </>
   );
 }
