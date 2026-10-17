@@ -1,6 +1,5 @@
 import { compareStats } from '../gear/stat-pair';
-import type { ArmorType, BisRow, LootItem, TierTarget } from '../types';
-import { armorTypeForClass } from './slots';
+import type { BisRow, LootItem, TierTarget } from '../types';
 import { FIT, fitsSlot, isOpenRow, type PriorityCharacter, type TierFit } from './rank';
 
 interface DropNeedBase { characterId: number; characterName: string; slotLabel: string; reason: 'missing' | 'wrongStats' }
@@ -15,7 +14,6 @@ export type DropNeed = (DropNeedBase & { via: 'drop' }) | (DropNeedBase & { via:
 export function needsByDrop(characters: PriorityCharacter[], loot: LootItem[]): Map<number, DropNeed[]> {
   const out = new Map<number, DropNeed[]>();
   for (const c of [...characters].sort((a, b) => a.name.localeCompare(b.name))) {
-    const armor = armorTypeForClass(c.className);
     const seen = new Set<number>();
     for (const r of c.rows.filter(isOpenRow)) {
       if (r.row.kind !== 'item') continue;
@@ -27,7 +25,7 @@ export function needsByDrop(characters: PriorityCharacter[], loot: LootItem[]): 
         let need: DropNeed | null = null;
         if (!row.isTier) {
           if (l.itemId === row.itemId) need = { ...base, via: 'drop' };
-        } else if (fitsSlot(row, armor, l)) {
+        } else if (fitsSlot(row, c.className, l)) {
           const fit: TierFit = c.statsMatter
             ? FIT[compareStats({ itemId: row.itemId, stats: c.targets.get(row.itemId)?.secondaryStats ?? null }, { itemId: l.itemId, stats: l.secondaryStats })]
             : 'any';
@@ -46,13 +44,13 @@ export function needsByDrop(characters: PriorityCharacter[], loot: LootItem[]): 
  * The drops a spec's list names: an item row's ID, or a tier row's slot in the spec's armor type with the
  * target's verified stats (any stats when they don't matter). Unknown and different pairs, and Any rows, don't count.
  */
-export function bisMatches(rows: BisRow[], targets: ReadonlyMap<number, TierTarget>, statsMatter: boolean, armor: ArmorType | null, loot: LootItem[]): Set<number> {
+export function bisMatches(rows: BisRow[], targets: ReadonlyMap<number, TierTarget>, statsMatter: boolean, className: string, loot: LootItem[]): Set<number> {
   const out = new Set<number>();
   for (const row of rows) {
     if (row.kind !== 'item') continue;
     for (const l of loot) {
       if (l.itemId === row.itemId) out.add(l.itemId);
-      else if (row.isTier && fitsSlot(row, armor, l)
+      else if (row.isTier && fitsSlot(row, className, l)
         && (!statsMatter || compareStats({ itemId: row.itemId, stats: targets.get(row.itemId)?.secondaryStats ?? null }, { itemId: l.itemId, stats: l.secondaryStats }) === 'same')) out.add(l.itemId);
     }
   }

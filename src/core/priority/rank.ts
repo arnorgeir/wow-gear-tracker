@@ -1,7 +1,8 @@
 import type { GearRow } from '../gear/evaluate';
 import { compareStats } from '../gear/stat-pair';
 import { decodeTrack } from '../raidbots/tracks';
-import type { ArmorType, BisItemRow, BisRow, GearItem, LootItem, SeasonLoot, SlotType, StatMatch, TierTarget, Track } from '../types';
+import type { BisItemRow, BisRow, GearItem, LootItem, SeasonLoot, SlotType, StatMatch, TierTarget, Track } from '../types';
+import { weaponUseIn } from './weapons';
 import { ARMOR_SLOTS, armorTypeForClass, slotsForInventoryType } from './slots';
 
 export interface PriorityCharacter {
@@ -56,31 +57,33 @@ const MATCH_RANK: Record<StatMatch, number> = { same: 1, unknown: 2, different: 
 /** Whether a row still wants an item: it is missing or held with the wrong stats. */
 export const isOpenRow = (r: GearRow): boolean => r.state === 'missing' || r.state === 'wrongStats';
 
-/** A drop for one of the row's slots, in the character's armor type where the slot has one. */
-export function fitsSlot(row: BisRow, armor: ArmorType | null, l: LootItem): boolean {
+/** A drop for one of the row's slots, in the class's armor type where the slot has one and with a weapon the class uses. */
+export function fitsSlot(row: BisRow, className: string, l: LootItem): boolean {
   const armorSlot = row.slots.some((s) => ARMOR_SLOTS.has(s));
-  return slotsForInventoryType(l.inventoryType).some((s) => row.slots.includes(s)) && (!armorSlot || (armor !== null && l.armorType === armor));
+  const armor = armorTypeForClass(className);
+  return slotsForInventoryType(l.inventoryType).some((s) => row.slots.includes(s)) && (!armorSlot || (armor !== null && l.armorType === armor))
+    && weaponUseIn(l, className, row.slots).ok;
 }
 
 /** Whether a dungeon's loot can fill a named or Any row: the exact item, or for Any rows a slot drop. */
-function dropsFor(row: BisRow, armor: ArmorType | null, dungeon: SeasonLoot): boolean {
+function dropsFor(row: BisRow, className: string, dungeon: SeasonLoot): boolean {
   if (row.kind === 'item') return dungeon.loot.some((l) => l.itemId === row.itemId);
-  return dungeon.loot.some((l) => fitsSlot(row, armor, l));
+  return dungeon.loot.some((l) => fitsSlot(row, className, l));
 }
 
 /**
  * A tier row's credit from one dungeon: its best compatible drop by stat pair, never another dungeon's item.
  * A tier piece with the wrong stats only wants drops with Method's stats, at weight 1.
  */
-function tierCredit(row: BisItemRow, need: Need, armor: ArmorType | null, dungeon: SeasonLoot, targets: ReadonlyMap<number, TierTarget>, statsMatter: boolean): Credit | null {
+function tierCredit(row: BisItemRow, need: Need, className: string, dungeon: SeasonLoot, targets: ReadonlyMap<number, TierTarget>, statsMatter: boolean): Credit | null {
   if (!statsMatter) {
-    const drop = dungeon.loot.filter((l) => fitsSlot(row, armor, l)).sort((a, b) => Number(b.itemId === row.itemId) - Number(a.itemId === row.itemId) || a.itemId - b.itemId)[0];
+    const drop = dungeon.loot.filter((l) => fitsSlot(row, className, l)).sort((a, b) => Number(b.itemId === row.itemId) - Number(a.itemId === row.itemId) || a.itemId - b.itemId)[0];
     return drop ? { kind: 'tier', slotLabel: row.slotLabel, weight: need.weight, fit: 'any', itemId: drop.itemId, name: drop.name, bonusIds: [],
       dropStats: drop.secondaryStats ?? null, targetName: row.name, targetStats: null } : null;
   }
   const targetStats = targets.get(row.itemId)?.secondaryStats ?? null;
   const best = dungeon.loot
-    .filter((l) => fitsSlot(row, armor, l))
+    .filter((l) => fitsSlot(row, className, l))
     .map((l) => {
       const match = compareStats({ itemId: row.itemId, stats: targetStats }, { itemId: l.itemId, stats: l.secondaryStats });
       return { l, match, rank: match === 'same' && l.itemId === row.itemId ? 0 : MATCH_RANK[match] };
@@ -106,7 +109,6 @@ export function rankDungeons(characters: PriorityCharacter[], dungeons: SeasonLo
     const tierCount = character.equipped.filter((item) => item.isTier).length;
     return {
       character,
-      armor: armorTypeForClass(character.className),
       missing: character.rows.filter(isOpenRow)
         .map((r): Need => r.state === 'wrongStats'
           ? { row: r.row, weight: 1, wrongStats: true }
@@ -115,12 +117,12 @@ export function rankDungeons(characters: PriorityCharacter[], dungeons: SeasonLo
   });
   return dungeons.map((dungeon) => {
     const perCharacter = needs
-      .map(({ character, armor, missing }) => ({
+      .map(({ character, missing }) => ({
         characterId: character.id,
         characterName: character.name,
         credits: missing.flatMap((m) => {
-          if (m.row.kind === 'item' && m.row.isTier) return tierCredit(m.row, m, armor, dungeon, character.targets, character.statsMatter) ?? [];
-          return dropsFor(m.row, armor, dungeon) ? [creditFor(m.row, m.weight)] : [];
+          if (m.row.kind === 'item' && m.row.isTier) return tierCredit(m.row, m, character.className, dungeon, character.targets, character.statsMatter) ?? [];
+          return dropsFor(m.row, character.className, dungeon) ? [creditFor(m.row, m.weight)] : [];
         }),
       }))
       .filter((c) => c.credits.length > 0);

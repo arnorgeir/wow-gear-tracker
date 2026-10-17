@@ -1,5 +1,6 @@
 import type { CanUse } from '../bis/class-can-use';
-import type { WeaponType } from '../types';
+import type { SlotType, WeaponType } from '../types';
+import { slotsForInventoryType } from './slots';
 
 interface ClassWeapons { weapons: ReadonlySet<WeaponType>; shield: boolean; holdable: boolean; dualWield: boolean }
 
@@ -28,6 +29,12 @@ export const WEAPON_WORDS: Record<WeaponType, string> = {
   polearm: 'polearms', sword1h: 'one-handed swords', sword2h: 'two-handed swords', warglaive: 'warglaives', staff: 'staves',
   fist: 'fist weapons', dagger: 'daggers', crossbow: 'crossbows', wand: 'wands',
 };
+
+/** weaponUse for the hand slot an item fills among a row's slots; anything not filling a hand slot passes. */
+export function weaponUseIn(item: { inventoryType: string | null; weaponType?: WeaponType | null }, className: string, slots: readonly SlotType[]): CanUse {
+  const hand = slotsForInventoryType(item.inventoryType).find((s): s is 'MAIN_HAND' | 'OFF_HAND' => (s === 'MAIN_HAND' || s === 'OFF_HAND') && slots.includes(s));
+  return hand ? weaponUse({ inventoryType: item.inventoryType, weaponType: item.weaponType ?? null }, className, hand) : { ok: true };
+}
 
 /** Whether a class uses a weapon or off-hand item in a hand slot. Unknown weapon types and classes pass. */
 export function weaponUse(item: { inventoryType: string | null; weaponType: WeaponType | null }, className: string, slot: 'MAIN_HAND' | 'OFF_HAND'): CanUse {
