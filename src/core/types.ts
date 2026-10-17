@@ -10,6 +10,9 @@ export type SlotType = (typeof SLOT_TYPES)[number];
 export type Quality = 'POOR' | 'COMMON' | 'UNCOMMON' | 'RARE' | 'EPIC' | 'LEGENDARY' | 'ARTIFACT' | 'HEIRLOOM';
 
 export type ArmorType = 'cloth' | 'leather' | 'mail' | 'plate';
+export type WeaponType =
+  | 'axe1h' | 'axe2h' | 'bow' | 'gun' | 'mace1h' | 'mace2h' | 'polearm' | 'sword1h' | 'sword2h'
+  | 'warglaive' | 'staff' | 'fist' | 'dagger' | 'crossbow' | 'wand';
 
 export type ListType = 'overall' | 'raid' | 'mythicPlus';
 export const LIST_TYPES: readonly ListType[] = ['overall', 'raid', 'mythicPlus'];

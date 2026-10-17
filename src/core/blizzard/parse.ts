@@ -1,4 +1,4 @@
-import { SLOT_TYPES, type ArmorType, type GearItem, type JournalSection, type Quality, type SlotType } from '../types';
+import { SLOT_TYPES, type ArmorType, type WeaponType, type GearItem, type JournalSection, type Quality, type SlotType } from '../types';
 import type {
   CharacterProfile, ItemInfo, JournalEncounter, JournalInstance, JournalInstanceRef, KeystoneDungeon,
 } from './types';
@@ -70,6 +70,12 @@ export function parseEquipment(raw: RawEquipment): GearItem[] {
 const ARMOR_CLASS_ID = 4;
 const ARMOR_SUBCLASS: Record<number, ArmorType> = { 1: 'cloth', 2: 'leather', 3: 'mail', 4: 'plate' };
 
+const WEAPON_CLASS_ID = 2;
+const WEAPON_SUBCLASS: Record<number, WeaponType> = {
+  0: 'axe1h', 1: 'axe2h', 2: 'bow', 3: 'gun', 4: 'mace1h', 5: 'mace2h', 6: 'polearm', 7: 'sword1h', 8: 'sword2h',
+  9: 'warglaive', 10: 'staff', 13: 'fist', 15: 'dagger', 18: 'crossbow', 19: 'wand',
+};
+
 export interface RawItem {
   name?: string;
   quality?: { type: string };
@@ -79,7 +85,7 @@ export interface RawItem {
   item_subclass?: { id: number };
 }
 
-/** Item details plus slot and armor type. Only armor (item class 4) has an armor type. */
+/** Item details plus slot, armor type (item class 4) and weapon type (item class 2). */
 export function parseItemInfo(raw: RawItem): ItemInfo {
   return {
     name: raw.name ?? null,
@@ -88,6 +94,7 @@ export function parseItemInfo(raw: RawItem): ItemInfo {
     inventoryType: raw.inventory_type?.type ?? null,
     secondaryStats: secondaryStatsOf(raw.preview_item?.stats),
     armorType: raw.item_class?.id === ARMOR_CLASS_ID ? (ARMOR_SUBCLASS[raw.item_subclass?.id ?? -1] ?? null) : null,
+    weaponType: raw.item_class?.id === WEAPON_CLASS_ID ? (WEAPON_SUBCLASS[raw.item_subclass?.id ?? -1] ?? null) : null,
   };
 }
 

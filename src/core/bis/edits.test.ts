@@ -26,7 +26,7 @@ const lists: BisLists = {
 const chest = { specSlug: 'frost-mage', source: 'method' as const, listType: 'mythicPlus' as const, slotKey: 'Chest#1' };
 const ring = { ...chest, slotKey: 'Ring#1' };
 
-const info = (over: Partial<ItemInfo>): ItemInfo => ({ name: 'Woven Robe', quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'cloth', secondaryStats: null, ...over });
+const info = (over: Partial<ItemInfo>): ItemInfo => ({ name: 'Woven Robe', quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'cloth', weaponType: null, secondaryStats: null, ...over });
 
 async function setup(getItemDetails: BlizzardClient['getItemDetails'] = async () => info({}), getItemIconUrl: BlizzardClient['getItemIconUrl'] = async (_r, id) => `https://render/icons/${id}.jpg`) {
   const db = await openTestDb();

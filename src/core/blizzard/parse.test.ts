@@ -66,7 +66,7 @@ describe('parseEquipment', () => {
 describe('parseItemInfo', () => {
   it('reads slot and armor type for armor', () => {
     expect(parseItemInfo({ quality: { type: 'EPIC' }, inventory_type: { type: 'ROBE' }, item_class: { id: 4 }, item_subclass: { id: 2 } }))
-      .toEqual({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather', secondaryStats: null, name: null });
+      .toEqual({ quality: 'EPIC', isTier: false, inventoryType: 'ROBE', armorType: 'leather', weaponType: null, secondaryStats: null, name: null });
   });
 
   it('gives no armor type to weapons and to armor without a known subclass', () => {
@@ -74,8 +74,17 @@ describe('parseItemInfo', () => {
     expect(parseItemInfo({ inventory_type: { type: 'FINGER' }, item_class: { id: 4 }, item_subclass: { id: 0 } }).armorType).toBeNull();
   });
 
+  it('reads the weapon type of weapons only', () => {
+    const type = (id: number, cls = 2) => parseItemInfo({ item_class: { id: cls }, item_subclass: { id } }).weaponType;
+    expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 15, 18, 19].map((id) => type(id))).toEqual([
+      'axe1h', 'axe2h', 'bow', 'gun', 'mace1h', 'mace2h', 'polearm', 'sword1h', 'sword2h', 'warglaive', 'staff', 'fist', 'dagger', 'crossbow', 'wand',
+    ]);
+    expect(type(11)).toBeNull();
+    expect(type(2, 4)).toBeNull();
+  });
+
   it('fills nulls when Blizzard omits fields', () => {
-    expect(parseItemInfo({})).toEqual({ quality: null, isTier: false, inventoryType: null, armorType: null, secondaryStats: null, name: null });
+    expect(parseItemInfo({})).toEqual({ quality: null, isTier: false, inventoryType: null, armorType: null, weaponType: null, secondaryStats: null, name: null });
   });
 
   it('keeps the item name', () => {
