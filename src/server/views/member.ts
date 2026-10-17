@@ -1,12 +1,13 @@
 import { pickQuality } from '@/core/bis/pick-quality';
 import type { Db } from '@/core/db/client';
 import type { CharacterRow } from '@/core/db/queries/characters';
-import type { SnapshotItemInput } from '@/core/db/queries/snapshots';
+import { getLatestVaultPaste, type SnapshotItemInput } from '@/core/db/queries/snapshots';
 import type { CrestCost } from '@/core/gear/crests';
 import { evaluateGear, type GearRow } from '@/core/gear/evaluate';
 import { choosePriorityList } from '@/core/priority/list';
 import type { Credit, PriorityCharacter } from '@/core/priority/rank';
 import { decodeTrack } from '@/core/raidbots/tracks';
+import { weekStart } from '@/core/vault/week';
 import type { BisRow, ListType, Region, SlotType, TierTarget, Track } from '@/core/types';
 import type { SpecBis } from './bis-lookup';
 import { itemView } from './item-view';
@@ -16,6 +17,7 @@ import type { BisView, CharacterSummary, GearRowView, PriorityCreditView, VaultC
 export interface MemberContext {
   db: Db;
   tracks: ReadonlyMap<number, Track>;
+  now: number;
   /** BiS lists for a spec; the group page shares one lookup per spec across members. */
   bisFor: (specSlug: string, region: Region) => Promise<SpecBis>;
 }
@@ -29,7 +31,8 @@ export interface MemberData {
   /** Rows for the priority list in `choice`. */
   priorityRows: GearRow[];
   evaluate: (list: ListType) => GearRow[];
-  vaultItems: SnapshotItemInput[];
+  /** This week's vault paste (since the region's last reset), or nulls when there is none. */
+  vault: { pastedAt: number | null; items: SnapshotItemInput[] };
 }
 
 /** One character's gear, BiS lists and priority rows: what the character page and the group page both start from. */
@@ -39,10 +42,11 @@ export async function loadMember(ctx: MemberContext, character: CharacterRow, cl
   const bis = await ctx.bisFor(summary.specSlug, character.region);
   const evaluate = (list: ListType) => evaluateGear({ equipped: gear.equipped, bisRows: bis.lists?.[list] ?? [], tracks: ctx.tracks, bagItemIds: gear.bagItemIds, targets: bis.targets, statsMatter: bis.statsMatter });
   const choice = choosePriorityList(bis.lists, bis.listType);
+  const paste = await getLatestVaultPaste(ctx.db, character.id, { from: weekStart(character.region, ctx.now) });
   return {
     character, summary, gear, bis, choice, evaluate,
     priorityRows: evaluate(choice.listType),
-    vaultItems: gear.simc?.items.filter((i) => i.location === 'vault') ?? [],
+    vault: { pastedAt: paste?.createdAt ?? null, items: paste?.items ?? [] },
   };
 }
 

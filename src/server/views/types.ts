@@ -107,6 +107,8 @@ export interface CharacterPageView extends CharacterSummary {
   vault: GearRowView[];
   vaultChoices: VaultChoiceView[];
   vaultChoicesAt: number | null;
+  /** This week's start when an earlier week has a vault paste, else null. */
+  vaultHistoryBefore: number | null;
   crests: CrestView | null;
   /** Rows an account override replaced on this spec's lists. */
   editedCount: number;

@@ -14,6 +14,7 @@ import { syncReference } from '@/core/sync/reference-run';
 import { DAY_MS, syncTracks } from '@/core/sync/reference-sync';
 import { parseMemberKeys } from '@/core/characters/member-key';
 import type { BisLists, BisRow, GearItem } from '@/core/types';
+import { weekStart } from '@/core/vault/week';
 import { getGroupPage } from './group-page';
 
 const item = (slotLabel: string, slots: BisRow['slots'], itemId: number, source = 'Alpha Hollow'): BisRow =>
@@ -254,9 +255,23 @@ describe('getGroupPage', () => {
     expect(vault.every((v) => 'avatarUrl' in v && 'classIconUrl' in v)).toBe(true);
     expect(vault.map((v) => [v.name, v.pastedAt, v.choices.map((c) => [c.itemId, c.isBis])])).toEqual([
       ['Birkibjörn', null, []],
-      ['Sólrún', 700, []],
+      ['Sólrún', null, []],
       ['Gnúpur', 800, [[61, true]]],
     ]);
+  });
+
+  it('leaves pastedAt null for a member whose only vault paste is last week’s', async () => {
+    const { s } = await services();
+    const NOW = Date.UTC(2026, 9, 16, 12);
+    s.now = () => NOW;
+    const id = await track(s, 'Birkibjörn', 'Druid', 'Guardian', null);
+    const start = weekStart('eu', NOW);
+    await saveSnapshotIfChanged(s.db, id, 'simc', [
+      { location: 'vault', slot: 'OFF_HAND', itemId: 61, name: 'Item 61', itemLevel: 330, quality: 'EPIC', bonusIds: [], isTier: false, secondaryStats: null },
+    ], start - 1000);
+    await prime(s);
+    const { vault } = await getGroupPage(s, keys('birkibjörn'));
+    expect(vault.map((v) => [v.pastedAt, v.choices])).toEqual([[null, []]]);
   });
 
   it('is empty without keys', async () => {
