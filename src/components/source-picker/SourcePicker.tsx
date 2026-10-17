@@ -1,5 +1,7 @@
 'use client';
 
+import { useId } from 'react';
+import { InfoTip } from '@/components/info-tip/InfoTip';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import type { BisSourceId } from '@/core/types';
 import { sourceOptions } from './source-picker';
@@ -9,9 +11,10 @@ const HEADING = 'mb-2.5 p-0 text-[13px] font-bold uppercase tracking-[0.08em] te
 /** Where the spec's list comes from. Saved as you choose; choosing Manual copies the current list. */
 export function SourcePicker({ specSlug, source }: { specSlug: string; source: BisSourceId }) {
   const { error, run } = useApiAction();
+  const tipId = useId();
   return (
-    <fieldset className="m-0 flex flex-col gap-2.5 border-0 p-0">
-      <legend className={HEADING}>BiS source</legend>
+    <fieldset aria-describedby={tipId} className="m-0 flex flex-col gap-2.5 border-0 p-0">
+      <legend className={HEADING}><span className="inline-flex items-center gap-1.5">BiS source<InfoTip id={tipId} title="BiS source">Where this spec&apos;s list comes from. Manual copies the current list for you to edit.</InfoTip></span></legend>
       <div className="grid w-full grid-cols-3 gap-1 rounded-xl border border-line bg-bg p-1 md:inline-flex md:w-fit">
         {sourceOptions().map(({ value, label }) => (
           <label key={value}
@@ -23,7 +26,6 @@ export function SourcePicker({ specSlug, source }: { specSlug: string; source: B
           </label>
         ))}
       </div>
-      <span className="text-sm text-muted">Where this spec&apos;s list comes from. Manual copies the current list for you to edit.</span>
       {error && <span role="alert" className="text-sm text-missing">{error}</span>}
     </fieldset>
   );

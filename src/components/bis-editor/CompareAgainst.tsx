@@ -1,5 +1,7 @@
 'use client';
 
+import { useId } from 'react';
+import { InfoTip } from '@/components/info-tip/InfoTip';
 import { useApiAction } from '@/components/hooks/use-api-action';
 import { LIST_NAMES } from '@/components/shared/list-names';
 import { LIST_TYPES, type ListType } from '@/core/types';
@@ -8,9 +10,10 @@ const HEADING = 'mb-2.5 p-0 text-[13px] font-bold uppercase tracking-[0.08em] te
 
 export function CompareAgainst({ specSlug, listType }: { specSlug: string; listType: ListType }) {
   const { error, run } = useApiAction();
+  const tipId = useId();
   return (
-    <fieldset className="m-0 flex flex-col gap-2.5 border-0 p-0">
-      <legend className={HEADING}>Compare against</legend>
+    <fieldset aria-describedby={tipId} className="m-0 flex flex-col gap-2.5 border-0 p-0">
+      <legend className={HEADING}><span className="inline-flex items-center gap-1.5">Compare against<InfoTip id={tipId} title="Compare against">Characters of this spec compare their gear against this list. Saved as you choose.</InfoTip></span></legend>
       <div className="grid w-full grid-cols-3 gap-1 rounded-xl border border-line bg-bg p-1 md:inline-flex md:w-fit">
         {LIST_TYPES.map((value) => (
           <label key={value}
@@ -22,7 +25,6 @@ export function CompareAgainst({ specSlug, listType }: { specSlug: string; listT
           </label>
         ))}
       </div>
-      <span className="text-sm text-muted">Characters of this spec compare their gear against this list. Saved as you choose.</span>
       {error && <span role="alert" className="text-sm text-missing">{error}</span>}
     </fieldset>
   );
