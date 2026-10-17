@@ -59,7 +59,7 @@ export default async function CharacterPage({ params }: Props) {
         <GearTable rows={view.rows} tracksKnown={view.tracksKnown} bisLoading={view.bisLoading} listType={view.listType} specSlug={view.specSlug} editedCount={view.editedCount} doneCount={view.doneCount} fellBackFrom={view.fellBackFrom} source={view.bisSource} />
         <div className="flex flex-col gap-8">
           <DungeonPriority priority={view.priority} specLabel={`${view.spec} ${view.className}`} />
-          <VaultSection id={view.id} vault={view.vault} vaultChoices={view.vaultChoices} vaultChoicesAt={view.vaultChoicesAt} vaultHistoryBefore={view.vaultHistoryBefore} now={now} />
+          <VaultSection id={view.id} vault={view.vault} vaultChoices={view.vaultChoices} vaultChoicesAt={view.vaultChoicesAt} vaultHistoryBefore={view.vaultHistoryBefore} specSlug={view.specSlug} listType={view.listType} now={now} />
         </div>
       </div>
       <StaleSync ids={view.status === 'ok' && isStale(view.lastSyncedAt, now) ? [view.id] : []} />

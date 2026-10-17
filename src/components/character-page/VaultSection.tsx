@@ -5,9 +5,9 @@ import { VaultHistory } from '@/components/vault-history/VaultHistory';
 import { formatAge } from '@/core/format';
 import type { CharacterPageView } from '@/server/views/types';
 
-type Props = Pick<CharacterPageView, 'id' | 'vault' | 'vaultChoices' | 'vaultChoicesAt' | 'vaultHistoryBefore'> & { now: number };
+type Props = Pick<CharacterPageView, 'id' | 'vault' | 'vaultChoices' | 'vaultChoicesAt' | 'vaultHistoryBefore' | 'specSlug' | 'listType'> & { now: number };
 
-export function VaultSection({ id, vault, vaultChoices, vaultChoicesAt, vaultHistoryBefore, now }: Props) {
+export function VaultSection({ id, vault, vaultChoices, vaultChoicesAt, vaultHistoryBefore, specSlug, listType, now }: Props) {
   return (
     <section aria-label="Great Vault" className="flex flex-col gap-5 rounded-2xl border border-line bg-surface p-5">
       <h2 className="flex items-center gap-2.5 font-display text-2xl font-bold"><BrandIcon name="vault" size={28} className="text-gold" />Great Vault</h2>
@@ -30,7 +30,8 @@ export function VaultSection({ id, vault, vaultChoices, vaultChoicesAt, vaultHis
         {vaultChoicesAt === null
           ? <p className="text-muted">No SimC import with Great Vault data this week. Paste SimC to see your Great Vault choices.</p>
           : <VaultChoiceList choices={vaultChoices} />}
-        {vaultHistoryBefore !== null && <VaultHistory id={id} before={vaultHistoryBefore} now={now} />}
+        {/* Keyed by what the history depends on: router.refresh() keeps client state, so a new spec, list or week remounts it. */}
+        {vaultHistoryBefore !== null && <VaultHistory key={`${specSlug}:${listType}:${vaultHistoryBefore}`} id={id} before={vaultHistoryBefore} now={now} />}
       </div>
     </section>
   );
