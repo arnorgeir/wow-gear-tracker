@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   addMember, characterHref, decodeGroupCookie, encodeGroupCookie, findByMemberKey, formatMemberKey, groupHref,
-  memberKeyFromParts, memberKeyFromPath, memberKeyOf, parseMemberKey, parseMemberKeys, removeMember, selectGroup, type MemberKey,
+  memberKeyFromParts, memberKeyFromPath, memberKeyOf, moveMember, parseMemberKey, parseMemberKeys, removeMember, selectGroup, type MemberKey,
 } from './member-key';
 
 const birki: MemberKey = { region: 'eu', realmSlug: 'argent-dawn', nameKey: 'birkibjörn' };
@@ -52,6 +52,17 @@ describe('member keys', () => {
     expect(addMember(['a', 'b'], 'a')).toEqual(['a', 'b']);
     expect(addMember(['a', 'b', 'c', 'd', 'e'], 'f')).toEqual(['a', 'b', 'c', 'd', 'e']);
     expect(removeMember(['a', 'b'], 'a')).toEqual(['b']);
+  });
+
+  it('moves a member earlier, later, or nowhere, clamping to the ends', () => {
+    expect(moveMember(['a', 'b', 'c'], 'c', 0)).toEqual(['c', 'a', 'b']);
+    expect(moveMember(['a', 'b', 'c'], 'a', 2)).toEqual(['b', 'c', 'a']);
+    expect(moveMember(['a', 'b', 'c'], 'b', 1)).toEqual(['a', 'b', 'c']);
+    expect(moveMember(['a', 'b', 'c'], 'b', -4)).toEqual(['b', 'a', 'c']);
+    expect(moveMember(['a', 'b', 'c'], 'b', 9)).toEqual(['a', 'c', 'b']);
+    const keys = ['a', 'b'];
+    expect(moveMember(keys, 'z', 0)).toEqual(['a', 'b']);
+    expect(moveMember(keys, 'z', 0)).not.toBe(keys);
   });
 
   it('builds a group link that round-trips through the URL', () => {
