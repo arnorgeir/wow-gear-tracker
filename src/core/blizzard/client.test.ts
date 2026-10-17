@@ -25,7 +25,7 @@ const profile = {
 
 function client(routes: Parameters<typeof fakeFetch>[0]) {
   const fake = fakeFetch([on('oauth.battle.net/token', token), ...routes]);
-  return { ...fake, api: createBlizzardClient({ clientId: 'id', clientSecret: 'secret', fetchFn: fake.fn, sleep: async () => {} }) };
+  return { ...fake, api: createBlizzardClient({ clientId: 'id', clientSecret: 'secret', fetchFn: fake.fn, now: () => 0, sleep: async () => {} }) };
 }
 
 const ref = { region: 'eu' as const, realmSlug: 'tarren-mill', name: 'Birkibjörn' };

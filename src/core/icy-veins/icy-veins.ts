@@ -57,7 +57,7 @@ export function parseIcyVeinsHtml(html: string): BisLists {
   return { overall: parse('overall'), raid: parse('raid'), mythicPlus: parse('mythicPlus') };
 }
 
-export function createIcyVeinsSource(fetchFn: FetchFn = fetch): BisSource {
+export function createIcyVeinsSource(fetchFn: FetchFn): BisSource {
   return {
     name: SOURCE_NAMES.icyVeins,
     async fetchLists(specSlug) {

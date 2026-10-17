@@ -31,16 +31,15 @@ export interface BlizzardClient {
 interface Options {
   clientId: string;
   clientSecret: string;
-  fetchFn?: FetchFn;
-  now?: () => number;
+  fetchFn: FetchFn;
+  now: () => number;
   sleep?: SleepFn;
 }
 
 type Namespace = 'profile' | 'static' | 'dynamic';
 
 export function createBlizzardClient(options: Options): BlizzardClient {
-  const fetchFn = options.fetchFn ?? fetch;
-  const now = options.now ?? Date.now;
+  const { fetchFn, now } = options;
   const limit = createLimiter(4);
   const realmCache = new Map<Region, Promise<Realm[]>>();
   const classCache = new Map<Region, Promise<PlayableClass[]>>();
