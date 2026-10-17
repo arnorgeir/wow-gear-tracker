@@ -28,3 +28,19 @@ describe('CharacterHeader', () => {
     expect(renderToStaticMarkup(createElement(CharacterHeader, { view, now: 0 }))).not.toContain('Item level');
   });
 });
+
+describe('CharacterHeader tier set chip', () => {
+  const chip = '<span class="font-mono">4</span>-set';
+  const html = (over: object) => renderToStaticMarkup(createElement(CharacterHeader, { view: { ...view, ...over }, now: 0 }));
+  it('shows the chip after the item level', () => {
+    const out = html({ itemLevel: 334.6, tierPieces: 4 });
+    expect(out).toContain(chip);
+    expect(out.indexOf('334.6')).toBeLessThan(out.indexOf(chip));
+  });
+  it('shows the chip alone when the item level is unknown', () => {
+    const out = html({ tierPieces: 4 });
+    expect(out).toContain(chip);
+    expect(out).not.toContain('Item level');
+  });
+  it('shows no chip with 1 tier piece', () => expect(html({ itemLevel: 334.6, tierPieces: 1 })).not.toContain('-set'));
+});

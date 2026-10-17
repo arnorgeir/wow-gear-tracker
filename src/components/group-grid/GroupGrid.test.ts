@@ -227,3 +227,14 @@ describe('GroupGrid item level', () => {
     expect(render([member({ character: summary(3, 'Birkibjörn') })], [])).not.toContain('ilvl');
   });
 });
+
+describe('GroupGrid tier set chip', () => {
+  const chip = '<span class="font-mono">4</span>-set';
+  it('shows the chip in the member header, with or without an item level', () => {
+    expect(render([member({ character: { ...summary(3, 'Birkibjörn'), tierPieces: 4 } })], [])).toContain(chip);
+    expect(render([member({ character: { ...summary(3, 'Birkibjörn'), tierPieces: 4, itemLevel: 334.6 } })], [])).toContain(chip);
+  });
+  it('shows no chip with 1 tier piece', () => {
+    expect(render([member({ character: { ...summary(3, 'Birkibjörn'), tierPieces: 1 } })], [])).not.toContain('-set');
+  });
+});

@@ -6,6 +6,7 @@ import { LIST_NAMES } from '@/components/shared/list-names';
 import { RemoveCharacterButton } from '@/components/remove-character-button/RemoveCharacterButton';
 import { CrestChip } from '@/components/crest-chip/CrestChip';
 import { LinkPending } from '@/components/link-pending/LinkPending';
+import { TierSetChip } from '@/components/tier-set-chip/TierSetChip';
 import { BIS_LOADING, TRACKS_LOADING } from '@/components/shared/loading-copy';
 import { Skeleton } from '@/components/skeleton/Skeleton';
 import { barSegments, bisSummary } from '@/components/shared/bis-summary';
@@ -31,8 +32,11 @@ export function CharacterCard({ card, now }: { card: CharacterCardView; now: num
             <span className="min-w-0 truncate">{card.name}</span><LinkPending />
           </Link>
           <span className="truncate text-[15px] font-semibold" style={{ color }}>{card.identity}</span>
-          <span className="truncate text-[15px] text-muted">
-            {card.realmName}{card.itemLevel !== null && <> · <span className="font-mono">{card.itemLevel.toFixed(1)}</span> ilvl</>}
+          <span className="flex min-w-0 items-center gap-1.5 text-[15px] text-muted">
+            <span className="min-w-0 truncate">
+              {card.realmName}{card.itemLevel !== null && <> · <span className="font-mono">{card.itemLevel.toFixed(1)}</span> ilvl</>}
+            </span>
+            <TierSetChip pieces={card.tierPieces} />
           </span>
         </div>
       </div>

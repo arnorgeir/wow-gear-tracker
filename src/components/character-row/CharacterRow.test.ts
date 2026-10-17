@@ -93,3 +93,12 @@ describe('CharacterRowSkeleton', () => {
     expect(statuses(html)).toBe(0);
   });
 });
+
+describe('CharacterRow tier set chip', () => {
+  const chip = '<span class="font-mono">4</span>-set';
+  it('shows the chip with 4 tier pieces, even without an item level', () => {
+    expect(render(card({ tierPieces: 4 }))).toContain(chip);
+    expect(render(card({ tierPieces: 4, itemLevel: 642.34 }))).toContain(chip);
+  });
+  it('shows no chip with 1 tier piece', () => expect(render(card({ tierPieces: 1 }))).not.toContain('-set'));
+});
