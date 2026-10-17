@@ -49,6 +49,11 @@ export async function getSeasonLoot(db: Db): Promise<SeasonLoot[]> {
   }));
 }
 
+/** The stored season's dungeons by name, as getSeasonLoot lists them (the key is the row id, so insertion order isn't kept). */
+export async function getSeasonDungeons(db: Db): Promise<SeasonDungeonRow[]> {
+  return db.select().from(seasonDungeons).orderBy(asc(seasonDungeons.name));
+}
+
 /** One stored season dungeon with its loot rows in boss order, or null when the season doesn't list it. */
 export async function getSeasonDungeon(db: Db, challengeModeId: number):
   Promise<{ dungeon: SeasonDungeonRow; split: boolean; loot: DungeonLootRow[]; encounters: Map<number, { description: string | null; sections: JournalSection[] }> } | null> {

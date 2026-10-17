@@ -267,3 +267,5 @@ export interface DungeonPageView {
   split: boolean;
   bosses: DungeonBossView[];
 }
+
+export interface DungeonListView { dungeons: { challengeModeId: number; name: string; shortName: string; imageUrl: string | null }[] }
