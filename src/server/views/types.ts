@@ -249,7 +249,17 @@ export interface DungeonLootItemView {
   armorType: ArmorType | null;
   /** Secondary stat types; null when unknown or the item has none. */
   stats: string[] | null;
+  /** Evaluated characters who need this drop, by name; empty when none or when nobody was evaluated. */
+  neededBy: LootNeedView[];
+  /** Specs whose stored BiS list names this drop, by class then spec. */
+  bisFor: LootBisView[];
 }
+/** One character's need for a drop: the item itself or a tier piece (via catalyst) to catalyze, with how its stats compare. */
+export interface LootNeedView {
+  key: string; name: string; className: string; avatarUrl: string | null; classIconUrl: string | null;
+  slotLabel: string; via: 'drop' | 'catalyst'; reason: 'missing' | 'wrongStats'; fit?: TierFit;
+}
+export interface LootBisView { slug: string; label: string; className: string; iconUrl: string | null }
 export interface AbilityView { name: string; spellId: number | null; blocks: JournalBlock[]; abilities: AbilityView[] }
 export interface BossTacticsView {
   description: string | null;
@@ -258,7 +268,11 @@ export interface BossTacticsView {
   roles: { title: string; blocks: JournalBlock[] }[];
   abilities: AbilityView[];
 }
-export interface DungeonBossView { encounterId: number; name: string; items: DungeonLootItemView[]; tactics: BossTacticsView | null }
+export interface DungeonBossView {
+  encounterId: number; name: string; items: DungeonLootItemView[]; tactics: BossTacticsView | null;
+  /** How many of the boss's drops someone evaluated needs. */
+  neededCount: number;
+}
 export interface DungeonPageView {
   challengeModeId: number;
   name: string;
@@ -266,6 +280,12 @@ export interface DungeonPageView {
   imageUrl: string | null;
   split: boolean;
   bosses: DungeonBossView[];
+  /** How many drops in the dungeon someone evaluated needs. */
+  neededCount: number;
+  /** Who the needs were checked for: how many characters, and each one left out with the reason. */
+  coverage: { evaluated: number; excluded: { name: string; reason: string }[] };
+  /** The lens in force: who is 'group' only when a remembered group exists; groupRemembered says whether one does. */
+  lens: { who: 'all' | 'group'; groupRemembered: boolean };
 }
 
 export interface DungeonListView { dungeons: { challengeModeId: number; name: string; shortName: string; imageUrl: string | null }[] }

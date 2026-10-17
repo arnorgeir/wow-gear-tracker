@@ -40,7 +40,7 @@ export default async function CharactersPage() {
         <AddCharacterBar trackedCharacters={cards.map((c) => ({ region: c.region, realmId: c.realmId, name: c.name }))} />
         <div className="flex flex-wrap items-center justify-between gap-4">
           <StateLegend />
-          {cards.length > 0 && <ViewToggle view={view} />}
+          {cards.length > 0 && <ViewToggle view={view} cookie={CHARACTERS_VIEW_COOKIE} name={CHARACTERS_VIEW_COOKIE} />}
         </div>
         <CharacterGrid count={cards.length} view={view} empty={<p className="text-muted">No characters yet. Search for one above.</p>}>
           {cards.map((card) => view === 'list'

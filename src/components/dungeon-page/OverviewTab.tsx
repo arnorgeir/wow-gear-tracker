@@ -2,10 +2,10 @@ import Link from 'next/link';
 import { DungeonThumbnail } from '@/components/dungeon-thumbnail/DungeonThumbnail';
 import type { DungeonPageView } from '@/server/views/types';
 import { BossOverview } from './BossTactics';
-import { guideHref } from './guide-state';
+import { guideHref, type GuideState } from './guide-state';
 
 /** A boss's journal overview, or the dungeon's art with one entry per boss when no boss is chosen. */
-export function OverviewTab({ view, bossId }: { view: DungeonPageView; bossId: number | null }) {
+export function OverviewTab({ view, bossId, keep }: { view: DungeonPageView; bossId: number | null; keep: Pick<GuideState, 'show' | 'who'> }) {
   const boss = view.bosses.find((b) => b.encounterId === bossId);
   if (boss) return <BossOverview tactics={boss.tactics} />;
   return (
@@ -15,7 +15,7 @@ export function OverviewTab({ view, bossId }: { view: DungeonPageView; bossId: n
         {view.bosses.map((b) => (
           <li key={b.encounterId} className="flex flex-col gap-0.5">
             <h3 className="font-display font-bold">
-              <Link href={guideHref(view.challengeModeId, { boss: b.encounterId, tab: 'overview' })} className="text-gold hover:underline focus-visible:outline-2 focus-visible:outline-gold">{b.name}</Link>
+              <Link href={guideHref(view.challengeModeId, { ...keep, boss: b.encounterId, tab: 'overview' })} className="text-gold hover:underline focus-visible:outline-2 focus-visible:outline-gold">{b.name}</Link>
             </h3>
             {b.tactics?.description && <p className="text-sm text-muted">{b.tactics.description}</p>}
           </li>
