@@ -47,12 +47,16 @@ export function evaluateGear({ equipped, bisRows, tracks, bagItemIds = new Set()
   const used = new Set<SlotType>();
   const rows = bisRows.filter((row) => row.slots.length > 0);
 
-  // First pass: exact matches claim their slot, so one item can't satisfy two rows.
-  const matchedSlots = rows.map((row) => {
+  // First pass: exact matches claim their slot, so one item can't satisfy two rows. Named rows claim first:
+  // an Any row fits any item at its level, so going first it could take the slot holding a named BiS ring.
+  const matchedSlots: (SlotType | null)[] = rows.map(() => null);
+  const claimOrder = [...rows.keys()].sort((a, b) => Number(rows[a]!.kind === 'any') - Number(rows[b]!.kind === 'any'));
+  for (const index of claimOrder) {
+    const row = rows[index]!;
     const slot = row.slots.find((s) => !used.has(s) && isMatch(row, bySlot.get(s)));
     if (slot) used.add(slot);
-    return slot ?? null;
-  });
+    matchedSlots[index] = slot ?? null;
+  }
 
   // Second pass: unmatched rows show what's in their first free slot.
   return rows.map((row, index) => {
